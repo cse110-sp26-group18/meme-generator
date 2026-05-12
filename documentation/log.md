@@ -30,10 +30,10 @@ Tim - I used Claude Opus 4.6 in high effort plan mode.
 
 #### Goals Not Achieved (Evaluate and re-implement)
 * Font size does not automatically resize based on the text box size — font resizability was not achieved
-* Downloaded meme has a different text appearance than what is seen on the website (example below)
+* Downloaded meme has a different text appearance than what is seen on the website (example below with downloaded meme on the left and the webpage version on the right)
 
-![Downloaded_Meme_Visual](documentation/screenshots/v1_downloadedmeme.png)
-![Webpage_Meme_Visual](documentation/screenshots/v1_memefromwebpage.png)
+![Downloaded_Meme_Visual](./screenshots/v1_downloadedmeme.png)
+![Webpage_Meme_Visual](./screenshots/v1_memefromwebpage.png)
 
 #### Next Steps
 * Fix font automatic resizing

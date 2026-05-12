@@ -80,10 +80,6 @@ This file contains the user study work. It includes the survey, user responses, 
 
 This folder contains the different generated versions of the meme generator app. Each version has its own folder so we can keep track of how the app changes over time.
 
-### `versions/v1/`
-
-This is the first generated version of the app. It is built with simple HTML, CSS, and JavaScript.
-
 ---
 
 ## How to Run the App

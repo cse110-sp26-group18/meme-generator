@@ -1,0 +1,44 @@
+// Prompt: Create a website where a user can upload photo, click on the uploaded photo to add text, and the user can download the the edited image.
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meme Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="toolbar">
+    <label class="upload-btn">
+      Upload Image
+      <input type="file" id="image-upload" accept="image/*" hidden>
+    </label>
+
+    <select id="font-select">
+      <option value="Impact" selected>Impact</option>
+      <option value="Arial">Arial</option>
+      <option value="'Comic Sans MS', cursive">Comic Sans</option>
+      <option value="Helvetica, sans-serif">Helvetica</option>
+      <option value="Montserrat, sans-serif">Montserrat</option>
+    </select>
+
+    <label class="toggle-label">
+      <input type="checkbox" id="border-toggle" checked>
+      Text Border
+    </label>
+
+    <button id="download-btn">Download</button>
+  </div>
+
+  <div id="canvas-container">
+    <canvas id="meme-canvas"></canvas>
+    <div id="placeholder">Click "Upload Image" to get started</div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

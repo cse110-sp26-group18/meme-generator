@@ -12,7 +12,36 @@
 | `v1_test_download.test.js` | "Download generated meme" | `Exporter.js` |
 | `v1_test_responsive.test.js` | "Mobile-friendly and responsive design" (structural only) | `index.html` DOM structure |
 
-And setup.json is used to simulate API in Browser but unprovided in node.js
+### Detailed breakdown of each test file
+
+**`v1_upload.test.js`** — image upload and scaling
+- PNG / JPG / WEBP formats all load correctly
+- Images wider than 800 px are scaled down proportionally; smaller images are untouched
+- Re-uploading a second image replaces the first without crashing
+- Edge cases: empty file, null callback
+
+**`v1_text_editing.test.js`** — click-to-add, drag, delete
+- Clicking the canvas creates a text box at the click position (only after an image is loaded)
+- Dragging moves the box and is clamped within the container boundary
+- Delete button removes the box from the DOM
+
+**`v1_customization.test.js`** — font, border, resize
+- Font dropdown switches font family and updates state
+- Border toggle switches on/off and reflects in CSS class and state
+- All four corner handles resize the box; minimum size (80×40 px) is enforced
+- Emoji, CJK, and long strings are stored as plain text without errors
+
+**`v1_download.test.js`** — export to PNG
+- `exportMeme()` produces a PNG blob and triggers a `meme.png` download
+- Empty / whitespace text boxes are skipped; non-empty ones are all rendered
+- Text wraps on long lines; `\n` splits into separate lines
+
+**`v1_responsive.test.js`** — HTML structure across viewports
+- Viewport meta tag exists; key elements (upload / canvas / download) are present at 375 / 768 / 1280 px
+- Note: CSS layout cannot be verified in jsdom — manual testing in DevTools is required
+
+`setup.js` mocks browser APIs unavailable in Node.js (`URL.createObjectURL`, `<a>.click()`) and loads all v1 modules into the global scope before each test file runs.
+`jest.config,js` and `package.json` provide package for testing
 
 ## 2. Prerequisites — 
 
@@ -74,17 +103,7 @@ Or pass the filename directly:
 npx jest testing/v1_test_upload.test.js
 ```
 
-## 6. Known Limitations — 
-
-### Responsive / layout testing
-
-jsdom runs tests in a headless Node environment and **does not execute CSS**. This means:
-
-- Media queries are never evaluated.
-- `offsetWidth`, `offsetHeight`, `getBoundingClientRect()` all return `0` by default — tests mock these where necessary.
-- Visual layout at different viewport widths cannot be verified automatically.
-
-**What to do:** After the unit tests pass, open `versions/v1/index.html` in Chrome DevTools and use the device toolbar to manually test at 375 px (iPhone SE), 768 px (iPad), and 1280 px (desktop).
+## 6. Result Interpretation — 
 
 ### Coverage Gaps — v1 features not yet implemented
 

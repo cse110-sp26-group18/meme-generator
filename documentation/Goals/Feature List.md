@@ -1,9 +1,9 @@
 # Prioritized Features/Tasks
 
-[] Direct text-on-image editing
-[] Compatibility across desktop, tablet, and phone
-[] Meme templates with popular characters/emotions
-[] Simple text tools:
+- [ ] Direct text-on-image editing
+- [ ] Compatibility across desktop, tablet, and phone
+- [ ] Meme templates with popular characters/emotions
+- [ ] Simple text tools:
   - Fonts
   - Colors
   - Borders/highlights

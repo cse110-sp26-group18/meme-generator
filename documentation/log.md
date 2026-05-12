@@ -18,10 +18,20 @@
   
 ### Observations 
 
+Tim - I used Claude Opus 4.6 in high effort plan mode.
+
 #### Goals Achieved
+* Text added by the user is draggable and repositionable via drag-and-drop
+* Text box corners support drag-and-drop resizing to automatically resize the text box
+* Default font is Impact with white text and black borders
+* A toggle bar above the text box includes a dropdown menu allowing font selection from: Arial, Comic Sans, Helvetica, and Montserrat
+* Users can toggle between no border and border styles, with border enabled as the default
 
 #### Goals Not Achieved (Evaluate and re-implement)
+* Font size does not automatically resize based on the text box size — font resizability was not achieved
 
 #### Next Steps
-
+* Fix font automatic resizing
+* Improve design/ui
+* Begin implementing features
 

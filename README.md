@@ -28,147 +28,76 @@ Since memes are usually made and shared quickly in group chats, social media, an
 
 ---
 
-## Core Design Goals
+## Repo Organization
 
-### 1. Direct Text-on-Image Editing
+This repo is organized so that people can understand both the project idea and the different versions of the app.
 
-One of the biggest things we want to focus on is making text editing feel natural. Instead of having the user type text into a separate box and then guess where it will show up, we want the user to click directly on the image and add text exactly where they want it.
+The main folders are:
 
-After the text is placed, the user should still be able to move it, resize it, and edit it. This is important because meme editing should feel quick and flexible, not like the user has to restart every time they make a small mistake.
+- `documentation/`
+- `research/`
+- `versions/`
 
-This is one of our highest priority features because it solves one of the most frustrating parts of existing meme generators.
+The `documentation/` folder is for project planning, goals, workflow, and logs.
 
----
+The `research/` folder is for user research, survey information, personas, and user stories.
 
-### 2. Mobile-Friendly and Responsive Design
-
-We want the app to work well on different screen sizes, especially phones. A lot of memes are made and sent while people are already texting, scrolling through Instagram, or talking in group chats, so the app needs to feel usable on mobile.
-
-The app should work on:
-
-- Desktop
-- Tablet
-- Phone
-
-For now, we are not necessarily trying to build a full mobile app. Instead, we want the website to be responsive enough that it still feels smooth and usable on smaller screens.
+The `versions/` folder is for the generated versions of the app.
 
 ---
 
-### 3. Upload Image or Choose a Meme Template
+## Important Folders and Files
 
-Users should have two simple ways to start making a meme.
+### `documentation/`
 
-They should be able to upload their own image if they already have a photo, screenshot, or meme they want to edit. They should also be able to choose from a small template library if they need a starting point.
+This folder holds the main planning and process documents for the project.
 
-For the first version, we want to keep the template library small, around 10–20 templates. This keeps the app from feeling overwhelming while still giving users enough options to start with.
+### `documentation/Goals/CoreDesign.md`
 
-Later on, the library can grow into something bigger with categories, emotions, characters, or search features.
+This file explains what the project is about. It has the deeper project overview, the core design goals, and the main direction for the meme generator.
 
----
+### `documentation/Goals/Feature List.md`
 
-### 4. Simple Text Editing Tools
+This file tracks the features we want to build. It works like a task list for the project features, including what is high priority, what is lower priority, what is already done, and what still needs to be worked on.
 
-The first version should include the basic text tools that users would actually need when making a meme. We do not want to overload the editor with too many complicated settings, but the user should still have enough control to make the meme readable and funny.
+### `documentation/log.md`
 
-Text tools we want to include:
+This file tracks what happens during each iteration of the project. It includes the prompts used, what worked, what did not work, and what should be fixed or improved in the next version.
 
-- Font selection
-- Text color
-- Text border or outline
-- Background highlight
-- Bold and italic options
-- Resizable text
+### `documentation/workflow.md`
 
-The default meme font should be Impact because it is the classic meme font. Other possible fonts include Arial, Comic Sans, Helvetica, and Montserrat.
+This file explains how we go about ideas and project decisions. It is used to describe the team process and how we move from planning to implementation.
 
-The goal is not to make a full graphic design tool. The goal is to give users just enough customization to make the meme work.
+### `research/`
 
----
+This folder holds the user research for the project.
 
-### 5. Download and Copy/Paste Support
+### `research/user-study.md`
 
-After the user finishes a meme, they should be able to save or share it easily.
+This file contains the user study work. It includes the survey, user responses, personas, and user stories. This helps us understand who we are building the app for and what problems we are trying to solve.
 
-Users should be able to:
+### `versions/`
 
-- Download the finished meme
-- Copy and paste the finished meme
+This folder contains the different generated versions of the meme generator app. Each version has its own folder so we can keep track of how the app changes over time.
 
-Copy and paste is important because memes are usually shared quickly. If someone has to download every meme before sending it, that adds extra steps and can slow down the whole point of making the meme.
+### `versions/v1/`
 
-Downloading is still useful because some users may want to save memes for later or upload them somewhere else.
+This is the first generated version of the app. It is built with simple HTML, CSS, and JavaScript.
+
+### `CLAUDE.md`
+
+This file contains notes or context generated by Claude. It helps explain what Claude did or what context it used while generating code.
 
 ---
 
-## AI Features Being Considered
+## How to Run the App
 
-We are interested in adding AI features, but we want to make sure the basic meme editor works first. AI could make the app more useful, but only if it actually makes the process faster and easier instead of adding more confusion.
+The app versions are built with basic HTML, CSS, and JavaScript, so there is no installation needed.
 
-Some AI features we are considering are:
+To run the current version, open:
 
-- Generating meme captions
-- Changing existing meme captions
-- Editing uploaded images using prompts
-- Changing facial expressions or visual features
-- Removing or replacing text from existing memes
-- Creating motion in memes
+`versions/v1/index.html`
 
-These features still need to be tested. Some of them may be harder to implement than expected, so they are not the main focus for the first version.
-
-For now, our priority is to build a working photo meme editor before expanding into more advanced AI tools.
+You can run it by double-clicking the `index.html` file or opening it with your browser.
 
 ---
-
-## Planned Meme Template Library
-
-The first meme library should be small and easy to browse. We want users to have templates available, but we do not want the library to be so large that people spend more time searching than actually making a meme.
-
-The template library may include:
-
-- Popular meme formats
-- Popular characters
-- Emotion-based categories
-- Recognizable reaction images
-
-In the future, we could organize templates by character or emotion. For example, a user could click on a character and then see different emotional versions of that character, such as confused, angry, excited, or disappointed.
-
-This would help users who know the feeling they want to express but do not know the exact name of the meme.
-
----
-
-## Design Philosophy
-
-The main design goal is to make meme creation feel quick and low-effort.
-
-Our app should focus on:
-
-- Speed
-- Simplicity
-- Low friction
-- Easy sharing
-- Fun and recognizable meme formats
-- A casual editing experience
-
-We do not want the app to feel like a complicated editing program. A user should be able to open it, make a meme, and share it without thinking too much.
-
-The app also does not need to feel overly polished at first. A slightly messy or low-quality meme style can actually fit the meme culture better, as long as the editor itself is easy to understand and use.
-
----
-
-## Current Priority List
-
-Right now, these are the features we care about the most:
-
-1. Direct text-on-image editing
-2. Responsive design for different screen sizes
-3. Upload image support
-4. Download and copy/paste support
-5. Basic text customization tools
-6. Small meme template library
-7. Popular character or emotion-based template organization
-8. AI caption or text-editing features
-9. Video/GIF support
-10. Social sharing and audio features
-
-The first few items are the most important because they make up the basic version of the app. The later items are features we can explore once the core editor works well.
-

@@ -4,7 +4,7 @@ This document tracks each version of the project, including prompts used, AI mod
 
 ## Table of Contents
 
-[Version 1](#version-1)
+[Version 1](#version-1) (5/11/26)
 
 ---
 <a id="version-1"></a>

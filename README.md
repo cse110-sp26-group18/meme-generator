@@ -161,7 +161,6 @@ This folder contains the different generated versions of the meme generator app.
 ### `versions/v1/`
 
 This folder contains the first generated version of the meme generator app.
-
 ---
 
 ## AI Generation and Version Tracking

@@ -1,0 +1,267 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: #1a1a2e;
+  color: #eee;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+header {
+  padding: 20px;
+  text-align: center;
+}
+
+header h1 {
+  font-size: 2rem;
+  color: #fff;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px 40px;
+  width: 100%;
+  max-width: 900px;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.upload-btn {
+  display: inline-block;
+  padding: 10px 20px;
+  background: #e94560;
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.upload-btn:hover {
+  background: #c73650;
+}
+
+#download-btn {
+  padding: 10px 20px;
+  background: #0f3460;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+#download-btn:hover:not(:disabled) {
+  background: #16213e;
+}
+
+#download-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.canvas-container {
+  position: relative;
+  display: inline-block;
+  background: #16213e;
+  border: 2px dashed #333;
+  border-radius: 8px;
+  min-width: 400px;
+  min-height: 300px;
+  overflow: visible;
+}
+
+.canvas-container.has-image {
+  border-style: solid;
+  border-color: #0f3460;
+}
+
+#meme-canvas {
+  display: block;
+}
+
+.placeholder {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.2rem;
+  color: #555;
+  pointer-events: none;
+  user-select: none;
+}
+
+.hint {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+/* Text Box */
+.text-box {
+  position: absolute;
+  min-width: 80px;
+  min-height: 40px;
+  /* default cursor — moving is now done only via the move handle */
+  cursor: default;
+  z-index: 10;
+}
+
+.text-box.selected {
+  z-index: 20;
+}
+
+.text-box textarea {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: 2px dashed rgba(255, 255, 255, 0.5);
+  color: #fff;
+  font-family: Impact, sans-serif;
+  font-size: 24px;
+  padding: 4px 6px;
+  resize: none;
+  outline: none;
+  overflow: hidden;
+  cursor: text;
+  -webkit-text-stroke: 1px black;
+  text-shadow:
+    -1px -1px 0 #000,
+     1px -1px 0 #000,
+    -1px  1px 0 #000,
+     1px  1px 0 #000;
+}
+
+.text-box textarea.no-border {
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+
+.text-box.selected textarea {
+  border-color: rgba(0, 123, 255, 0.8);
+}
+
+/* Toolbar */
+.text-box-toolbar {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  background: rgba(0, 0, 0, 0.85);
+  border-radius: 4px;
+  padding: 4px 6px;
+  gap: 6px;
+  align-items: center;
+  white-space: nowrap;
+  margin-bottom: 4px;
+  z-index: 30;
+}
+
+.text-box.selected .text-box-toolbar {
+  display: flex;
+}
+
+.text-box-toolbar select {
+  padding: 2px 4px;
+  border-radius: 3px;
+  border: 1px solid #555;
+  background: #222;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.text-box-toolbar button {
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid #555;
+  background: #222;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.text-box-toolbar button:hover {
+  background: #444;
+}
+
+.text-box-toolbar .delete-btn {
+  color: #e94560;
+  font-weight: bold;
+  font-size: 14px;
+  padding: 2px 6px;
+}
+
+/* Move handle */
+.text-box-toolbar .move-handle {
+  cursor: grab;
+  /* touch-action: none tells the browser not to handle this touch for
+     scrolling or other gestures, which lets pointer events fire cleanly
+     for drag on mobile without interference */
+  touch-action: none;
+  user-select: none;
+  color: #adf;
+  border-color: #446;
+}
+
+.text-box-toolbar .move-handle:active {
+  cursor: grabbing;
+  background: #333;
+}
+
+/* Resize Handles */
+.resize-handle {
+  display: none;
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #007bff;
+  border: 1px solid #fff;
+  border-radius: 2px;
+  z-index: 25;
+}
+
+.text-box.selected .resize-handle {
+  display: block;
+}
+
+.resize-handle.top-left {
+  top: -6px;
+  left: -6px;
+  cursor: nw-resize;
+}
+
+.resize-handle.top-right {
+  top: -6px;
+  right: -6px;
+  cursor: ne-resize;
+}
+
+.resize-handle.bottom-left {
+  bottom: -6px;
+  left: -6px;
+  cursor: sw-resize;
+}
+
+.resize-handle.bottom-right {
+  bottom: -6px;
+  right: -6px;
+  cursor: se-resize;
+}

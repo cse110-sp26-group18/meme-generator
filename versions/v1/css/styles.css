@@ -91,6 +91,8 @@ main {
 .canvas-container.has-image {
   border-style: solid;
   border-color: #0f3460;
+  min-width: 0;
+  min-height: 0;
 }
 
 #meme-canvas {

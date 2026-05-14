@@ -249,3 +249,9 @@ main {
   right: -6px;
   cursor: se-resize;
 }
+
+@media (min-width: 769px) {
+  .text-box.selected .text-box-toolbar .delete-btn {
+    display: none;
+  }
+}

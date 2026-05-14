@@ -26,6 +26,28 @@ MemeGen.TextBoxManager = (function () {
         deselectAll();
       }
     });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Delete' && e.key !== 'Backspace') {
+        return;
+      }
+
+      var activeEl = document.activeElement;
+
+      if (
+        activeEl &&
+        (
+          activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.tagName === 'SELECT' ||
+          activeEl.isContentEditable
+        )
+      ) {
+        return;
+      }
+
+      deleteSelectedTextBox();
+    });
   }
 
   function setImageLoaded(loaded) {
@@ -49,6 +71,16 @@ MemeGen.TextBoxManager = (function () {
     textBoxes.push(tb);
     deselectAll();
     tb.select();
+  }
+
+  function deleteSelectedTextBox() {
+    var selectedBox = textBoxes.find(function (tb) {
+      return tb.selected;
+    });
+
+    if (selectedBox) {
+      selectedBox.destroy();
+    }
   }
 
   function deselectAll() {

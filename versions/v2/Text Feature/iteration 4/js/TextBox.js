@@ -14,6 +14,7 @@ MemeGen.TextBox = (function () {
     this.width = 200;
     this.height = 60;
     this.fontSize = 24;        // authoritative font size in px — shared by live editor and exporter
+    this._manualFontSize = this.fontSize; // tracks the user's explicitly chosen size; auto-shrink may go lower
     this.fontFamily = 'Impact';
     this.borderEnabled = true;
     this.selected = false;
@@ -161,6 +162,7 @@ MemeGen.TextBox = (function () {
     this.fontSizeDecBtn.addEventListener('click', function () {
       var newSize = self.fontSize - FONT_SIZE_STEP;
       self.applyFontSize(newSize);
+      self._manualFontSize = self.fontSize;
       self._fitBoxToFontSize();
     });
 
@@ -168,7 +170,12 @@ MemeGen.TextBox = (function () {
     this.fontSizeIncBtn.addEventListener('click', function () {
       var newSize = self.fontSize + FONT_SIZE_STEP;
       self.applyFontSize(newSize);
+      self._manualFontSize = self.fontSize;
       self._fitBoxToFontSize();
+    });
+
+    this.textarea.addEventListener('input', function () {
+      self._autoFitText();
     });
 
     this.el.addEventListener('mousedown', function (e) {
@@ -195,6 +202,19 @@ MemeGen.TextBox = (function () {
   TextBox.prototype._fitBoxToFontSize = function () {
     var newHeight = Math.max(40, Math.round(this.fontSize * 2.5));
     this.el.style.height = newHeight + 'px';
+  };
+
+  TextBox.prototype._autoFitText = function () {
+    while (this.textarea.scrollHeight > this.textarea.clientHeight && this.fontSize > FONT_SIZE_MIN) {
+      this.applyFontSize(this.fontSize - 1);
+    }
+    while (this.fontSize < this._manualFontSize) {
+      this.applyFontSize(this.fontSize + 1);
+      if (this.textarea.scrollHeight > this.textarea.clientHeight) {
+        this.applyFontSize(this.fontSize - 1);
+        break;
+      }
+    }
   };
 
   TextBox.prototype.select = function () {

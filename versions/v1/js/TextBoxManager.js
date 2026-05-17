@@ -21,6 +21,18 @@ MemeGen.TextBoxManager = (function () {
       }
     });
 
+    // Support tap-to-create on touch devices
+    container.addEventListener('touchend', function (e) {
+      if (e.target === canvas && imageLoaded) {
+        e.preventDefault();
+        var rect = canvas.getBoundingClientRect();
+        var touch = e.changedTouches[0];
+        var x = touch.clientX - rect.left;
+        var y = touch.clientY - rect.top;
+        createTextBox(x, y);
+      }
+    });
+
     document.addEventListener('mousedown', function (e) {
       if (!container.contains(e.target)) {
         deselectAll();
@@ -49,6 +61,7 @@ MemeGen.TextBoxManager = (function () {
     textBoxes.push(tb);
     deselectAll();
     tb.select();
+    tb.focusTextarea();
   }
 
   function deselectAll() {

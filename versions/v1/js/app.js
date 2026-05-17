@@ -24,6 +24,51 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
+  function firstImageFile(fileList) {
+    if (!fileList) return null;
+    for (var i = 0; i < fileList.length; i++) {
+      if (fileList[i].type && fileList[i].type.indexOf('image/') === 0) {
+        return fileList[i];
+      }
+    }
+    return null;
+  }
+
+  ['dragenter', 'dragover'].forEach(function (evt) {
+    container.addEventListener(evt, function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+      container.classList.add('drag-over');
+    });
+  });
+
+  ['dragleave', 'dragend'].forEach(function (evt) {
+    container.addEventListener(evt, function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (evt === 'dragleave' && container.contains(e.relatedTarget)) return;
+      container.classList.remove('drag-over');
+    });
+  });
+
+  container.addEventListener('drop', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    container.classList.remove('drag-over');
+    var file = firstImageFile(e.dataTransfer && e.dataTransfer.files);
+    if (file) {
+      MemeGen.ImageLoader.loadFromFile(file);
+    }
+  });
+
+  // Block the browser from opening the file if the drop misses the container.
+  ['dragover', 'drop'].forEach(function (evt) {
+    window.addEventListener(evt, function (e) {
+      if (!container.contains(e.target)) e.preventDefault();
+    });
+  });
+
   downloadBtn.addEventListener('click', function () {
     var image = MemeGen.ImageLoader.getImage();
     var ctx = MemeGen.ImageLoader.getContext();

@@ -94,6 +94,8 @@ MemeGen.ImageLoader = (function () {
     getContext: getContext,
     redraw: redraw
   };
+
+ 
 })();
 
 window.MemeGen = MemeGen;

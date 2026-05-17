@@ -1,62 +1,65 @@
 var MemeGen = window.MemeGen || {};
 
 MemeGen.TemplateLibrary = (function () {
-  function TemplateLibrary(onSelectTemplate) {
-    this.onSelectTemplate = onSelectTemplate;
-    this.templates = [];
-    this.grid = document.getElementById('template-grid');
-    this.search = document.getElementById('template-search');
-    this.overlay = document.getElementById('modal-overlay');
-    this.initListeners();
+
+  var templates = [];
+  var filtered = [];
+
+  var grid, search, onSelect;
+
+  async function init(gridEl, searchEl, callback) {
+
+    grid = gridEl;
+    search = searchEl;
+    onSelect = callback;
+
+    await loadTemplates();
+    render();
+
+    search.addEventListener("input", function () {
+      filter(search.value);
+    });
   }
 
-  TemplateLibrary.prototype.fetchTemplates = async function () {
-    try {
-      this.grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 20px;">Loading templates...</p>';
-      const response = await fetch('https://api.memegen.link/templates');
-      this.templates = await response.json();
-      this.render();
-    } catch (error) {
-      console.error('Failed to fetch templates:', error);
-      this.grid.innerHTML = '<p>Error loading templates. Please try again later.</p>';
-    }
-  };
+  async function loadTemplates() {
+    const res = await fetch("https://api.memegen.link/templates/");
+    templates = await res.json();
+    filtered = templates;
+  }
 
-  TemplateLibrary.prototype.initListeners = function () {
-    this.search.addEventListener('input', (e) => this.render(e.target.value));
-    
-    document.getElementById('browse-templates-btn').addEventListener('click', () => {
-      this.overlay.style.display = 'flex';
-      if (this.templates.length === 0) this.fetchTemplates();
-    });
+  function filter(query) {
+    query = query.toLowerCase();
 
-    document.getElementById('close-modal').addEventListener('click', () => {
-      this.overlay.style.display = 'none';
-    });
-  };
-
-  TemplateLibrary.prototype.render = function (filter = '') {
-    this.grid.innerHTML = '';
-    const filtered = this.templates.filter(t => 
-      t.name.toLowerCase().includes(filter.toLowerCase())
+    filtered = templates.filter(t =>
+      t.name.toLowerCase().includes(query) ||
+      t.id.toLowerCase().includes(query)
     );
 
-    filtered.slice(0, 50).forEach(template => {
-      const item = document.createElement('div');
-      item.className = 'template-item';
-      item.innerHTML = `
-        <img src="${template.blank}" alt="${template.name}" loading="lazy">
-        <p style="font-size: 11px; text-align: center; margin-top: 4px;">${template.name}</p>
+    render();
+  }
+
+  function render() {
+    grid.innerHTML = "";
+
+    filtered.forEach(t => {
+      const div = document.createElement("div");
+      div.className = "template-item";
+
+      div.innerHTML = `
+        <img src="${t.blank}">
+        <p>${t.name}</p>
       `;
-      item.onclick = () => {
-        this.onSelectTemplate(template.blank);
-        this.overlay.style.display = 'none';
-      };
-      this.grid.appendChild(item);
+
+      div.onclick = () => onSelect(t);
+
+      grid.appendChild(div);
     });
+  }
+
+  return {
+    init
   };
 
-  return TemplateLibrary;
 })();
 
 window.MemeGen = MemeGen;

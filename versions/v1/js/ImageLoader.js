@@ -1,7 +1,10 @@
 var MemeGen = window.MemeGen || {};
 
 MemeGen.ImageLoader = (function () {
+  var MIN_WIDTH = 400;
+  var MIN_HEIGHT = 300;
   var MAX_WIDTH = 800;
+  var MAX_HEIGHT = 800;
   var image = null;
   var canvas = null;
   var ctx = null;
@@ -13,19 +16,30 @@ MemeGen.ImageLoader = (function () {
     onLoadCallback = callback;
   }
 
+  function fitWithinRange(width, height) {
+    var downscale = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height, 1);
+    width = width * downscale;
+    height = height * downscale;
+
+    if (width < MIN_WIDTH && height < MIN_HEIGHT) {
+      var upscale = Math.max(MIN_WIDTH / width, MIN_HEIGHT / height);
+      upscale = Math.min(upscale, MAX_WIDTH / width, MAX_HEIGHT / height);
+      width = width * upscale;
+      height = height * upscale;
+    }
+
+    return { width: Math.round(width), height: Math.round(height) };
+  }
+
   function loadFromFile(file) {
     var reader = new FileReader();
     reader.onload = function (e) {
       var img = new Image();
       img.onload = function () {
         image = img;
-        var width = img.width;
-        var height = img.height;
-
-        if (width > MAX_WIDTH) {
-          height = Math.round(height * (MAX_WIDTH / width));
-          width = MAX_WIDTH;
-        }
+        var size = fitWithinRange(img.width, img.height);
+        var width = size.width;
+        var height = size.height;
 
         canvas.width = width;
         canvas.height = height;

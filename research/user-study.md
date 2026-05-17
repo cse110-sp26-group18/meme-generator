@@ -94,3 +94,12 @@ Samir usually starts with a joke idea or a vague memory of a meme he has seen be
 - Multiple template previews for the same joke idea.
 
 ## User Stories  
+
+### Story 1 — Maya (The Group Chat Reactor)
+As a group chat user who sends quick reactions, I want to pick a meme template, add my caption in one tap, and copy or download it immediately, so that making a meme feels as fast and effortless as sending a GIF.
+
+### Story 2 — Leo (The Instagram Story Remixer)
+As someone who posts memes to Instagram Stories, I want to upload an existing meme image and edit its text directly on the image, so that I can customize a meme quickly without needing to switch between multiple apps.
+
+### Story 3 — Samir (The Template Hunter)
+As someone who has a joke in mind but doesn't know which meme format fits, I want to browse a small library of recognizable templates, so that I can find a familiar starting point without needing to know the meme's official name.

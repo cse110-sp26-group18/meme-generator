@@ -91,6 +91,18 @@ main {
 .canvas-container.has-image {
   border-style: solid;
   border-color: #0f3460;
+  min-width: 0;
+  min-height: 0;
+}
+
+.canvas-container.drag-over {
+  border-style: dashed;
+  border-color: #e94560;
+  background: #1f2a4a;
+}
+
+.canvas-container.drag-over .placeholder {
+  color: #e94560;
 }
 
 #meme-canvas {

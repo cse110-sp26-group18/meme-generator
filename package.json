@@ -1,0 +1,20 @@
+{
+  "name": "pandalorian-meme-generator",
+  "version": "1.0.0",
+  "description": "CSE110 Team 18 — Meme Generator test suite",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:upload": "jest testing/v1_test_upload.test.js",
+    "test:text": "jest testing/v1_test_text_editing.test.js",
+    "test:custom": "jest testing/v1_test_customization.test.js",
+    "test:download": "jest testing/v1_test_download.test.js",
+    "test:responsive": "jest testing/v1_test_responsive.test.js"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "jest-canvas-mock": "^2.5.2"
+  }
+}

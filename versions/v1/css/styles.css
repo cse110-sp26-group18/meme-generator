@@ -130,7 +130,7 @@ main {
   position: absolute;
   min-width: 80px;
   min-height: 40px;
-  cursor: move;
+  cursor: default;
   z-index: 10;
 }
 
@@ -260,8 +260,47 @@ main {
   cursor: se-resize;
 }
 
-@media (min-width: 769px) {
-  .text-box.selected .text-box-toolbar .delete-btn {
-    display: none;
-  }
+/* Move handle */
+.text-box-toolbar .move-handle {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  color: #adf;
+  border-color: #446;
+}
+
+.text-box-toolbar .move-handle:active {
+  cursor: grabbing;
+  background: #333;
+}
+
+/* Visual separator between toolbar groups */
+.toolbar-sep {
+  display: inline-block;
+  width: 1px;
+  height: 16px;
+  background: #555;
+  align-self: center;
+}
+
+/* Font-size A− / display / A+ controls */
+.text-box-toolbar .font-size-btn {
+  font-weight: bold;
+  font-size: 13px;
+  min-width: 30px;
+  padding: 2px 6px;
+}
+
+.font-size-display {
+  display: inline-block;
+  min-width: 34px;
+  text-align: center;
+  font-size: 11px;
+  color: #fff;
+  background: #111;
+  border: 1px solid #555;
+  border-radius: 3px;
+  padding: 2px 4px;
+  pointer-events: none;
+  user-select: none;
 }

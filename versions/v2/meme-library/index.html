@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meme Generator v2 - Template Library</title>
+  <link rel="stylesheet" href="library/css/styles.css">
+</head>
+<body>
+  <header>
+    <h1>Meme Generator</h1>
+  </header>
+
+  <main>
+    <div class="controls">
+      <button id="browse-templates-btn">Browse Templates</button>
+      <label for="image-input" class="upload-btn">Upload Image</label>
+      <input type="file" id="image-input" accept="image/*" style="display: none;">
+      <button id="download-btn" disabled>Download Meme</button>
+    </div>
+
+    <div class="canvas-container" id="container">
+      <canvas id="meme-canvas"></canvas>
+      <div class="placeholder">Click "Browse Templates" or Upload to start</div>
+    </div>
+    <p class="hint">Click on the image to add text once an image is loaded.</p>
+  </main>
+
+  <!-- Template Modal -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Meme Templates</h2>
+        <button id="close-modal" class="upload-btn" style="background: #333;">Close</button>
+      </div>
+      <input type="text" id="template-search" placeholder="Search templates (e.g. 'cat', 'dog', 'distracted')...">
+      <div class="template-grid" id="template-grid">
+        <!-- Templates injected here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- App Logic -->
+  <script src="library/js/ImageLoader.js"></script>
+  <script src="library/js/TemplateLibrary.js"></script>
+
+  <!-- your other MemeGen files -->
+  <script src="library/js/TextBoxManager.js"></script>
+  <script src="library/js/Exporter.js"></script>
+
+  <!-- app LAST -->
+  <script src="library/js/app.js"></script>
+</body>
+</html>

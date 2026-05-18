@@ -40,10 +40,9 @@ MemeGen.Exporter = (function () {
 
       var padding = 6;
       var boxInnerWidth = state.width - padding * 2;
-
       // Use the font size the user sees in the editor, not a re-derived formula.
-      // state.fontSize is set and kept in sync by TextBox.applyFontSize(), so
-      // the exported PNG always matches what was visible on screen.
+      // state.fontSize is kept in sync by TextBox.applyFontSize(), so the
+      // exported PNG always matches what was visible on screen.
       var fontSize = state.fontSize;
       var fontFamily = state.fontFamily || 'Impact';
 

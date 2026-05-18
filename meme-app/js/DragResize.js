@@ -100,10 +100,7 @@ MemeGen.DragResize = (function () {
           break;
       }
 
-      // Derive font size from the new box height using the same formula the
-      // exporter used to use independently. Now both sides read this.fontSize,
-      // so they are guaranteed to match. newHeight is the clamped value from
-      // the switch above; el.offsetHeight would also work but avoids a reflow.
+      // Keep font size in sync with box height so live editor and exporter always match.
       textBox.applyFontSize(newHeight * 0.4);
     });
 

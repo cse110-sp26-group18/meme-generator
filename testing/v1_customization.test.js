@@ -277,6 +277,79 @@ describe('Text Box Resize — all four corner handles', () => {
   });
 });
 
+// ── Font Auto-Resize Behavior ────────────────────────────────────────────────
+
+describe('Text Box Font Auto-Resize', () => {
+  let container;
+  let textBox;
+
+  beforeEach(() => {
+    container = makeContainer();
+
+    textBox = new MemeGen.TextBox(100, 100, container);
+
+    Object.defineProperty(textBox.el, 'offsetWidth', {
+      get: () => parseInt(textBox.el.style.width) || 200,
+      configurable: true
+    });
+
+    Object.defineProperty(textBox.el, 'offsetHeight', {
+      get: () => parseInt(textBox.el.style.height) || 80,
+      configurable: true
+    });
+
+    MemeGen.DragResize.attach(textBox);
+
+    textBox.textarea.value = 'Resizable text';
+  });
+
+  afterEach(() => {
+    document.body.removeChild(container);
+  });
+
+  function getFontSize() {
+    return parseFloat(window.getComputedStyle(textBox.textarea).fontSize);
+  }
+
+  it('should increase text size when the textbox gets larger', () => {
+    const initialFontSize = getFontSize();
+
+    textBox.el.style.width = '400px';
+    textBox.el.style.height = '160px';
+
+    const newFontSize = getFontSize();
+
+    expect(newFontSize).toBeGreaterThan(initialFontSize);
+  });
+
+  it('should decrease text size when the textbox gets smaller', () => {
+    textBox.el.style.width = '400px';
+    textBox.el.style.height = '160px';
+
+    const largeFontSize = getFontSize();
+
+    textBox.el.style.width = '100px';
+    textBox.el.style.height = '40px';
+
+    const smallFontSize = getFontSize();
+
+    expect(smallFontSize).toBeLessThan(largeFontSize);
+  });
+
+  it('should keep the text inside the textbox bounds', () => {
+    textBox.el.style.width = '150px';
+    textBox.el.style.height = '50px';
+
+    expect(textBox.textarea.scrollWidth).toBeLessThanOrEqual(
+      textBox.textarea.clientWidth
+    );
+
+    expect(textBox.textarea.scrollHeight).toBeLessThanOrEqual(
+      textBox.textarea.clientHeight
+    );
+  });
+});
+
 // ── Special Characters in Text ────────────────────────────────────────────────
 
 describe('Text Box — special character content', () => {

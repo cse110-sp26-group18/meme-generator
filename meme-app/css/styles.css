@@ -91,6 +91,18 @@ main {
 .canvas-container.has-image {
   border-style: solid;
   border-color: #0f3460;
+  min-width: 0;
+  min-height: 0;
+}
+
+.canvas-container.drag-over {
+  border-style: dashed;
+  border-color: #e94560;
+  background: #1f2a4a;
+}
+
+.canvas-container.drag-over .placeholder {
+  color: #e94560;
 }
 
 #meme-canvas {
@@ -118,7 +130,6 @@ main {
   position: absolute;
   min-width: 80px;
   min-height: 40px;
-  /* default cursor — moving is now done only via the move handle */
   cursor: default;
   z-index: 10;
 }
@@ -209,23 +220,6 @@ main {
   padding: 2px 6px;
 }
 
-/* Move handle */
-.text-box-toolbar .move-handle {
-  cursor: grab;
-  /* touch-action: none tells the browser not to handle this touch for
-     scrolling or other gestures, which lets pointer events fire cleanly
-     for drag on mobile without interference */
-  touch-action: none;
-  user-select: none;
-  color: #adf;
-  border-color: #446;
-}
-
-.text-box-toolbar .move-handle:active {
-  cursor: grabbing;
-  background: #333;
-}
-
 /* Resize Handles */
 .resize-handle {
   display: none;
@@ -264,4 +258,49 @@ main {
   bottom: -6px;
   right: -6px;
   cursor: se-resize;
+}
+
+/* Move handle */
+.text-box-toolbar .move-handle {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  color: #adf;
+  border-color: #446;
+}
+
+.text-box-toolbar .move-handle:active {
+  cursor: grabbing;
+  background: #333;
+}
+
+/* Visual separator between toolbar groups */
+.toolbar-sep {
+  display: inline-block;
+  width: 1px;
+  height: 16px;
+  background: #555;
+  align-self: center;
+}
+
+/* Font-size A− / display / A+ controls */
+.text-box-toolbar .font-size-btn {
+  font-weight: bold;
+  font-size: 13px;
+  min-width: 30px;
+  padding: 2px 6px;
+}
+
+.font-size-display {
+  display: inline-block;
+  min-width: 34px;
+  text-align: center;
+  font-size: 11px;
+  color: #fff;
+  background: #111;
+  border: 1px solid #555;
+  border-radius: 3px;
+  padding: 2px 4px;
+  pointer-events: none;
+  user-select: none;
 }

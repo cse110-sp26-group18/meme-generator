@@ -1,0 +1,60 @@
+[
+  {
+    "id": "drake-hotline-bling",
+    "name": "Drake Hotline Bling",
+    "category": "reaction",
+    "tags": ["decision", "approval", "disapproval"],
+    "image": "assets/templates/drake/drake.png",
+    "textBoxes": [
+      {
+        "id": "top-text",
+        "defaultText": "Bad option",
+        "x": 300,
+        "y": 80,
+        "width": 250,
+        "height": 100
+      },
+      {
+        "id": "bottom-text",
+        "defaultText": "Good option",
+        "x": 300,
+        "y": 300,
+        "width": 250,
+        "height": 100
+      }
+    ]
+  },
+  {
+    "id": "distracted-boyfriend",
+    "name": "Distracted Boyfriend",
+    "category": "reaction",
+    "tags": ["choice", "temptation", "comparison"],
+    "image": "assets/templates/distracted-boyfriend/distracted-boyfriend.png",
+    "textBoxes": [
+      {
+        "id": "girlfriend-text",
+        "defaultText": "What I should do",
+        "x": 80,
+        "y": 120,
+        "width": 180,
+        "height": 80
+      },
+      {
+        "id": "boyfriend-text",
+        "defaultText": "Me",
+        "x": 300,
+        "y": 150,
+        "width": 120,
+        "height": 60
+      },
+      {
+        "id": "other-girl-text",
+        "defaultText": "What I want to do",
+        "x": 470,
+        "y": 100,
+        "width": 180,
+        "height": 80
+      }
+    ]
+  }
+]

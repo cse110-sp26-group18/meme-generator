@@ -86,9 +86,11 @@ main {
   min-width: 400px;
   min-height: 300px;
   overflow: visible;
+  cursor: pointer;
 }
 
 .canvas-container.has-image {
+  cursor: default;
   border-style: solid;
   border-color: #0f3460;
   min-width: 0;

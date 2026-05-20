@@ -4,25 +4,20 @@ This document tracks each version of the project, including prompts used, AI mod
 
 ## Table of Contents
 
-[Version 1](#version-1) (5/11/26)
+[Version 0.1.0](#version-0.1.0) (5/11/26)
 
 ---
-<a id="version-1"></a>
-## Version 1
+<a id="version-0.1.0"></a>
+## Version 0.1.0
 
 ### Prompt Used
-Create a website where a user can upload photo, click on the uploaded photo to add text, and the user can download the the edited image. 
-* text that the user adds must be shiftable based on drag-and-drop and the text should be automatically resizable based of drag-and-drop of the corners of the text box
-* the default text should be the Impact font with white text and black borders
-* font can be modified with a toggle bar above the text box that has a dropdown menu of the following other fonts: Arial, Comic Sans, Helvetica, Montserrat
-* allow users to choose between no border and border (the default option should be borders)
-  
-### AI Model Used 
 
-Tim - I used Claude Opus 4.6 in high effort plan mode.
+ 
+### AI Model Used 
+Claude Opus 4.6 in high effort plan mode (Tim)
 
 ## Observations 
-#### Goals Achieved
+#### What Worked
 * Text added by the user is draggable and repositionable via drag-and-drop
 * Text box corners support drag-and-drop resizing to automatically resize the text box
 * Default font is Impact with white text and black borders
@@ -30,20 +25,38 @@ Tim - I used Claude Opus 4.6 in high effort plan mode.
 * Users can toggle between no border and border styles, with border enabled as the default
 * Download works on Mac
 
-#### Goals Not Achieved (Evaluate and re-implement)
+#### What Did Not Work
 * Font size does not automatically resize based on the text box size — font resizability was not achieved.
-* Downloaded meme has a different text appearance than what is seen on the website (example below with downloaded meme on the left and the webpage version on the right)
+* Downloaded meme has a different text appearance than web preview
 
-![Downloaded_Meme_Visual](./screenshots/v1_downloadedmeme.png)
-![Webpage_Meme_Visual](./screenshots/v1_memefromwebpage.png)
-
-#### Next steps for v2
+#### Next steps for 0.2.0
 * Fix font automatic resizing relative to text-box size 
 * Support drag-and-drop image files uploads
 * Have the text-box be typable as soon as it is generated (right now, user clicks on image, text-box pops up, and user has to click inside the text-box to enable typing. This reduces performance, so text-box should be in type mode as soon as it is generated)
-* Make default text all caps
-* Make text box resize when inputted text is not all visible
-* Fix the size of the image to be within a certain range as right now, some images can appear really big or really small 
-* Generate a mini template library, where the user can filter/search based on key words
+* Default text is not in all caps, which is the standard meme convention.
+* Make text box resize when inputted text is not all visible to the user.
+* Uploaded images have no size limits, so very large or very small images can break the layout.
+* Generate a mini template library (5-10 templates), where the user can filter/search based on key words
 * Improve design/ui (save for future versions, but something to think about as we implement) 
 
+[Version 0.1.0](#version-0.1.0) (5/11/26)
+
+---
+<a id="version-0.2.0"></a>
+## Version 0.2.0
+
+### Prompt Used
+
+Constraints given by CLAUDE.md file
+
+### AI Model Used 
+
+
+## Observations 
+#### What Worked
+* 
+
+#### What Did Not Work
+* 
+
+#### Next steps for 0.3.0

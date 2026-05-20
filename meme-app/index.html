@@ -27,6 +27,23 @@
     </div>
 
     <p class="hint" id="hint" hidden>Click on the image to add text</p>
+
+    <section class="library" id="template-library" aria-labelledby="library-heading">
+      <h2 id="library-heading">Internal Library</h2>
+      <p class="library-subtitle">Or pick a template to start from.</p>
+      <div class="library-controls">
+        <input
+          type="search"
+          id="library-search"
+          class="library-search"
+          placeholder="Search by name, emotion, character, or tag"
+          aria-label="Search templates"
+        >
+        <select id="library-category" class="library-category" aria-label="Filter by category"></select>
+      </div>
+      <p class="library-status" id="library-status" hidden></p>
+      <div class="library-grid" id="library-grid"></div>
+    </section>
   </main>
 
   <script src="js/ImageLoader.js"></script>
@@ -34,6 +51,7 @@
   <script src="js/DragResize.js"></script>
   <script src="js/TextBoxManager.js"></script>
   <script src="js/Exporter.js"></script>
+  <script src="js/TemplateLibrary.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

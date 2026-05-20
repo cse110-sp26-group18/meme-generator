@@ -306,3 +306,91 @@ main {
   pointer-events: none;
   user-select: none;
 }
+
+/* Internal Template Library */
+.library {
+  width: 100%;
+  margin-top: 24px;
+  padding: 20px;
+  background: #16213e;
+  border-radius: 8px;
+}
+
+.library h2 {
+  font-size: 1.25rem;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.library-subtitle {
+  color: #aaa;
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+}
+
+.library-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.library-search,
+.library-category {
+  padding: 8px 10px;
+  background: #0f3460;
+  color: #fff;
+  border: 1px solid #1f4380;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.library-search {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.library-search::placeholder {
+  color: #8aa6cc;
+}
+
+.library-category {
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.library-status {
+  color: #e94560;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.template-card {
+  background: #0f3460;
+  border: 1px solid #1f4380;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.template-card:hover,
+.template-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: #e94560;
+  outline: none;
+}
+
+.template-card img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+  background: #16213e;
+}

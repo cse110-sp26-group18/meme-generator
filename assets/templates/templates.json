@@ -67,7 +67,7 @@
     "emotion": "excited",
     "category": "animation",
     "tags": ["animation", "spongebob", "excited"],
-    "image": "assets/templates/spongebob-meme-templates/spongebob-excited.jpg",
+    "image": "assets/templates/spongebob-meme-templates/sponebob-excited.jpg",
     "textBoxes": []
   },
   {
@@ -168,7 +168,7 @@
     "emotion": "surprise",
     "category": "pop-culture",
     "tags": ["pop-culture", "taj", "surprise"],
-    "image": "assets/templates/TAJ-meme-templates/TAJ-surprise.png",
+    "image": "assets/templates/TAJ-meme-templates/TAJ-supprise.png",
     "textBoxes": []
   },
   {
@@ -188,7 +188,7 @@
     "emotion": "weird-smile",
     "category": "pop-culture",
     "tags": ["pop-culture", "taj", "weird-smile"],
-    "image": "assets/templates/TAJ-meme-templates/TAJ-weird-smile.webp",
+    "image": "assets/templates/TAJ-meme-templates/TAJ-weird smile.webp",
     "textBoxes": []
   }
 ]

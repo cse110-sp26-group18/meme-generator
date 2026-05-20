@@ -31,30 +31,39 @@ MemeGen.ImageLoader = (function () {
     return { width: Math.round(width), height: Math.round(height) };
   }
 
+  function loadFromSrc(src, onError) {
+    var img = new Image();
+    img.onload = function () {
+      image = img;
+      var size = fitWithinRange(img.width, img.height);
+      var width = size.width;
+      var height = size.height;
+
+      canvas.width = width;
+      canvas.height = height;
+      canvas.style.width = width + 'px';
+      canvas.style.height = height + 'px';
+
+      ctx.drawImage(img, 0, 0, width, height);
+
+      if (onLoadCallback) {
+        onLoadCallback(width, height);
+      }
+    };
+    if (onError) img.onerror = onError;
+    img.src = src;
+  }
+
   function loadFromFile(file) {
     var reader = new FileReader();
     reader.onload = function (e) {
-      var img = new Image();
-      img.onload = function () {
-        image = img;
-        var size = fitWithinRange(img.width, img.height);
-        var width = size.width;
-        var height = size.height;
-
-        canvas.width = width;
-        canvas.height = height;
-        canvas.style.width = width + 'px';
-        canvas.style.height = height + 'px';
-
-        ctx.drawImage(img, 0, 0, width, height);
-
-        if (onLoadCallback) {
-          onLoadCallback(width, height);
-        }
-      };
-      img.src = e.target.result;
+      loadFromSrc(e.target.result);
     };
     reader.readAsDataURL(file);
+  }
+
+  function loadFromUrl(url, onError) {
+    loadFromSrc(url, onError);
   }
 
   function getImage() {
@@ -78,6 +87,7 @@ MemeGen.ImageLoader = (function () {
   return {
     init: init,
     loadFromFile: loadFromFile,
+    loadFromUrl: loadFromUrl,
     getImage: getImage,
     getCanvas: getCanvas,
     getContext: getContext,

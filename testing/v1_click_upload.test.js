@@ -35,6 +35,7 @@ describe('Click-to-upload — empty canvas region', () => {
     buildDom();
     jest.spyOn(window.MemeGen.ImageLoader, 'init').mockImplementation(() => {});
     jest.spyOn(window.MemeGen.TextBoxManager, 'init').mockImplementation(() => {});
+    jest.spyOn(window.MemeGen.TemplateLibrary, 'init').mockImplementation(() => {});
     jest.spyOn(window.MemeGen.ImageLoader, 'loadFromFile').mockImplementation(() => {});
     require('../meme-app/js/app.js');
     document.dispatchEvent(new Event('DOMContentLoaded'));

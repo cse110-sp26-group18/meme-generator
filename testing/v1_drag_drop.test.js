@@ -49,6 +49,7 @@ describe('Drag-and-drop upload — drop zone', () => {
     // without invoking real text-box / image-loader side effects.
     jest.spyOn(window.MemeGen.ImageLoader, 'init').mockImplementation(() => {});
     jest.spyOn(window.MemeGen.TextBoxManager, 'init').mockImplementation(() => {});
+    jest.spyOn(window.MemeGen.TemplateLibrary, 'init').mockImplementation(() => {});
     loadFromFileSpy = jest.spyOn(window.MemeGen.ImageLoader, 'loadFromFile')
       .mockImplementation(() => {});
     require('../meme-app/js/app.js');

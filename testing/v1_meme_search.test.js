@@ -268,6 +268,7 @@ describe('Meme Search — onSelect callback', () => {
     const dom = mountSearchDom();
     const onSelect = jest.fn();
     global.fetch = mockFetchJson(makeImgflipPayload());
+    jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
 
     MemeGen.MemeSearch.init({
       input: dom.input, results: dom.results, status: dom.status, onSelect
@@ -289,6 +290,7 @@ describe('Meme Search — onSelect callback', () => {
   it('does not throw when no onSelect was provided and a card is clicked', async () => {
     const dom = mountSearchDom();
     global.fetch = mockFetchJson(makeImgflipPayload());
+    jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
 
     MemeGen.MemeSearch.init({ input: dom.input, results: dom.results, status: dom.status });
     dom.input.dispatchEvent(new Event('focus'));
@@ -296,6 +298,21 @@ describe('Meme Search — onSelect callback', () => {
 
     const firstCard = dom.results.querySelector('.meme-search-card');
     expect(() => firstCard.click()).not.toThrow();
+  });
+
+  it('scrolls back to the top when a card is clicked', async () => {
+    const dom = mountSearchDom();
+    global.fetch = mockFetchJson(makeImgflipPayload());
+    const scrollSpy = jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
+
+    MemeGen.MemeSearch.init({ input: dom.input, results: dom.results, status: dom.status });
+    dom.input.dispatchEvent(new Event('focus'));
+    await flushPromises();
+
+    const firstCard = dom.results.querySelector('.meme-search-card');
+    firstCard.click();
+
+    expect(scrollSpy).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'smooth' });
   });
 });
 

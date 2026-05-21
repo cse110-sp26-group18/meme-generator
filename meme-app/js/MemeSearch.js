@@ -131,10 +131,17 @@ MemeGen.MemeSearch = (function () {
       card.appendChild(label);
       card.addEventListener('click', function () {
         if (onSelectCallback) onSelectCallback(meme);
+        scrollPageToTop();
       });
 
       resultsEl.appendChild(card);
     });
+  }
+
+  function scrollPageToTop() {
+    if (typeof window.scrollTo === 'function') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    }
   }
 
   function setStatus(msg) {

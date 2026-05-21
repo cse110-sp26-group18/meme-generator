@@ -56,6 +56,7 @@ MemeGen.MemeSearch = (function () {
 
     // Fetch lazily on first focus so we don't slow initial page load.
     inputEl.addEventListener('focus', ensureFetched);
+    ensureFetched();
   }
 
   // Fetch the template list once and cache it.

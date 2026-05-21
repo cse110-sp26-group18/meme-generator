@@ -4,8 +4,8 @@
  *
  * Covers:
  *  - Required search UI elements exist in the DOM (input, results, status)
- *  - init() wires the input element and does NOT fetch eagerly
- *  - Lazy fetch fires on first focus and caches the result (no second fetch)
+ *  - init() wires the input element and fetches the library immediately
+ *  - Focus after init does not start a second fetch
  *  - Successful fetch renders one card per template with name + thumbnail
  *  - Failed fetch surfaces an error message in the status element
  *  - Empty / unsuccessful API payloads surface an error (not a crash)
@@ -130,17 +130,27 @@ describe('Meme Search — DOM structure', () => {
 
 // ── init() and lazy fetching ─────────────────────────────────────────────────
 
-describe('Meme Search — init() and lazy fetch', () => {
-  it('does not call fetch until the input is focused', () => {
+describe('Meme Search — init() and fetch', () => {
+  it('starts fetching during init before the input is focused', () => {
     const dom = mountSearchDom();
     global.fetch = mockFetchJson(makeImgflipPayload());
 
     MemeGen.MemeSearch.init({ input: dom.input, results: dom.results, status: dom.status });
 
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
-  it('calls fetch once on first focus and caches the result', async () => {
+  it('renders the library after init without waiting for focus', async () => {
+    const dom = mountSearchDom();
+    global.fetch = mockFetchJson(makeImgflipPayload());
+
+    MemeGen.MemeSearch.init({ input: dom.input, results: dom.results, status: dom.status });
+    await flushPromises();
+
+    expect(dom.results.querySelectorAll('.meme-search-card')).toHaveLength(3);
+  });
+
+  it('keeps the first focus from starting a second fetch', async () => {
     const dom = mountSearchDom();
     global.fetch = mockFetchJson(makeImgflipPayload());
 
@@ -151,7 +161,7 @@ describe('Meme Search — init() and lazy fetch', () => {
     dom.input.dispatchEvent(new Event('focus'));
     await flushPromises();
 
-    // First focus triggers fetch; second focus is a no-op because fetched === true.
+    // Init triggers fetch; later focus is a no-op because fetched === true.
     expect(global.fetch).toHaveBeenCalledTimes(1);
     expect(global.fetch).toHaveBeenCalledWith('https://api.imgflip.com/get_memes');
   });

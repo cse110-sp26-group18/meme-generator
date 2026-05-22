@@ -10,7 +10,8 @@
     "test:text": "jest testing/v1_test_text_editing.test.js",
     "test:custom": "jest testing/v1_test_customization.test.js",
     "test:download": "jest testing/v1_test_download.test.js",
-    "test:responsive": "jest testing/v1_test_responsive.test.js"
+    "test:responsive": "jest testing/v1_test_responsive.test.js",
+    "test:search": "jest testing/v1_meme_search.test.js"
   },
   "devDependencies": {
     "jest": "^29.7.0",

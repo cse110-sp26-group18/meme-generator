@@ -25,3 +25,4 @@ require('../meme-app/js/TextBox.js');
 require('../meme-app/js/DragResize.js');
 require('../meme-app/js/TextBoxManager.js');
 require('../meme-app/js/Exporter.js');
+require('../meme-app/js/MemeSearch.js');

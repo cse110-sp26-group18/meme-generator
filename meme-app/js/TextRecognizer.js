@@ -21,7 +21,25 @@ var MemeGen = window.MemeGen || {};
 
 MemeGen.TextRecognizer = (function () {
   function detectText(source) {
-    return Promise.reject(new Error('TextRecognizer.detectText not implemented'));
+    var T = (typeof window !== 'undefined' && window.Tesseract) || (typeof Tesseract !== 'undefined' ? Tesseract : null);
+    if (!T || typeof T.recognize !== 'function') {
+      return Promise.reject(new Error('Tesseract is not loaded — include tesseract.min.js before TextRecognizer.js'));
+    }
+
+    return T.recognize(source, 'eng').then(function (result) {
+      var words = (result && result.data && result.data.words) || [];
+      return words.map(function (w) {
+        var box = w.bbox || {};
+        return {
+          text: w.text,
+          x: box.x0,
+          y: box.y0,
+          width: box.x1 - box.x0,
+          height: box.y1 - box.y0,
+          confidence: w.confidence
+        };
+      });
+    });
   }
 
   return {

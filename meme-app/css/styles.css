@@ -85,6 +85,7 @@ main {
   border-radius: 8px;
   min-width: 400px;
   min-height: 300px;
+  max-width: 100%;
   overflow: visible;
   cursor: pointer;
 }

@@ -1,5 +1,5 @@
 /**
- * v1_test_customization.test.js
+ * customization.test.js
  * Verifies First Iteration Goal: "Basic text customization"
  *
  * Covers:

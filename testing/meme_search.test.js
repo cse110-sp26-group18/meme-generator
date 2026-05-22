@@ -1,5 +1,5 @@
 /**
- * v1_meme_search.test.js
+ * meme_search.test.js
  * Verifies the external-library meme-search feature.
  *
  * Covers:

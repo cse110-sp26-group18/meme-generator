@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var container = document.getElementById('canvas-container');
   var imageInput = document.getElementById('image-input');
   var downloadBtn = document.getElementById('download-btn');
+  var detectTextBtn = document.getElementById('detect-text-btn');
   var placeholder = document.getElementById('placeholder');
   var hint = document.getElementById('hint');
 
@@ -13,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function () {
     placeholder.hidden = true;
     hint.hidden = false;
     downloadBtn.disabled = false;
+    detectTextBtn.disabled = false;
     MemeGen.TextBoxManager.setImageLoaded(true);
   });
 
@@ -91,5 +93,14 @@ document.addEventListener('DOMContentLoaded', function () {
     setTimeout(function () {
       MemeGen.ImageLoader.redraw();
     }, 100);
+  });
+
+  detectTextBtn.addEventListener('click', function () {
+    var src = MemeGen.ImageLoader.getCanvas();
+    MemeGen.TextRecognizer.detectText(src).then(function (regions) {
+      console.log('Detected text regions:', regions);
+    }).catch(function (err) {
+      console.error('OCR failed:', err);
+    });
   });
 });

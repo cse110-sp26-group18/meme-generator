@@ -1,5 +1,5 @@
 /**
- * v1_drag_drop.test.js
+ * drag_drop.test.js
  * Verifies drag-and-drop file upload (issue #11).
  *
  * The drop zone is the canvas-container element. Dropping an image file

@@ -1,5 +1,5 @@
 /**
- * v1_test_responsive.test.js
+ * responsive.test.js
  * Verifies First Iteration Goal: "Mobile-friendly and responsive design"
  *
  * IMPORTANT — jsdom limitation:

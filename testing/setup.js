@@ -3,7 +3,7 @@
  *
  * Responsibilities:
  *  1. Mock browser APIs that jsdom does not provide (URL, anchor click)
- *  2. Load all MemeGen v1 modules into the jsdom global (window.MemeGen)
+ *  2. Load all MemeGen modules into the jsdom global (window.MemeGen)
  *
  * Note on module state: these IIFEs execute once and write to window.MemeGen.
  * Closure-level state inside each module (e.g. TextBoxManager.textBoxes)
@@ -19,7 +19,7 @@ global.URL.revokeObjectURL = () => {};
 // Prevent anchor .click() from throwing in jsdom (used by Exporter download).
 HTMLAnchorElement.prototype.click = function () {};
 
-// ── Load MemeGen v1 modules in dependency order ───────────────────────────────
+// ── Load MemeGen modules in dependency order ───────────────────────────────
 require('../meme-app/js/ImageLoader.js');
 require('../meme-app/js/TextBox.js');
 require('../meme-app/js/DragResize.js');

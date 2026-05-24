@@ -1,6 +1,6 @@
 /**
  * TextRecognizer.test.js
- * Verifies Phase 1 OCR layer: word-level region detection via Tesseract.js.
+ * Verifies Phase 1 OCR layer: line-level region detection via Tesseract.js.
  *
  * Tesseract is loaded globally at runtime via a CDN <script> in index.html.
  * In jest we stub `global.Tesseract` per test for isolation.
@@ -11,7 +11,7 @@
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function makeWord(text, x0, y0, x1, y1, confidence) {
+function makeLine(text, x0, y0, x1, y1, confidence) {
   return { text: text, bbox: { x0: x0, y0: y0, x1: x1, y1: y1 }, confidence: confidence };
 }
 
@@ -41,12 +41,12 @@ describe('TextRecognizer.detectText', () => {
     jest.restoreAllMocks();
   });
 
-  test('maps Tesseract words[] to the documented Region shape', async () => {
+  test('maps Tesseract lines[] to the documented Region shape', async () => {
     stubTesseract(() => Promise.resolve({
       data: {
-        words: [
-          makeWord('HELLO', 10, 20, 110, 60, 92.5),
-          makeWord('WORLD', 120, 22, 240, 62, 88.1)
+        lines: [
+          makeLine('HELLO', 10, 20, 110, 60, 92.5),
+          makeLine('WORLD', 120, 22, 240, 62, 88.1)
         ]
       }
     }));
@@ -59,8 +59,8 @@ describe('TextRecognizer.detectText', () => {
     ]);
   });
 
-  test('returns [] when Tesseract finds no words', async () => {
-    stubTesseract(() => Promise.resolve({ data: { words: [] } }));
+  test('returns [] when Tesseract finds no lines', async () => {
+    stubTesseract(() => Promise.resolve({ data: { lines: [] } }));
 
     const regions = await MemeGen.TextRecognizer.detectText(canvas);
 
@@ -81,7 +81,7 @@ describe('TextRecognizer.detectText', () => {
   });
 
   test('passes the source element through to Tesseract.recognize', async () => {
-    stubTesseract(() => Promise.resolve({ data: { words: [] } }));
+    stubTesseract(() => Promise.resolve({ data: { lines: [] } }));
 
     await MemeGen.TextRecognizer.detectText(canvas);
 

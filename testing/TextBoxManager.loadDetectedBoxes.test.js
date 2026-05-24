@@ -54,6 +54,7 @@ describe('TextBoxManager.loadDetectedBoxes', () => {
     mockCtx = {
       getImageData: jest.fn((x, y, w) => ({ data: new Uint8Array(w * 4).fill(0) })),
       fillRect:     jest.fn(),
+      putImageData: jest.fn(),
       fillStyle:    ''
     };
     canvas.getContext = jest.fn(() => mockCtx);

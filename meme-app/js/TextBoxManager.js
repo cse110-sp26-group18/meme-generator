@@ -106,10 +106,64 @@ MemeGen.TextBoxManager = (function () {
     return textBoxes;
   }
 
+  function loadDetectedBoxes(regions) {
+    var scaleX = canvas.offsetWidth  / canvas.width;
+    var scaleY = canvas.offsetHeight / canvas.height;
+
+    regions.forEach(function (region) {
+      var tb = new MemeGen.TextBox(
+        region.x * scaleX,
+        region.y * scaleY,
+        container
+      );
+
+      tb.el.style.width  = Math.round(region.width  * scaleX) + 'px';
+      tb.el.style.height = Math.round(region.height * scaleY) + 'px';
+      tb.textarea.value  = region.text;
+      tb.applyFontSize(Math.round(region.height * scaleY * 0.4));
+
+      tb.onDelete = function (box) {
+        var idx = textBoxes.indexOf(box);
+        if (idx !== -1) textBoxes.splice(idx, 1);
+      };
+
+      tb.onSelect = function (box) {
+        deselectAll();
+        box.select();
+      };
+
+      tb.onErase = (function (r) {
+        return function () {
+          var ctx = canvas.getContext('2d');
+          var imageData = ctx.getImageData(r.x, r.y, r.width, 1);
+          var data = imageData.data;
+          var totalR = 0, totalG = 0, totalB = 0;
+          var pixels = r.width;
+          for (var i = 0; i < pixels; i++) {
+            totalR += data[i * 4];
+            totalG += data[i * 4 + 1];
+            totalB += data[i * 4 + 2];
+          }
+          ctx.fillStyle = 'rgb(' +
+            Math.round(totalR / pixels) + ',' +
+            Math.round(totalG / pixels) + ',' +
+            Math.round(totalB / pixels) + ')';
+          ctx.fillRect(r.x, r.y, r.width, r.height);
+        };
+      }(region));
+
+      MemeGen.DragResize.attach(tb);
+      textBoxes.push(tb);
+    });
+
+    deselectAll();
+  }
+
   return {
     init: init,
     setImageLoaded: setImageLoaded,
-    getAll: getAll
+    getAll: getAll,
+    loadDetectedBoxes: loadDetectedBoxes
   };
 })();
 

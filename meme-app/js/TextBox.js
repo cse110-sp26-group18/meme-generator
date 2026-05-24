@@ -19,6 +19,7 @@ MemeGen.TextBox = (function () {
     this.selected = false;
     this.onDelete = null;
     this.onSelect = null;
+    this.onErase = null;
 
     this._buildDOM();
     this._bindEvents();
@@ -95,6 +96,13 @@ MemeGen.TextBox = (function () {
     borderBtn.textContent = 'Border: ON';
     toolbar.appendChild(borderBtn);
 
+    // Erase
+    var eraseBtn = document.createElement('button');
+    eraseBtn.className = 'erase-btn';
+    eraseBtn.textContent = 'Erase';
+    eraseBtn.title = 'Erase text from image';
+    toolbar.appendChild(eraseBtn);
+
     // Delete
     var deleteBtn = document.createElement('button');
     deleteBtn.className = 'delete-btn';
@@ -121,6 +129,7 @@ MemeGen.TextBox = (function () {
     this.textarea = textarea;
     this.fontSelect = fontSelect;
     this.borderBtn = borderBtn;
+    this.eraseBtn = eraseBtn;
     this.deleteBtn = deleteBtn;
     this.moveBtn = moveBtn;
     this.fontSizeDecBtn = fontSizeDecBtn;
@@ -151,6 +160,13 @@ MemeGen.TextBox = (function () {
       } else {
         self.textarea.classList.add('no-border');
       }
+    });
+
+    this.eraseBtn.addEventListener('click', function () {
+      if (self.onErase) {
+        self.onErase(self);
+      }
+      self.destroy();
     });
 
     this.deleteBtn.addEventListener('click', function () {

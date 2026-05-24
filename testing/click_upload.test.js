@@ -1,12 +1,12 @@
 /**
- * v1_click_upload.test.js
+ * click_upload.test.js
  * Verifies that clicking the canvas region opens the file picker, mirroring
  * the Upload Image button. Once an image is loaded, clicks are reserved
  * for adding text boxes and must NOT re-trigger the file picker.
  *
  * Module under test: meme-app/js/app.js
  *
- * jsdom note: as with v1_drag_drop.test.js, app.js binds inside
+ * jsdom note: as with drag_drop.test.js, app.js binds inside
  * DOMContentLoaded; the document is shared across tests in jsdom, so we
  * load app.js once in beforeAll and dispatch DOMContentLoaded once.
  */

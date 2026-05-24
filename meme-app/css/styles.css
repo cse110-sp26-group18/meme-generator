@@ -85,6 +85,7 @@ main {
   border-radius: 8px;
   min-width: 400px;
   min-height: 300px;
+  max-width: 100%;
   overflow: visible;
   cursor: pointer;
 }
@@ -305,4 +306,103 @@ main {
   padding: 2px 4px;
   pointer-events: none;
   user-select: none;
+}
+
+/* ── Meme Search ─────────────────────────────────────────────────────────── */
+
+.meme-search {
+  width: 100%;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #2a2a45;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.meme-search-title {
+  font-size: 1.1rem;
+  color: #fff;
+  font-weight: 600;
+}
+
+.meme-search-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: #16213e;
+  color: #fff;
+  border: 1px solid #0f3460;
+  border-radius: 6px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.meme-search-input:focus {
+  border-color: #e94560;
+}
+
+.meme-search-status {
+  color: #888;
+  font-size: 0.9rem;
+  min-height: 1.2em;
+}
+
+/* Responsive grid: cards auto-size, more columns on wider screens. */
+.meme-search-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.meme-search-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 8px;
+  background: #16213e;
+  border: 1px solid #0f3460;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #eee;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.meme-search-card:hover {
+  border-color: #e94560;
+}
+
+.meme-search-card:active {
+  transform: scale(0.98);
+}
+
+.meme-search-card img {
+  width: 100%;
+  height: 120px;
+  object-fit: contain;
+  background: #0a0a1a;
+  border-radius: 4px;
+}
+
+.meme-search-name {
+  font-size: 0.8rem;
+  color: #ddd;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* On narrow screens, tighten the grid so cards stay readable. */
+@media (max-width: 480px) {
+  .meme-search-results {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
+  }
+
+  .meme-search-card img {
+    height: 90px;
+  }
 }

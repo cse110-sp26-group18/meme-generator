@@ -3,8 +3,6 @@ var MemeGen = window.MemeGen || {};
 MemeGen.ImageLoader = (function () {
   var MIN_WIDTH = 400;
   var MIN_HEIGHT = 300;
-  var MAX_WIDTH = 800;
-  var MAX_HEIGHT = 800;
   var image = null;
   var canvas = null;
   var ctx = null;
@@ -17,13 +15,20 @@ MemeGen.ImageLoader = (function () {
   }
 
   function fitWithinRange(width, height) {
-    var downscale = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height, 1);
+    // Use root font size so offsets scale with typography settings.
+    // 3rem ≈ page horizontal chrome (main padding + container borders).
+    // 11rem ≈ vertical chrome (header + controls + gaps above the canvas).
+    var rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    var maxW = Math.min(800, Math.max(200, window.innerWidth - 3 * rem));
+    var maxH = Math.min(800, Math.max(150, window.innerHeight - 11 * rem));
+
+    var downscale = Math.min(maxW / width, maxH / height, 1);
     width = width * downscale;
     height = height * downscale;
 
     if (width < MIN_WIDTH && height < MIN_HEIGHT) {
       var upscale = Math.max(MIN_WIDTH / width, MIN_HEIGHT / height);
-      upscale = Math.min(upscale, MAX_WIDTH / width, MAX_HEIGHT / height);
+      upscale = Math.min(upscale, maxW / width, maxH / height);
       width = width * upscale;
       height = height * upscale;
     }

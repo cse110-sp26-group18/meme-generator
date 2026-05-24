@@ -16,6 +16,9 @@ document.addEventListener('DOMContentLoaded', function () {
     downloadBtn.disabled = false;
     detectTextBtn.disabled = false;
     MemeGen.TextBoxManager.setImageLoaded(true);
+    // Clear any "Loading…" message left over from the meme-search flow.
+    var s = document.getElementById('meme-search-status');
+    if (s) s.textContent = '';
   });
 
   MemeGen.TextBoxManager.init(container, canvas);
@@ -103,4 +106,26 @@ document.addEventListener('DOMContentLoaded', function () {
       console.error('OCR failed:', err);
     });
   });
+  // Wire up meme search: when a result is clicked, load it onto the canvas
+  // through the same pipeline as a normal upload.
+  var searchInput = document.getElementById('meme-search-input');
+  var searchResults = document.getElementById('meme-search-results');
+  var searchStatus = document.getElementById('meme-search-status');
+
+  if (searchInput && searchResults && MemeGen.MemeSearch) {
+    MemeGen.MemeSearch.init({
+      input: searchInput,
+      results: searchResults,
+      status: searchStatus,
+      onSelect: function (meme) {
+        // Show a loading message; it is cleared by the ImageLoader success
+        // callback on load, or replaced with an error here if the load fails.
+        searchStatus.textContent = 'Loading ' + meme.name + '…';
+        MemeGen.MemeSearch.loadFromUrl(meme.url, function (err) {
+          searchStatus.textContent =
+            'Could not load that meme: ' + (err && err.message ? err.message : 'unknown error');
+        });
+      }
+    });
+  }
 });

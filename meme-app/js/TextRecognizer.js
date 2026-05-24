@@ -9,7 +9,7 @@
  *
  * Region shape:
  *   {
- *     text:       string,   // recognized word
+ *     text:       string,   // recognized line of text
  *     x:          number,   // bbox left,   in source-pixel space
  *     y:          number,   // bbox top,    in source-pixel space
  *     width:      number,   // bbox width
@@ -27,16 +27,16 @@ MemeGen.TextRecognizer = (function () {
     }
 
     return T.recognize(source, 'eng').then(function (result) {
-      var words = (result && result.data && result.data.words) || [];
-      return words.map(function (w) {
-        var box = w.bbox || {};
+      var lines = (result && result.data && result.data.lines) || [];
+      return lines.map(function (line) {
+        var box = line.bbox || {};
         return {
-          text: w.text,
+          text: line.text.trim(),
           x: box.x0,
           y: box.y0,
-          width: box.x1 - box.x0,
+          width:  box.x1 - box.x0,
           height: box.y1 - box.y0,
-          confidence: w.confidence
+          confidence: line.confidence
         };
       });
     });

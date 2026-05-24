@@ -106,58 +106,88 @@ MemeGen.TextBoxManager = (function () {
     return textBoxes;
   }
 
-  function loadDetectedBoxes(regions) {
-    var scaleX = canvas.offsetWidth  / canvas.width;
-    var scaleY = canvas.offsetHeight / canvas.height;
+function loadDetectedBoxes(regions) {
+  var scaleX = canvas.offsetWidth  / canvas.width;
+  var scaleY = canvas.offsetHeight / canvas.height;
+  var ctx = canvas.getContext('2d');
 
-    regions.forEach(function (region) {
-      var tb = new MemeGen.TextBox(
-        region.x * scaleX,
-        region.y * scaleY,
-        container
-      );
+  regions.forEach(function (region) {
+    // Skip regions with no real alphanumeric content
+    if ((region.text.match(/[a-zA-Z0-9]/g) || []).length < 3) return;
+    
+    // Save original pixels before erasing so delete can restore them
+    var savedPixels = ctx.getImageData(region.x, region.y, region.width, region.height);
 
-      tb.el.style.width  = Math.round(region.width  * scaleX) + 'px';
-      tb.el.style.height = Math.round(region.height * scaleY) + 'px';
-      tb.textarea.value  = region.text;
-      tb.applyFontSize(Math.round(region.height * scaleY * 0.4));
+    // Auto-erase using 4-edge color sampling
+    var totalR = 0, totalG = 0, totalB = 0, count = 0;
+    [
+      ctx.getImageData(region.x, region.y, region.width, 1),
+      ctx.getImageData(region.x, region.y + region.height - 1, region.width, 1),
+      ctx.getImageData(region.x, region.y, 1, region.height),
+      ctx.getImageData(region.x + region.width - 1, region.y, 1, region.height)
+    ].forEach(function (imgData) {
+      for (var i = 0; i < imgData.data.length; i += 4) {
+        totalR += imgData.data[i];
+        totalG += imgData.data[i + 1];
+        totalB += imgData.data[i + 2];
+        count++;
+      }
+    });
+    ctx.fillStyle = 'rgb(' + Math.round(totalR/count) + ',' + Math.round(totalG/count) + ',' + Math.round(totalB/count) + ')';
+    ctx.fillRect(region.x, region.y, region.width, region.height);
 
-      tb.onDelete = function (box) {
+    var tb = new MemeGen.TextBox(
+      region.x * scaleX,
+      region.y * scaleY,
+      container
+    );
+
+    tb.el.style.width  = Math.round(region.width  * scaleX) + 'px';
+    tb.el.style.height = Math.round(region.height * scaleY) + 'px';
+    tb.textarea.value  = region.text;
+    tb.applyFontSize(Math.round(region.height * scaleY * 0.4));
+
+    tb.onDelete = (function (r, saved) {
+      return function (box) {
+        // Restore original canvas pixels
+        ctx.putImageData(saved, r.x, r.y);
         var idx = textBoxes.indexOf(box);
         if (idx !== -1) textBoxes.splice(idx, 1);
       };
+    }(region, savedPixels));
 
-      tb.onSelect = function (box) {
-        deselectAll();
-        box.select();
-      };
+    tb.onSelect = function (box) {
+      deselectAll();
+      box.select();
+    };
 
-      tb.onErase = (function (r) {
-        return function () {
-          var ctx = canvas.getContext('2d');
-          var imageData = ctx.getImageData(r.x, r.y, r.width, 1);
-          var data = imageData.data;
-          var totalR = 0, totalG = 0, totalB = 0;
-          var pixels = r.width;
-          for (var i = 0; i < pixels; i++) {
-            totalR += data[i * 4];
-            totalG += data[i * 4 + 1];
-            totalB += data[i * 4 + 2];
+    tb.onErase = (function (r) {
+      return function () {
+        var totalR = 0, totalG = 0, totalB = 0, count = 0;
+        [
+          ctx.getImageData(r.x, r.y, r.width, 1),
+          ctx.getImageData(r.x, r.y + r.height - 1, r.width, 1),
+          ctx.getImageData(r.x, r.y, 1, r.height),
+          ctx.getImageData(r.x + r.width - 1, r.y, 1, r.height)
+        ].forEach(function (imgData) {
+          for (var i = 0; i < imgData.data.length; i += 4) {
+            totalR += imgData.data[i];
+            totalG += imgData.data[i + 1];
+            totalB += imgData.data[i + 2];
+            count++;
           }
-          ctx.fillStyle = 'rgb(' +
-            Math.round(totalR / pixels) + ',' +
-            Math.round(totalG / pixels) + ',' +
-            Math.round(totalB / pixels) + ')';
-          ctx.fillRect(r.x, r.y, r.width, r.height);
-        };
-      }(region));
+        });
+        ctx.fillStyle = 'rgb(' + Math.round(totalR/count) + ',' + Math.round(totalG/count) + ',' + Math.round(totalB/count) + ')';
+        ctx.fillRect(r.x, r.y, r.width, r.height);
+      };
+    }(region));
 
-      MemeGen.DragResize.attach(tb);
-      textBoxes.push(tb);
-    });
+    MemeGen.DragResize.attach(tb);
+    textBoxes.push(tb);
+  });
 
-    deselectAll();
-  }
+  deselectAll();
+}
 
   return {
     init: init,

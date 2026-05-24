@@ -101,7 +101,8 @@ document.addEventListener('DOMContentLoaded', function () {
   detectTextBtn.addEventListener('click', function () {
     var src = MemeGen.ImageLoader.getCanvas();
     MemeGen.TextRecognizer.detectText(src).then(function (regions) {
-      console.log('Detected text regions:', regions);
+      var filtered = regions.filter(function (r) { return r.confidence > 60; });
+      MemeGen.TextBoxManager.loadDetectedBoxes(filtered);
     }).catch(function (err) {
       console.error('OCR failed:', err);
     });

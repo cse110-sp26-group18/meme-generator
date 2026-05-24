@@ -117,6 +117,33 @@ MemeGen.TextBox = (function () {
       el.appendChild(handle);
     });
 
+    // --- Mobile long-press quick-action menu ---
+    // Hidden by default. DragResize.js opens it after a hold-without-drag.
+    // CSS hides this on desktop. Same DOM lives on every text box.
+    var quickMenu = document.createElement('div');
+    quickMenu.className = 'quick-action-menu';
+    quickMenu.setAttribute('role', 'menu');
+
+    var qEditBtn = document.createElement('button');
+    qEditBtn.type = 'button';
+    qEditBtn.className = 'quick-action-btn quick-action-edit';
+    qEditBtn.textContent = 'Edit';
+    quickMenu.appendChild(qEditBtn);
+
+    var qBorderBtn = document.createElement('button');
+    qBorderBtn.type = 'button';
+    qBorderBtn.className = 'quick-action-btn quick-action-border';
+    qBorderBtn.textContent = 'Border';
+    quickMenu.appendChild(qBorderBtn);
+
+    var qDeleteBtn = document.createElement('button');
+    qDeleteBtn.type = 'button';
+    qDeleteBtn.className = 'quick-action-btn quick-action-delete';
+    qDeleteBtn.textContent = 'Delete';
+    quickMenu.appendChild(qDeleteBtn);
+
+    el.appendChild(quickMenu);
+
     this.el = el;
     this.textarea = textarea;
     this.fontSelect = fontSelect;
@@ -127,6 +154,10 @@ MemeGen.TextBox = (function () {
     this.fontSizeIncBtn = fontSizeIncBtn;
     this.fontSizeDisplay = fontSizeDisplay;
     this.toolbar = toolbar;
+    this.quickMenu = quickMenu;
+    this.qEditBtn = qEditBtn;
+    this.qBorderBtn = qBorderBtn;
+    this.qDeleteBtn = qDeleteBtn;
 
     this.container.appendChild(el);
 
@@ -176,6 +207,59 @@ MemeGen.TextBox = (function () {
         self.onSelect(self);
       }
     });
+
+    // --- Double-tap (touch shortcut): focus the textarea for quick editing.
+    // Deliberately safe — does NOT delete. The visible "×" button stays the
+    // only way to remove a box from the toolbar; the long-press menu also
+    // offers a Delete that requires an explicit second tap.
+    // Skips touchend events that ended a pinch (multi-touch) or that just
+    // opened the quick-action menu, so finger-lifts can never be misread.
+    var lastTapAt = 0;
+    this.el.addEventListener('touchend', function (e) {
+      if (self.quickMenu && self.quickMenu.classList.contains('is-open')) return;
+      if (e.touches && e.touches.length > 0) return;
+      if (e.changedTouches && e.changedTouches.length !== 1) return;
+      var pinchAt = parseInt(self.el.dataset.pinchAt || '0', 10);
+      if (pinchAt && Date.now() - pinchAt < 500) return;
+      var now = Date.now();
+      if (now - lastTapAt < 300) {
+        self.focusTextarea();
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+        lastTapAt = 0;
+      } else {
+        lastTapAt = now;
+      }
+    });
+
+    // --- Quick-action menu (mobile long-press) ---
+    // Edit → focus the textarea for typing.
+    // Border → reuse the existing border-toggle handler so state stays in sync.
+    // Delete → only fires after this explicit second tap; long-press alone
+    // never deletes. Each action closes the menu (Delete via destroy()).
+    this.qEditBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      self.hideQuickActions();
+      self.focusTextarea();
+    });
+    this.qBorderBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      self.borderBtn.click();
+      self.hideQuickActions();
+    });
+    this.qDeleteBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      self.destroy();
+    });
+
+    // Tap anywhere outside the menu closes it. We attach to the document so
+    // a tap on the canvas, header, body, etc. all dismiss the menu cleanly.
+    // Stored on the instance so destroy() can detach it.
+    this._outsideClickHandler = function (e) {
+      if (!self.quickMenu.classList.contains('is-open')) return;
+      if (self.quickMenu.contains(e.target)) return;
+      self.hideQuickActions();
+    };
+    document.addEventListener('click', this._outsideClickHandler);
   };
 
   // Single source of truth for font size changes.
@@ -204,6 +288,27 @@ MemeGen.TextBox = (function () {
   TextBox.prototype.deselect = function () {
     this.selected = false;
     this.el.classList.remove('selected');
+    this.hideQuickActions();
+    // On mobile the unfocused textarea has pointer-events: none so taps
+    // pass through to the .text-box parent for hold-to-move. Blurring on
+    // deselect restores that gating once a different box (or no box) is
+    // active. On desktop blur is harmless — focus would have been lost
+    // anyway when the user clicked outside.
+    if (document.activeElement === this.textarea) {
+      this.textarea.blur();
+    }
+  };
+
+  TextBox.prototype.showQuickActions = function () {
+    if (!this.quickMenu) return;
+    this.quickMenu.classList.add('is-open');
+    this.el.classList.add('menu-open');
+  };
+
+  TextBox.prototype.hideQuickActions = function () {
+    if (!this.quickMenu) return;
+    this.quickMenu.classList.remove('is-open');
+    this.el.classList.remove('menu-open');
   };
 
   // Call this once after the text box is fully created and selected.
@@ -217,6 +322,10 @@ MemeGen.TextBox = (function () {
   };
 
   TextBox.prototype.destroy = function () {
+    if (this._outsideClickHandler) {
+      document.removeEventListener('click', this._outsideClickHandler);
+      this._outsideClickHandler = null;
+    }
     if (this.onDelete) {
       this.onDelete(this);
     }

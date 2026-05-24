@@ -27,6 +27,37 @@
     </div>
 
     <p class="hint" id="hint" hidden>Click on the image to add text</p>
+
+    <!--
+      External meme search scaffolding. The future MemeSearch.js (Imgflip
+      API integration) will land on a teammate's separate branch; this
+      section is kept hidden until that module is loaded so its CSS,
+      markup, and mobile compaction styling are ready to use on merge.
+      Until then app.js's defensive guard simply skips initialization.
+    -->
+    <section class="meme-search" id="meme-search" aria-labelledby="meme-search-heading" hidden>
+      <h2 id="meme-search-heading" class="meme-search-title">Meme Search</h2>
+      <p class="meme-search-subtitle">Search the meme library to start.</p>
+      <div class="meme-search-controls">
+        <input
+          type="search"
+          id="meme-search-input"
+          class="meme-search-input"
+          placeholder="Search memes (e.g. drake, distracted boyfriend)"
+          aria-label="Search memes"
+        >
+      </div>
+      <p class="meme-search-status" id="meme-search-status" hidden></p>
+      <div class="meme-search-results" id="meme-search-results"></div>
+      <button
+        type="button"
+        class="meme-search-toggle"
+        id="meme-search-toggle"
+        aria-expanded="false"
+        aria-controls="meme-search-results"
+        hidden
+      >Show more memes</button>
+    </section>
   </main>
 
   <script src="js/ImageLoader.js"></script>
@@ -34,6 +65,12 @@
   <script src="js/DragResize.js"></script>
   <script src="js/TextBoxManager.js"></script>
   <script src="js/Exporter.js"></script>
+  <!--
+    Optional future external-library module. app.js guards on
+    window.MemeGen.MemeSearch and the meme-search DOM before initializing,
+    so a missing file here is non-fatal.
+  -->
+  <script src="js/MemeSearch.js" onerror="this.dataset.missing='1'"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

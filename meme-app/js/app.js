@@ -69,6 +69,85 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
+  // External meme search wiring (prepared for the future MemeSearch.js
+  // branch). If MemeSearch.js and its DOM are present, initialize it with
+  // the documented option shape and route selections through it. If either
+  // is missing — which is the current state of the mobile-adaptability
+  // branch — we no-op so the editor still works on its own.
+
+  var memeSearchSection = document.getElementById('meme-search');
+  var memeSearchStatus = document.getElementById('meme-search-status');
+
+  // ── Mobile library compaction (used by the external meme-search section)
+  // On phones (≤768 px) the section defaults to a collapsed horizontal strip
+  // so the editor stays the focus. A "Show more" toggle button switches
+  // between strip and full-grid views. Desktop hides the toggle via CSS and
+  // never enters the collapsed state. The helpers are exported below for
+  // the future MemeSearch.js to call directly if it prefers.
+  function isMobileViewport() {
+    return typeof window.innerWidth === 'number' && window.innerWidth <= 768;
+  }
+
+  function wireLibraryToggle(sectionEl, toggleBtnEl, expandedLabel, collapsedLabel) {
+    if (!sectionEl || !toggleBtnEl) return;
+    if (isMobileViewport()) {
+      sectionEl.classList.add('is-collapsed');
+      toggleBtnEl.hidden = false;
+      toggleBtnEl.textContent = collapsedLabel;
+      toggleBtnEl.setAttribute('aria-expanded', 'false');
+    } else {
+      sectionEl.classList.remove('is-collapsed');
+      toggleBtnEl.hidden = true;
+    }
+    toggleBtnEl.addEventListener('click', function () {
+      var collapsedNow = sectionEl.classList.toggle('is-collapsed');
+      toggleBtnEl.textContent = collapsedNow ? collapsedLabel : expandedLabel;
+      toggleBtnEl.setAttribute('aria-expanded', collapsedNow ? 'false' : 'true');
+    });
+  }
+
+  function collapseSectionOnMobile(sectionEl, toggleBtnEl, collapsedLabel) {
+    if (!isMobileViewport() || !sectionEl) return;
+    sectionEl.classList.add('is-collapsed');
+    if (toggleBtnEl) {
+      toggleBtnEl.textContent = collapsedLabel;
+      toggleBtnEl.setAttribute('aria-expanded', 'false');
+    }
+    if (container && typeof container.scrollIntoView === 'function') {
+      container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  function handleExternalSearchError() {
+    if (memeSearchStatus) {
+      memeSearchStatus.textContent =
+        'External meme search is unavailable. Try uploading an image instead.';
+      memeSearchStatus.hidden = false;
+    }
+  }
+
+  if (window.MemeGen && MemeGen.MemeSearch && document.getElementById('meme-search-input')) {
+    if (memeSearchSection) memeSearchSection.hidden = false;
+    var memeSearchToggle = document.getElementById('meme-search-toggle');
+    wireLibraryToggle(
+      memeSearchSection,
+      memeSearchToggle,
+      'Show fewer memes',
+      'Show more memes'
+    );
+    MemeGen.MemeSearch.init({
+      inputEl: document.getElementById('meme-search-input'),
+      statusEl: memeSearchStatus,
+      resultsEl: document.getElementById('meme-search-results'),
+      onError: handleExternalSearchError,
+      onSelect: function (meme) {
+        if (!meme || !meme.url) return;
+        MemeGen.MemeSearch.loadFromUrl(meme.url, handleExternalSearchError);
+        collapseSectionOnMobile(memeSearchSection, memeSearchToggle, 'Show more memes');
+      }
+    });
+  }
+
   downloadBtn.addEventListener('click', function () {
     var image = MemeGen.ImageLoader.getImage();
     var ctx = MemeGen.ImageLoader.getContext();

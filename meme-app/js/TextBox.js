@@ -19,6 +19,9 @@ MemeGen.TextBox = (function () {
     this.selected = false;
     this.onDelete = null;
     this.onSelect = null;
+    // Once the user drags a corner handle, auto-fit is disabled for this box
+    // so their explicit sizing isn't overwritten by subsequent typing.
+    this.manuallyResized = false;
 
     this._buildDOM();
     this._bindEvents();
@@ -157,6 +160,12 @@ MemeGen.TextBox = (function () {
       self.destroy();
     });
 
+    this.textarea.addEventListener('input', function () {
+      if (!self.manuallyResized) {
+        self.fitToText();
+      }
+    });
+
     // A− decreases font size and shrinks the box to match
     this.fontSizeDecBtn.addEventListener('click', function () {
       var newSize = self.fontSize - FONT_SIZE_STEP;
@@ -193,6 +202,37 @@ MemeGen.TextBox = (function () {
   // Inverse of the resize formula: height = fontSize / 0.4 = fontSize * 2.5
   TextBox.prototype._fitBoxToFontSize = function () {
     var newHeight = Math.max(40, Math.round(this.fontSize * 2.5));
+    this.el.style.height = newHeight + 'px';
+  };
+
+  // Shrink/grow the box so it hugs the textarea content with no extra slack.
+  // Measures each line's width using a canvas 2d context (consistent with
+  // Exporter), then sets el width/height to match. Horizontal chrome = 16px
+  // (textarea padding 6px*2 + border 2px*2); vertical chrome = 12px
+  // (padding 4px*2 + border 2px*2). Floored at the CSS min sizes (80x40).
+  TextBox.prototype.fitToText = function () {
+    var text = this.textarea.value;
+    var lines = text.length ? text.split('\n') : [''];
+
+    var ctx = (TextBox._measureCanvas || (TextBox._measureCanvas = document.createElement('canvas'))).getContext('2d');
+    ctx.font = this.fontSize + 'px ' + this.fontFamily;
+
+    var maxWidth = 0;
+    for (var i = 0; i < lines.length; i++) {
+      var w = ctx.measureText(lines[i]).width;
+      if (w > maxWidth) maxWidth = w;
+    }
+
+    var lineHeight = this.fontSize * 1.2;
+    var textHeight = lines.length * lineHeight;
+
+    var HORIZ_CHROME = 16;
+    var VERT_CHROME = 12;
+
+    var newWidth = Math.max(80, Math.ceil(maxWidth + HORIZ_CHROME));
+    var newHeight = Math.max(40, Math.ceil(textHeight + VERT_CHROME));
+
+    this.el.style.width = newWidth + 'px';
     this.el.style.height = newHeight + 'px';
   };
 

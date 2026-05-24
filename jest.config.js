@@ -6,5 +6,5 @@ module.exports = {
   ],
   testMatch: ['<rootDir>/testing/**/*.test.js'],
   testPathIgnorePatterns: ['/node_modules/'],
-  collectCoverageFrom: ['versions/v1/js/**/*.js'],
+  collectCoverageFrom: ['meme-app/js/**/*.js'],
 };

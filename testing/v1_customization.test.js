@@ -311,11 +311,25 @@ describe('Text Box Font Auto-Resize', () => {
     return parseFloat(window.getComputedStyle(textBox.textarea).fontSize);
   }
 
+  function dragBottomRightHandle(startX, startY, endX, endY) {
+    const handle = textBox.el.querySelector('.resize-handle.bottom-right');
+    handle.dispatchEvent(new MouseEvent('mousedown', {
+      bubbles: true,
+      clientX: startX,
+      clientY: startY
+    }));
+    document.dispatchEvent(new MouseEvent('mousemove', {
+      bubbles: true,
+      clientX: endX,
+      clientY: endY
+    }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+  }
+
   it('should increase text size when the textbox gets larger', () => {
     const initialFontSize = getFontSize();
 
-    textBox.el.style.width = '400px';
-    textBox.el.style.height = '160px';
+    dragBottomRightHandle(300, 180, 500, 260);
 
     const newFontSize = getFontSize();
 
@@ -323,13 +337,11 @@ describe('Text Box Font Auto-Resize', () => {
   });
 
   it('should decrease text size when the textbox gets smaller', () => {
-    textBox.el.style.width = '400px';
-    textBox.el.style.height = '160px';
+    dragBottomRightHandle(300, 180, 500, 260);
 
     const largeFontSize = getFontSize();
 
-    textBox.el.style.width = '100px';
-    textBox.el.style.height = '40px';
+    dragBottomRightHandle(300, 180, 300, 40);
 
     const smallFontSize = getFontSize();
 

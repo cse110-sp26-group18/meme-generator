@@ -20,8 +20,8 @@ global.URL.revokeObjectURL = () => {};
 HTMLAnchorElement.prototype.click = function () {};
 
 // ── Load MemeGen v1 modules in dependency order ───────────────────────────────
-require('../versions/v1/js/ImageLoader.js');
-require('../versions/v1/js/TextBox.js');
-require('../versions/v1/js/DragResize.js');
-require('../versions/v1/js/TextBoxManager.js');
-require('../versions/v1/js/Exporter.js');
+require('../meme-app/js/ImageLoader.js');
+require('../meme-app/js/TextBox.js');
+require('../meme-app/js/DragResize.js');
+require('../meme-app/js/TextBoxManager.js');
+require('../meme-app/js/Exporter.js');

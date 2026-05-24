@@ -51,7 +51,7 @@ describe('Drag-and-drop upload — drop zone', () => {
     jest.spyOn(window.MemeGen.TextBoxManager, 'init').mockImplementation(() => {});
     loadFromFileSpy = jest.spyOn(window.MemeGen.ImageLoader, 'loadFromFile')
       .mockImplementation(() => {});
-    require('../versions/v1/js/app.js');
+    require('../meme-app/js/app.js');
     document.dispatchEvent(new Event('DOMContentLoaded'));
     container = document.getElementById('canvas-container');
   });

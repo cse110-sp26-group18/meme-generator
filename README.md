@@ -28,43 +28,15 @@ Since memes are usually made and shared quickly in group chats, social media, an
 
 ---
 
-## Current Version
+## Versions
 
-The current version of the app is stored in:
+The most updated version of the app is stored in `meme-app/`. 
 
-`versions/v1/`
+A new version is pushed to main every week, after sprint meeting review on Sunday. 
 
-Version 1 focuses on the basic meme creation flow:
+Previous versions can be found on the different branches, named `vx` where x is the version number. 
 
-- Upload an image
-- Add text directly on top of the image
-- Move text using drag-and-drop
-- Resize the text box
-- Change the font
-- Toggle text border on or off
-- Download the edited meme
-
-Some features are working, but others still need improvement. Notes about what worked, what did not work, and what should be fixed next are tracked in `documentation/log.md`.
-
----
-
-## First Iteration Goals
-
-For the first iteration, our goal is to create a basic working meme generator where users can complete the main meme creation flow from start to finish.
-
-Users should be able to:
-
-- Upload an image
-- Click directly on the image to add text
-- Edit the text content
-- Move text around the image
-- Resize text or the text box
-- Customize the text with basic styling
-- Download the final meme image
-
-This version is focused on proving the core interaction of the app. More advanced features, such as a full meme template library and character emotion swapping, are planned for later versions.
-
----
+--- 
 
 ## Prioritized Features
 
@@ -75,6 +47,7 @@ This version is focused on proving the core interaction of the app. More advance
 - Move text around the image
 - Resize text or the text box
 - Download the final meme
+- A library of most popular meme templates
 
 ### Text Customization
 
@@ -94,7 +67,6 @@ This version is focused on proving the core interaction of the app. More advance
 
 ### Future Features
 
-- Meme template library with 5–10 starter templates
 - Popular meme categories
 - Permutable character memes with selectable emotions
 - Better mobile support
@@ -108,15 +80,16 @@ This repo is organized so that people can understand both the project idea and t
 
 The main folders are:
 
+- `meme-app`
 - `documentation/`
 - `research/`
-- `versions/`
+
+The `meme-app` is the most updated version of the app. 
 
 The `documentation/` folder is for project planning, goals, workflow, screenshots, and AI usage logs.
 
 The `research/` folder is for user research, survey information, personas, and user stories.
 
-The `versions/` folder is for the generated versions of the app.
 
 ---
 
@@ -154,13 +127,6 @@ This folder holds the user research for the project.
 
 This file contains the user study work. It includes the survey, user responses, personas, and user stories. This helps us understand who we are building the app for and what problems we are trying to solve.
 
-### `versions/`
-
-This folder contains the different generated versions of the meme generator app. Each version has its own folder so we can keep track of how the app changes over time.
-
-### `versions/v1/`
-
-This folder contains the first generated version of the meme generator app.
 ---
 
 ## AI Generation and Version Tracking
@@ -181,9 +147,7 @@ This information is mainly stored in:
 
 - `documentation/log.md`
 - `documentation/screenshots/`
-- `versions/`
 
-Each folder inside `versions/` should represent a major version of the app so that we can compare progress over time.
 
 ---
 

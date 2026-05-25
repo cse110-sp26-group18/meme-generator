@@ -6,15 +6,16 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:upload": "jest testing/v1_test_upload.test.js",
-    "test:text": "jest testing/v1_test_text_editing.test.js",
-    "test:custom": "jest testing/v1_test_customization.test.js",
-    "test:download": "jest testing/v1_test_download.test.js",
-    "test:responsive": "jest testing/v1_test_responsive.test.js"
+    "test:upload": "jest testing/upload.test.js",
+    "test:text": "jest testing/text_editing.test.js",
+    "test:custom": "jest testing/customization.test.js",
+    "test:download": "jest testing/download.test.js",
+    "test:responsive": "jest testing/responsive.test.js",
+    "test:search": "jest testing/meme_search.test.js"
   },
   "devDependencies": {
     "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0",
-    "jest-canvas-mock": "^2.5.2"
+    "jest-canvas-mock": "^2.5.2",
+    "jest-environment-jsdom": "^29.7.0"
   }
 }

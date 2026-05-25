@@ -1,12 +1,12 @@
 /**
- * v1_drag_drop.test.js
+ * drag_drop.test.js
  * Verifies drag-and-drop file upload (issue #11).
  *
  * The drop zone is the canvas-container element. Dropping an image file
  * should route the file through MemeGen.ImageLoader.loadFromFile, identical
  * to the file-input flow.
  *
- * Module under test: versions/v1/js/app.js
+ * Module under test: meme-app/js/app.js
  *
  * jsdom note: app.js binds its handlers inside a DOMContentLoaded listener.
  * jsdom shares one document across the file, so we set up the DOM and fire

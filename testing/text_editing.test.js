@@ -1,5 +1,5 @@
 /**
- * v1_test_text_editing.test.js
+ * text_editing.test.js
  * Verifies First Iteration Goal: "Click image to add/edit movable text"
  *
  * Covers:

@@ -47,6 +47,8 @@ MemeGen.DragResize = (function () {
       e.stopPropagation();
       resizing = true;
       resizeCorner = target.dataset.corner;
+      // Manual corner-resize overrides auto-fit so typing won't shrink the box back.
+      textBox.manuallyResized = true;
       startX = e.clientX;
       startY = e.clientY;
       startLeft   = el.offsetLeft;

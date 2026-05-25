@@ -220,11 +220,12 @@ MemeGen.TextBox = (function () {
 
     // Delete key removes selected textbox only when not editing text.
     this._handleKeyDown = function (e) {
-      if (e.key !== 'Delete') {
+      if (e.key !== 'Delete' || !self.selected || self.editing) {
         return;
       }
 
-      if (!self.selected || self.editing) {
+      // Do not delete if the user is typing in another input field
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
         return;
       }
 

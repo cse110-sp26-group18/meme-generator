@@ -119,7 +119,7 @@ The mobile version should stack the layout vertically:
 
 This makes the page easy to scroll and simple to understand on a phone.
 
-![mobile before template selection](mobile.png)
+<img src="mobile.png" alt="mobile before template selection" width="300">
 
 ## Mobile After a Template or Image Is Selected
 
@@ -138,7 +138,7 @@ After selection:
 
 This keeps the editing experience focused while still allowing users to change templates.
 
-![mobile after template selection](template_mobile.png)
+<img src="template_mobile.png" alt="mobile after template selection" width="300">
 
 ## Mobile Template Drawer
 

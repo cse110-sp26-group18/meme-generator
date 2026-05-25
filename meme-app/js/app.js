@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var container = document.getElementById('canvas-container');
   var imageInput = document.getElementById('image-input');
   var downloadBtn = document.getElementById('download-btn');
+  var shareBtn = document.getElementById('share-btn');
   var placeholder = document.getElementById('placeholder');
   var hint = document.getElementById('hint');
 
@@ -13,10 +14,16 @@ document.addEventListener('DOMContentLoaded', function () {
     placeholder.hidden = true;
     hint.hidden = false;
     downloadBtn.disabled = false;
+    if (shareBtn && MemeGen.Exporter.isMobileOrTablet()) shareBtn.disabled = false;
     MemeGen.TextBoxManager.setImageLoaded(true);
   });
 
   MemeGen.TextBoxManager.init(container, canvas);
+
+  // Show share button on mobile/tablet only; keep it hidden on desktop.
+  if (shareBtn && MemeGen.Exporter.isMobileOrTablet()) {
+    shareBtn.style.display = 'inline-block';
+  }
 
   imageInput.addEventListener('change', function () {
     if (this.files && this.files[0]) {
@@ -163,4 +170,22 @@ document.addEventListener('DOMContentLoaded', function () {
       MemeGen.ImageLoader.redraw();
     }, 100);
   });
+
+  if (shareBtn) {
+    shareBtn.addEventListener('click', function () {
+      var image = MemeGen.ImageLoader.getImage();
+      var ctx = MemeGen.ImageLoader.getContext();
+      var textBoxes = MemeGen.TextBoxManager.getAll();
+
+      MemeGen.TextBoxManager.getAll().forEach(function (tb) {
+        tb.deselect();
+      });
+
+      MemeGen.Exporter.shareMeme(canvas, ctx, image, textBoxes);
+
+      setTimeout(function () {
+        MemeGen.ImageLoader.redraw();
+      }, 100);
+    });
+  }
 });

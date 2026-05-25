@@ -109,7 +109,7 @@ describe('Mobile toolbar — fixed-bottom layout (max-width: 768px)', () => {
   });
 
   it('uses SCALABLE sizing for the upload / download buttons on mobile (not raw px)', () => {
-    const rule = mobile.match(/\.upload-btn,\s*#download-btn\s*\{([\s\S]*?)\}/);
+    const rule = mobile.match(/\.upload-btn[\s\S]*?#download-btn\s*\{([\s\S]*?)\}/);
     expect(rule).not.toBeNull();
     const scalable = /(?:clamp\([^)]+\)|[\d.]+(?:rem|em|%|vw|vh))/;
     expect(rule[1]).toMatch(new RegExp('min-height:\\s*' + scalable.source));

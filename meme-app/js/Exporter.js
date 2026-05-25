@@ -28,7 +28,7 @@ MemeGen.Exporter = (function () {
     return lines.length ? lines : [''];
   }
 
-  function exportMeme(canvas, ctx, image, textBoxes) {
+  function renderToCanvas(ctx, canvas, image, textBoxes) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
@@ -69,8 +69,16 @@ MemeGen.Exporter = (function () {
 
       ctx.restore();
     });
+  }
 
-    canvas.toBlob(function (blob) {
+  function getMemeBlob(canvas, ctx, image, textBoxes, callback) {
+    renderToCanvas(ctx, canvas, image, textBoxes);
+    canvas.toBlob(callback, 'image/png');
+  }
+
+  function exportMeme(canvas, ctx, image, textBoxes) {
+    getMemeBlob(canvas, ctx, image, textBoxes, function (blob) {
+      if (!blob) return;
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
       a.href = url;
@@ -79,10 +87,59 @@ MemeGen.Exporter = (function () {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    }, 'image/png');
+    });
   }
 
-  return { exportMeme: exportMeme };
+  function isMobileOrTablet() {
+    var mq = typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 1024px)')
+      : null;
+    var smallOrTabletScreen = mq ? mq.matches : false;
+    var hasTouch = 'ontouchstart' in window || (navigator.maxTouchPoints || 0) > 0;
+    return smallOrTabletScreen && hasTouch;
+  }
+
+  function canUseNativeShare() {
+    return isMobileOrTablet() && typeof navigator.share === 'function';
+  }
+
+  function shareMeme(canvas, ctx, image, textBoxes) {
+    getMemeBlob(canvas, ctx, image, textBoxes, function (blob) {
+      if (!blob) {
+        exportMeme(canvas, ctx, image, textBoxes);
+        return;
+      }
+
+      var file = new File([blob], 'meme.png', { type: 'image/png' });
+      var shareData = { files: [file] };
+
+      if (
+        isMobileOrTablet() &&
+        typeof navigator.share === 'function' &&
+        typeof navigator.canShare === 'function' &&
+        navigator.canShare(shareData)
+      ) {
+        navigator.share(shareData).then(function () {
+          // share succeeded
+        }).catch(function (err) {
+          // AbortError = user cancelled — do nothing
+          if (err && err.name !== 'AbortError') {
+            exportMeme(canvas, ctx, image, textBoxes);
+          }
+        });
+      } else {
+        exportMeme(canvas, ctx, image, textBoxes);
+      }
+    });
+  }
+
+  return {
+    exportMeme: exportMeme,
+    getMemeBlob: getMemeBlob,
+    shareMeme: shareMeme,
+    isMobileOrTablet: isMobileOrTablet,
+    canUseNativeShare: canUseNativeShare
+  };
 })();
 
 window.MemeGen = MemeGen;

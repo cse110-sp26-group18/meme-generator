@@ -83,6 +83,29 @@ main {
   cursor: not-allowed;
 }
 
+/* Share button — hidden by default; JS reveals it on mobile/tablet only. */
+#share-btn {
+  display: none;
+  padding: 10px 20px;
+  background: #e94560;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+#share-btn:hover:not(:disabled) {
+  background: #c73650;
+}
+
+#share-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .canvas-container {
   position: relative;
   display: inline-block;
@@ -461,6 +484,7 @@ main {
   }
 
   .upload-btn,
+  #share-btn,
   #download-btn {
     flex: 1 1 8.75rem;
     min-height: clamp(2.5rem, 8vw, 3.25rem);

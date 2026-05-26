@@ -1,5 +1,5 @@
 /**
- * v1_test_download.test.js
+ * download.test.js
  * Verifies First Iteration Goal: "Download generated meme"
  *
  * Covers:

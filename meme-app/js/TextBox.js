@@ -17,8 +17,13 @@ MemeGen.TextBox = (function () {
     this.fontFamily = 'Impact';
     this.borderEnabled = true;
     this.selected = false;
+    this.editing = false;
+    this._handleKeyDown = null;
     this.onDelete = null;
     this.onSelect = null;
+    // Once the user drags a corner handle, auto-fit is disabled for this box
+    // so their explicit sizing isn't overwritten by subsequent typing.
+    this.manuallyResized = false;
 
     this._buildDOM();
     this._bindEvents();
@@ -81,12 +86,14 @@ MemeGen.TextBox = (function () {
       { label: 'Helvetica', value: 'Helvetica, Arial, sans-serif' },
       { label: 'Montserrat', value: "'Montserrat', sans-serif" }
     ];
+
     fonts.forEach(function (f) {
       var opt = document.createElement('option');
       opt.value = f.value;
       opt.textContent = f.label;
       fontSelect.appendChild(opt);
     });
+
     toolbar.appendChild(fontSelect);
 
     // Border toggle
@@ -177,6 +184,7 @@ MemeGen.TextBox = (function () {
     this.borderBtn.addEventListener('click', function () {
       self.borderEnabled = !self.borderEnabled;
       this.textContent = self.borderEnabled ? 'Border: ON' : 'Border: OFF';
+
       if (self.borderEnabled) {
         self.textarea.classList.remove('no-border');
       } else {
@@ -186,6 +194,12 @@ MemeGen.TextBox = (function () {
 
     this.deleteBtn.addEventListener('click', function () {
       self.destroy();
+    });
+
+    this.textarea.addEventListener('input', function () {
+      if (!self.manuallyResized) {
+        self.fitToText();
+      }
     });
 
     // A− decreases font size and shrinks the box to match
@@ -202,64 +216,55 @@ MemeGen.TextBox = (function () {
       self._fitBoxToFontSize();
     });
 
+    // Existing textbox click behavior:
+    // First click on an unselected textbox = select only.
+    // Second click on the already-selected textbox = normal textarea edit.
     this.el.addEventListener('mousedown', function (e) {
+      var wasSelected = self.selected;
+
       if (self.onSelect) {
         self.onSelect(self);
       }
-    });
 
-    // --- Double-tap (touch shortcut): focus the textarea for quick editing.
-    // Deliberately safe — does NOT delete. The visible "×" button stays the
-    // only way to remove a box from the toolbar; the long-press menu also
-    // offers a Delete that requires an explicit second tap.
-    // Skips touchend events that ended a pinch (multi-touch) or that just
-    // opened the quick-action menu, so finger-lifts can never be misread.
-    var lastTapAt = 0;
-    this.el.addEventListener('touchend', function (e) {
-      if (self.quickMenu && self.quickMenu.classList.contains('is-open')) return;
-      if (e.touches && e.touches.length > 0) return;
-      if (e.changedTouches && e.changedTouches.length !== 1) return;
-      var pinchAt = parseInt(self.el.dataset.pinchAt || '0', 10);
-      if (pinchAt && Date.now() - pinchAt < 500) return;
-      var now = Date.now();
-      if (now - lastTapAt < 300) {
-        self.focusTextarea();
-        if (typeof e.preventDefault === 'function') e.preventDefault();
-        lastTapAt = 0;
+      if (!wasSelected) {
+        // First click: select this textbox, but do not edit yet.
+        self.editing = false;
+
+        // Remove typing cursor from any previous textbox.
+        if (document.activeElement && document.activeElement.blur) {
+          document.activeElement.blur();
+        }
+
+        // Stop this first click from placing the cursor in this textarea.
+        e.preventDefault();
+        self.textarea.blur();
       } else {
-        lastTapAt = now;
+        // Second click on the same selected textbox: allow browser to edit normally.
+        self.editing = true;
       }
     });
 
-    // --- Quick-action menu (mobile long-press) ---
-    // Edit → focus the textarea for typing.
-    // Border → reuse the existing border-toggle handler so state stays in sync.
-    // Delete → only fires after this explicit second tap; long-press alone
-    // never deletes. Each action closes the menu (Delete via destroy()).
-    this.qEditBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      self.hideQuickActions();
-      self.focusTextarea();
-    });
-    this.qBorderBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      self.borderBtn.click();
-      self.hideQuickActions();
-    });
-    this.qDeleteBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      self.destroy();
+    // If the textarea receives focus naturally, we are editing text.
+    this.textarea.addEventListener('focus', function () {
+      self.editing = true;
     });
 
-    // Tap anywhere outside the menu closes it. We attach to the document so
-    // a tap on the canvas, header, body, etc. all dismiss the menu cleanly.
-    // Stored on the instance so destroy() can detach it.
-    this._outsideClickHandler = function (e) {
-      if (!self.quickMenu.classList.contains('is-open')) return;
-      if (self.quickMenu.contains(e.target)) return;
-      self.hideQuickActions();
+    // Delete key removes selected textbox only when not editing text.
+    this._handleKeyDown = function (e) {
+      if (e.key !== 'Delete' || !self.selected || self.editing) {
+        return;
+      }
+
+      // Do not delete if the user is typing in another input field
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+        return;
+      }
+
+      e.preventDefault();
+      self.destroy();
     };
-    document.addEventListener('click', this._outsideClickHandler);
+
+    document.addEventListener('keydown', this._handleKeyDown);
   };
 
   // Single source of truth for font size changes.
@@ -268,6 +273,7 @@ MemeGen.TextBox = (function () {
   TextBox.prototype.applyFontSize = function (size) {
     this.fontSize = Math.max(FONT_SIZE_MIN, Math.min(FONT_SIZE_MAX, Math.round(size)));
     this.textarea.style.fontSize = this.fontSize + 'px';
+
     if (this.fontSizeDisplay) {
       this.fontSizeDisplay.textContent = this.fontSize + 'px';
     }
@@ -280,6 +286,37 @@ MemeGen.TextBox = (function () {
     this.el.style.height = newHeight + 'px';
   };
 
+  // Shrink/grow the box so it hugs the textarea content with no extra slack.
+  // Measures each line's width using a canvas 2d context (consistent with
+  // Exporter), then sets el width/height to match. Horizontal chrome = 16px
+  // (textarea padding 6px*2 + border 2px*2); vertical chrome = 12px
+  // (padding 4px*2 + border 2px*2). Floored at the CSS min sizes (80x40).
+  TextBox.prototype.fitToText = function () {
+    var text = this.textarea.value;
+    var lines = text.length ? text.split('\n') : [''];
+
+    var ctx = (TextBox._measureCanvas || (TextBox._measureCanvas = document.createElement('canvas'))).getContext('2d');
+    ctx.font = this.fontSize + 'px ' + this.fontFamily;
+
+    var maxWidth = 0;
+    for (var i = 0; i < lines.length; i++) {
+      var w = ctx.measureText(lines[i]).width;
+      if (w > maxWidth) maxWidth = w;
+    }
+
+    var lineHeight = this.fontSize * 1.2;
+    var textHeight = lines.length * lineHeight;
+
+    var HORIZ_CHROME = 16;
+    var VERT_CHROME = 12;
+
+    var newWidth = Math.max(80, Math.ceil(maxWidth + HORIZ_CHROME));
+    var newHeight = Math.max(40, Math.ceil(textHeight + VERT_CHROME));
+
+    this.el.style.width = newWidth + 'px';
+    this.el.style.height = newHeight + 'px';
+  };
+
   TextBox.prototype.select = function () {
     this.selected = true;
     this.el.classList.add('selected');
@@ -287,6 +324,11 @@ MemeGen.TextBox = (function () {
 
   TextBox.prototype.deselect = function () {
     this.selected = false;
+    this.editing = false;
+
+    // Important: remove the typing cursor when clicking away or selecting another textbox.
+    this.textarea.blur();
+
     this.el.classList.remove('selected');
     this.hideQuickActions();
     // On mobile the unfocused textarea has pointer-events: none so taps
@@ -317,18 +359,20 @@ MemeGen.TextBox = (function () {
   // focus back after the event finishes).
   TextBox.prototype.focusTextarea = function () {
     var self = this;
+    self.editing = true;
     self.textarea.focus();
     setTimeout(function () { self.textarea.focus(); }, 0);
   };
 
   TextBox.prototype.destroy = function () {
-    if (this._outsideClickHandler) {
-      document.removeEventListener('click', this._outsideClickHandler);
-      this._outsideClickHandler = null;
+    if (this._handleKeyDown) {
+      document.removeEventListener('keydown', this._handleKeyDown);
     }
+
     if (this.onDelete) {
       this.onDelete(this);
     }
+
     this.el.remove();
   };
 

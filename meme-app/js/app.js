@@ -16,6 +16,9 @@ document.addEventListener('DOMContentLoaded', function () {
     downloadBtn.disabled = false;
     if (shareBtn && MemeGen.Exporter.isMobileOrTablet()) shareBtn.disabled = false;
     MemeGen.TextBoxManager.setImageLoaded(true);
+    // Clear any "Loading…" message left over from the meme-search flow.
+    var s = document.getElementById('meme-search-status');
+    if (s) s.textContent = '';
   });
 
   MemeGen.TextBoxManager.init(container, canvas);
@@ -67,6 +70,14 @@ document.addEventListener('DOMContentLoaded', function () {
     if (file) {
       MemeGen.ImageLoader.loadFromFile(file);
     }
+  });
+
+  // Click the empty canvas region to open the file picker. Once an image
+  // is loaded, clicks inside the canvas are reserved for adding text boxes,
+  // so we gate on .has-image to avoid hijacking that interaction.
+  container.addEventListener('click', function (e) {
+    if (container.classList.contains('has-image')) return;
+    imageInput.click();
   });
 
   // Block the browser from opening the file if the drop misses the container.
@@ -171,21 +182,26 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 100);
   });
 
-  if (shareBtn) {
-    shareBtn.addEventListener('click', function () {
-      var image = MemeGen.ImageLoader.getImage();
-      var ctx = MemeGen.ImageLoader.getContext();
-      var textBoxes = MemeGen.TextBoxManager.getAll();
+  // Wire up meme search: when a result is clicked, load it onto the canvas
+  // through the same pipeline as a normal upload.
+  var searchInput = document.getElementById('meme-search-input');
+  var searchResults = document.getElementById('meme-search-results');
+  var searchStatus = document.getElementById('meme-search-status');
 
-      MemeGen.TextBoxManager.getAll().forEach(function (tb) {
-        tb.deselect();
-      });
-
-      MemeGen.Exporter.shareMeme(canvas, ctx, image, textBoxes);
-
-      setTimeout(function () {
-        MemeGen.ImageLoader.redraw();
-      }, 100);
+  if (searchInput && searchResults && MemeGen.MemeSearch) {
+    MemeGen.MemeSearch.init({
+      input: searchInput,
+      results: searchResults,
+      status: searchStatus,
+      onSelect: function (meme) {
+        // Show a loading message; it is cleared by the ImageLoader success
+        // callback on load, or replaced with an error here if the load fails.
+        searchStatus.textContent = 'Loading ' + meme.name + '…';
+        MemeGen.MemeSearch.loadFromUrl(meme.url, function (err) {
+          searchStatus.textContent =
+            'Could not load that meme: ' + (err && err.message ? err.message : 'unknown error');
+        });
+      }
     });
   }
 });

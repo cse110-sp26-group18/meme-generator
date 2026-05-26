@@ -1,5 +1,5 @@
 /**
- * v1_test_customization.test.js
+ * customization.test.js
  * Verifies First Iteration Goal: "Basic text customization"
  *
  * Covers:
@@ -311,30 +311,60 @@ describe('Text Box Font Auto-Resize', () => {
     return parseFloat(window.getComputedStyle(textBox.textarea).fontSize);
   }
 
-  // Skipped: these two cases test CSS-driven auto-resize-on-style-change, which
-  // was explicitly documented as "not achieved" in v1 (see v1_test_README.md
-  // Coverage Gaps). The implementation only resizes font through drag events or
-  // A+/A− button clicks — not by watching el.style.width/height changes. These
-  // remain as it.skip so the intent is preserved without failing the suite.
-  it.skip('should increase text size when the textbox gets larger', () => {
+  // Auto-resize fires through DragResize's mousemove handler — directly
+  // mutating style.width does not invoke it. These helpers simulate the
+  // drag-resize gesture on the bottom-right corner handle so the font-size
+  // sync path actually runs.
+  function dragResizeBottomRight(dx, dy) {
+    const handle = textBox.el.querySelector('.resize-handle.bottom-right');
+    handle.dispatchEvent(new MouseEvent('mousedown', {
+      bubbles: true, cancelable: true, clientX: 0, clientY: 0,
+    }));
+    document.dispatchEvent(new MouseEvent('mousemove', {
+      bubbles: true, cancelable: true, clientX: dx, clientY: dy,
+    }));
+    document.dispatchEvent(new MouseEvent('mouseup', {
+      bubbles: true, cancelable: true,
+    }));
+  }
+
+  function dragBottomRightHandle(startX, startY, endX, endY) {
+    const handle = textBox.el.querySelector('.resize-handle.bottom-right');
+    handle.dispatchEvent(new MouseEvent('mousedown', {
+      bubbles: true,
+      clientX: startX,
+      clientY: startY
+    }));
+    document.dispatchEvent(new MouseEvent('mousemove', {
+      bubbles: true,
+      clientX: endX,
+      clientY: endY
+    }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+  }
+
+  it('should increase text size when the textbox gets larger', () => {
     const initialFontSize = getFontSize();
 
-    textBox.el.style.width = '400px';
-    textBox.el.style.height = '160px';
+    // Grow from 200×80 to 400×160 via a drag on the bottom-right handle.
+    dragResizeBottomRight(200, 80);
+    dragBottomRightHandle(300, 180, 500, 260);
 
     const newFontSize = getFontSize();
 
     expect(newFontSize).toBeGreaterThan(initialFontSize);
   });
 
-  it.skip('should decrease text size when the textbox gets smaller', () => {
-    textBox.el.style.width = '400px';
-    textBox.el.style.height = '160px';
+  it('should decrease text size when the textbox gets smaller', () => {
+    dragBottomRightHandle(300, 180, 500, 260);
 
+    // First grow, then shrink — each gesture is independent because mouseup
+    // resets the DragResize state, so we have to re-press for the second drag.
+    dragResizeBottomRight(200, 80);
     const largeFontSize = getFontSize();
 
-    textBox.el.style.width = '100px';
-    textBox.el.style.height = '40px';
+    dragResizeBottomRight(-300, -120);
+    dragBottomRightHandle(300, 180, 300, 40);
 
     const smallFontSize = getFontSize();
 

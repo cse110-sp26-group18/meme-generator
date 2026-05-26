@@ -4,13 +4,17 @@
 
 ## 1. What Each Test File Covers
 
-| File | v1 Goal It Validates | Corresponding Modules in v1 |
+| File | v1 Goal It Validates | Corresponding Modules |
 |------|---------------------|----------------------|
-| `v1_test_upload.test.js` | "Upload photo functionality" | `ImageLoader.js` |
-| `v1_test_text_editing.test.js` | "Click image to add/edit movable text" | `TextBox.js`, `TextBoxManager.js`, `DragResize.js` |
-| `v1_test_customization.test.js` | "Basic text customization" (fonts, border, resize) | `TextBox.js`, `DragResize.js` |
-| `v1_test_download.test.js` | "Download generated meme" | `Exporter.js` |
-| `v1_test_responsive.test.js` | "Mobile-friendly and responsive design" (structural only) | `index.html` DOM structure |
+| `v1_upload.test.js` | "Upload photo functionality" | `meme-app/js/ImageLoader.js` |
+| `v1_text_editing.test.js` | "Click image to add/edit movable text" | `meme-app/js/TextBox.js`, `TextBoxManager.js`, `DragResize.js` |
+| `v1_customization.test.js` | "Basic text customization" (fonts, border, resize) | `meme-app/js/TextBox.js`, `DragResize.js` |
+| `v1_download.test.js` | "Download generated meme" | `meme-app/js/Exporter.js` |
+| `v1_responsive.test.js` | "Mobile-friendly and responsive design" (structural only) | `meme-app/index.html` DOM structure |
+| `v1_drag_drop.test.js` | Drag-and-drop upload via `app.js` | `meme-app/js/app.js` |
+| `v3_mobile_gestures.test.js` | Pinch-to-resize, double-tap, hold-to-move, quick-action menu | `meme-app/js/DragResize.js`, `TextBox.js` |
+| `v3_share.test.js` | Mobile Share (Web Share API) and Download fallback | `meme-app/js/Exporter.js` |
+| `v3_mobile_overflow.test.js` | Mobile bottom toolbar, overflow guard, quick-action menu CSS | `meme-app/css/styles.css` |
 
 ### Detailed breakdown of each test file
 
@@ -45,15 +49,10 @@
 
 ## 2. Prerequisites — 
 
-### 2a. Ensure v1 files are present
+### 2a. Ensure app files are present
 
-The tests reference `versions/v1/js/*.js`. These files live on Tim's branch.
-If they aren't on your local `main` yet, check out the branch first:
-
-```bash
-git fetch origin
-git checkout first-iteration-tim
-```
+The tests reference `meme-app/js/*.js` (loaded by `testing/setup.js`).
+All modules live at that path on the current branch — no separate checkout needed.
 
 ### 2b. Install Node.js
 

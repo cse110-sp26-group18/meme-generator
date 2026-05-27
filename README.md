@@ -1,6 +1,6 @@
-# Meme Generator
+# The Pandalorians (Team 18) - Meme Generator
 
-## Team 18 — Pandalorian
+[Deployed Meme Generator](https://cse110-sp26-group18.github.io/meme-generator/meme-app/)
 
 ## Members
 

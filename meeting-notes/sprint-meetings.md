@@ -6,11 +6,12 @@
 * [5/14](#5/14)
 * [5/19](#5/19)
 * [5/21](#5/21)
+* [5/26](#5/26)
 
 <a id="5/7"></a>
 ## Sprint Meeting 1: 5/7 (6:20 PM – 6:45 PM)
 
-#### Summary
+### Summary
 - Created a user survey to distribute via the CSE110 Slack channel to gather insights on:
   - What users want from meme generators
   - What tools/services they are currently using
@@ -50,7 +51,7 @@
 <a id="5/12"></a>
 ## Sprint Meeting 2: 5/12 (6:20 PM – 6:45 PM)
 
-#### Summary
+### Summary
 - Reviewed Version 1 of the meme generator web app.
 - Everyone should document observations, strengths, weaknesses, and V2 feature ideas in `documents/log.md` in meme-generator repo by tomorrow.
 - Agreed on a weekly workflow:
@@ -107,12 +108,12 @@ Members:
 <a id="5/14"></a>
 ## Sprint Meeting 3: 5/14 (6:20 PM – 6:40 PM)
 
-#### Summary
+### Summary
 - Communicated about Slack notifications and making sure everyone is keeping themselves responsible for all upcoming assignments
   - Make sure your slack notification is ON and set for RECEIVING them until 12am (we need to be able to reach you when it’s time sensitive)
 - We should have a standard AI Document as discussed by professor in class today
 
-### Blockers 
+#### Blockers 
 - Ayat: There was an issue in PR that was not passing the tests
   - Solaiman fixed it so now it should be 
 
@@ -131,7 +132,7 @@ Members:
 - Review [rubric](../SWE%20Rubric.pdf). Have a strong understanding of what needs to get done.
 
 
-### Tasks to Complete
+#### Tasks to Complete
 - Think of the pipeline we want to follow so that the workflow is very straightforward (CI pipeline built via Github Actions) 
 - Architectural diagram of the project (will be discussed in Sunday meeting)
   - add ideas to [Architectural Diagram Miro](https://miro.com/app/board/uXjVHUOhHB0=/) 
@@ -142,13 +143,13 @@ Members:
 <a id="5/19"></a>
 ## Sprint Meeting 4: 5/19 (6:20 PM – 6:40 PM)
 
-#### Summary
+### Summary
 - [Workflow documentation](https://docs.google.com/document/d/1HTeaZrgajNGCmCf7jVsHeb4klm5WVuD36Jaqn9a21mo/edit?tab=t.0) was drafted to ensure everyone is aligned on the development process
   - Everyone should review the document before continuing work on features
   - Add clarifying points or ask questions in `#general` in slack if anything is confusing
   - Goal is to finalize the workflow document before Sunday’s meeting so it can be pushed to the repository
 
-### Blockers
+#### Blockers
 - No major blockers discussed
 - Team should communicate any unresolved issues in the group chat as soon as possible
 
@@ -167,7 +168,7 @@ Members:
 - Continue resolving current issues before Sunday’s meeting
 - Reach out in the chat if any blockers or concerns arise
 
-### Tasks to Complete
+#### Tasks to Complete
 - Finalize workflow documentation before Sunday meeting
 - Contribute to Agile Team Status Video Notes
 - Contribute to Agile Team Status Presentation
@@ -175,9 +176,9 @@ Members:
 
 ---
 <a id="5/21"></a> 
-## Sprint Meeting 5: 5/21 (6:20 PM – 6:50 PM)
+## Sprint Meeting 5: 5/21 (6:20 PM – 6:45 PM)
 
-#### Summary
+### Summary
 - Discussed current testing issues on `main` branch
   - Testing may be failing due to folder path changes existing in `v3` but not in `main` (AJay fixed it in v3) 
 - Team should begin merging reviewed PRs into `v3` as long as tests in `v3` are passing
@@ -185,7 +186,7 @@ Members:
   - Focus will instead shift to reviewing and testing PRs
 - Continue discussion about improving compatibility and project uniqueness
 
-### Blockers
+#### Blockers
 - Ayat: Testing on `main` is currently failing
   - Possible issue caused by folder path differences between `main` and `v3`
 - Olivia: Cannot push document changes to `main`, perhaps for the same reason
@@ -214,7 +215,7 @@ Members:
 - Consider creating a project flowchart after UI design is finalized
   - Potential Week 9 issue/task assignment
 
-### Topics to Discuss on Sunday
+#### Topics to Discuss on Sunday
 - Documentation Ideas:
   - Create a `features` folder inside the `Documentation` directory
   - Each feature should have its own `.md` file
@@ -223,3 +224,41 @@ Members:
     - What AI generated
     - Feedback/reflections for the feature
   - Entries should remain brief but descriptive
+ 
+---
+<a id="5/26"></a> 
+## Sprint Meeting 5: 5/26 (6:20 PM – 6:50 PM)
+
+### Summary
+- Olivia talked to Professor Powell: showed him some of the design,
+  1. stay flexible wth design and try both + test with different people/users, compartmentalize different features to it's easy to change
+  2. assumptions are not always correct, so test
+  3. share button + copy button --> too confusing so combine into one
+  4. allow users to choose parts of their layouts --> emphasize customization
+  5. keep choices of font styles limited (just impact and layout)
+  6. be intentional with placement of search bars (discuss target users and already-exisisting apps) 
+- Review of Group 16 code is due tonight
+   - Aaron and Daniel will finish by 9:30pm
+ 
+- Talked to Omair and some AI feature is required but vague
+  - Have justification for why we are not doing face-swap and why we chose something else 
+
+#### Blockers
+- Olivia: text feature auto-enlarging does not work on Safari but works on Chrome. 
+
+### Action Items/Individual Responsibility
+- Deploy our page and add more comments in source code - Aila 
+- Organize the repo - Olivia and Aila 
+- Start on mobile and web UI - Aaron
+- Continue on AI recognition - Tim and Anvay
+- Continue working on library - Daniel and Brendan
+
+#### Tasks to Complete
+- Assignemnt due tonight
+- Finalize the UI with points from Powell
+- Daniel will be at OH for Powell tomorrow
+- Integrate more testing and after UI design, each ask 3-4 friends for in-person feedback
+- Think about what specific features we want to test so we write tests before implementing features 
+
+
+

@@ -32,7 +32,7 @@ MemeGen.TextRecognizer = (function () {
 
     // Pass 1: luminance grayscale, tracking the gray range.
     for (var i = 0; i < data.length; i += 4) {
-      var g = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+      var g = (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]) | 0;
       data[i] = data[i + 1] = data[i + 2] = g;
       if (g < min) min = g;
       if (g > max) max = g;

@@ -251,6 +251,19 @@ describe('TextRecognizer.sanitizeText', () => {
     expect(clean('©®™')).toBe('');
     expect(clean('')).toBe('');
   });
+
+  test('converts a "1" touching letters to I/l based on case', () => {
+    expect(clean('H1')).toBe('HI');         // uppercase context → I
+    expect(clean('W1LL')).toBe('WILL');
+    expect(clean('MOV1E')).toBe('MOVIE');
+    expect(clean('emai1')).toBe('email');   // lowercase context → l
+  });
+
+  test('leaves standalone "1" and real numbers untouched', () => {
+    expect(clean('1 AM')).toBe('1 AM');     // separated by space → not touching
+    expect(clean('100% OFF')).toBe('100% OFF');
+    expect(clean('YEAR 2021')).toBe('YEAR 2021');
+  });
 });
 
 describe('TextRecognizer.preprocess', () => {

@@ -83,10 +83,28 @@ MemeGen.TextRecognizer = (function () {
   // becomes empty here and is then dropped by the caller's content filter.
   function sanitizeText(text) {
     if (!text) return '';
-    return text
+    var cleaned = text
       .replace(/[^A-Za-z0-9\s.,!?'"():;%&\/\-]/g, '')
       .replace(/\s+/g, ' ')
       .trim();
+    return fixOneTouchingLetters(cleaned);
+  }
+
+  // OCR confuses the digit "1" with the letters "I"/"l" because the glyphs are
+  // nearly identical (especially in Impact and other sans-serif fonts). A "1"
+  // that touches a letter is almost certainly a letter, so convert it — uppercase
+  // neighbor → "I", lowercase → "l". Standalone "1" and real numbers ("100",
+  // "2021") are left untouched.
+  function fixOneTouchingLetters(text) {
+    return text.replace(/1/g, function (m, offset, str) {
+      var prev = str.charAt(offset - 1);
+      var next = str.charAt(offset + 1);
+      var prevLetter = /[A-Za-z]/.test(prev);
+      var nextLetter = /[A-Za-z]/.test(next);
+      if (!prevLetter && !nextLetter) return '1';
+      var ref = prevLetter ? prev : next;
+      return /[A-Z]/.test(ref) ? 'I' : 'l';
+    });
   }
 
   // A line splits into separate regions wherever the horizontal gap between two

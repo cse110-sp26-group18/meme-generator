@@ -80,18 +80,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  MemeGen.TemplateLibrary.init({
-    gridEl: document.getElementById('library-grid'),
-    searchEl: document.getElementById('library-search'),
-    categoryEl: document.getElementById('library-category'),
-    statusEl: document.getElementById('library-status'),
-    onSelect: function (url) {
-      MemeGen.ImageLoader.loadFromUrl(url, function () {
-        alert('Could not load that template image. Check the file path in templates.json.');
-      });
-    }
-  });
-
   downloadBtn.addEventListener('click', function () {
     var image = MemeGen.ImageLoader.getImage();
     var ctx = MemeGen.ImageLoader.getContext();

@@ -55,12 +55,39 @@ function makeImgflipPayload() {
   };
 }
 
+/** A small internal-library payload (assets/templates/templates.json shape). */
+function makeTemplatesPayload() {
+  return [
+    {
+      id: 'lebron-funny', name: 'LeBron Funny', character: 'LeBron',
+      emotion: 'funny', category: 'sports',
+      tags: ['sports', 'basketball', 'lebron', 'funny'],
+      image: 'assets/templates/lebron-meme-templates/lebron-funny.jpg', textBoxes: []
+    },
+    {
+      id: 'taj-weird-smile', name: 'TAJ Weird Smile', character: 'TAJ',
+      emotion: 'weird-smile', category: 'pop-culture',
+      tags: ['pop-culture', 'taj', 'weird-smile'],
+      image: 'assets/templates/TAJ-meme-templates/TAJ-weird smile.webp', textBoxes: []
+    }
+  ];
+}
+
 /** Stub fetch that resolves to a JSON payload. */
 function mockFetchJson(payload, { ok = true, status = 200 } = {}) {
   return jest.fn().mockResolvedValue({
     ok,
     status,
     json: () => Promise.resolve(payload)
+  });
+}
+
+/** URL-aware stub: returns the Imgflip payload for the API endpoint and the
+ *  templates payload for the local templates.json request. */
+function mockFetchByUrl({ imgflip, templates }) {
+  return jest.fn((url) => {
+    const payload = url === 'https://api.imgflip.com/get_memes' ? imgflip : templates;
+    return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(payload) });
   });
 }
 
@@ -137,7 +164,8 @@ describe('Meme Search — init() and fetch', () => {
 
     MemeGen.MemeSearch.init({ input: dom.input, results: dom.results, status: dom.status });
 
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+    // Two fetches: the Imgflip endpoint and the internal templates.json.
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
   it('renders the library after init without waiting for focus', async () => {
@@ -161,8 +189,8 @@ describe('Meme Search — init() and fetch', () => {
     dom.input.dispatchEvent(new Event('focus'));
     await flushPromises();
 
-    // Init triggers fetch; later focus is a no-op because fetched === true.
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+    // Init triggers both fetches; later focus is a no-op because fetched === true.
+    expect(global.fetch).toHaveBeenCalledTimes(2);
     expect(global.fetch).toHaveBeenCalledWith('https://api.imgflip.com/get_memes');
   });
 
@@ -326,6 +354,85 @@ describe('Meme Search — onSelect callback', () => {
   });
 });
 
+// ── Internal-library merge ───────────────────────────────────────────────────
+
+describe('Meme Search — internal library merge', () => {
+  let dom;
+
+  beforeEach(async () => {
+    dom = mountSearchDom();
+    global.fetch = mockFetchByUrl({
+      imgflip: makeImgflipPayload(),     // 3 templates
+      templates: makeTemplatesPayload()  // 2 templates
+    });
+    MemeGen.MemeSearch.init({ input: dom.input, results: dom.results, status: dom.status });
+    await flushPromises();
+  });
+
+  it('fetches both the Imgflip endpoint and the local templates.json', () => {
+    expect(global.fetch).toHaveBeenCalledWith('https://api.imgflip.com/get_memes');
+    expect(global.fetch).toHaveBeenCalledWith('../assets/templates/templates.json');
+  });
+
+  it('renders Imgflip results and internal templates together', () => {
+    const cards = dom.results.querySelectorAll('.meme-search-card');
+    expect(cards).toHaveLength(5);
+
+    const names = Array.from(dom.results.querySelectorAll('.meme-search-name'))
+      .map(el => el.textContent);
+    expect(names).toContain('Drake Hotline Bling');
+    expect(names).toContain('LeBron Funny');
+    expect(names).toContain('TAJ Weird Smile');
+  });
+
+  it('resolves internal template image paths relative to the page (encoded)', () => {
+    dom.input.value = 'weird smile';
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+
+    const img = dom.results.querySelector('.meme-search-card img');
+    expect(img.getAttribute('src'))
+      .toBe('../assets/templates/TAJ-meme-templates/TAJ-weird%20smile.webp');
+  });
+
+  it('filters internal templates by name', () => {
+    dom.input.value = 'lebron';
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+
+    const names = Array.from(dom.results.querySelectorAll('.meme-search-name'))
+      .map(el => el.textContent);
+    expect(names).toEqual(['LeBron Funny']);
+  });
+
+  it('filters internal templates by tag / character / emotion metadata', () => {
+    dom.input.value = 'basketball';
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+
+    const names = Array.from(dom.results.querySelectorAll('.meme-search-name'))
+      .map(el => el.textContent);
+    expect(names).toEqual(['LeBron Funny']);
+  });
+
+  it('passes the resolved internal template URL to onSelect when clicked', async () => {
+    const dom2 = mountSearchDom();
+    const onSelect = jest.fn();
+    global.fetch = mockFetchByUrl({ imgflip: makeImgflipPayload(), templates: makeTemplatesPayload() });
+    jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
+
+    MemeGen.MemeSearch.init({ input: dom2.input, results: dom2.results, status: dom2.status, onSelect });
+    await flushPromises();
+
+    dom2.input.value = 'lebron';
+    dom2.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    dom2.results.querySelector('.meme-search-card').click();
+
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'lebron-funny',
+      name: 'LeBron Funny',
+      url: '../assets/templates/lebron-meme-templates/lebron-funny.jpg'
+    }));
+  });
+});
+
 // ── Error states ─────────────────────────────────────────────────────────────
 
 describe('Meme Search — error states', () => {
@@ -359,6 +466,18 @@ describe('Meme Search — error states', () => {
 
     MemeGen.MemeSearch.init({ input: dom.input, results: dom.results, status: dom.status });
     dom.input.dispatchEvent(new Event('focus'));
+    await flushPromises();
+
+    expect(dom.status.textContent).toMatch(/could not load memes/i);
+  });
+
+  it('surfaces an error when Imgflip fails even if the local library loaded', async () => {
+    // Imgflip is the primary source: a bad Imgflip payload surfaces an error
+    // even though the local templates.json loaded fine.
+    const dom = mountSearchDom();
+    global.fetch = mockFetchByUrl({ imgflip: { success: false }, templates: makeTemplatesPayload() });
+
+    MemeGen.MemeSearch.init({ input: dom.input, results: dom.results, status: dom.status });
     await flushPromises();
 
     expect(dom.status.textContent).toMatch(/could not load memes/i);

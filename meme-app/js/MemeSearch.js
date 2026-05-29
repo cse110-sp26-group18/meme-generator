@@ -3,16 +3,24 @@ var MemeGen = window.MemeGen || {};
 /**
  * MemeSearch
  *
- * Fetches popular meme templates from Imgflip's public `get_memes` endpoint
- * (no API key required for read-only access) and lets the user filter them
- * by name. Selecting a result invokes the onSelect callback with the chosen
- * template, so the host app can load the image onto the canvas.
+ * Combines two template sources into one searchable grid:
+ *   1. Popular meme templates from Imgflip's public `get_memes` endpoint
+ *      (no API key required for read-only access).
+ *   2. The project's own internal library from assets/templates/templates.json.
  *
- * The endpoint returns ~100 templates, so all filtering is done client-side
- * against the cached list — no per-keystroke network calls.
+ * Both lists are fetched once, merged, and cached, then filtered client-side
+ * by name (and, for internal templates, also by character/emotion/tags) — no
+ * per-keystroke network calls. Selecting a result invokes the onSelect
+ * callback with the chosen template so the host app can load it onto the canvas.
  */
 MemeGen.MemeSearch = (function () {
   var ENDPOINT = 'https://api.imgflip.com/get_memes';
+
+  // index.html lives in meme-app/, while templates.json + its images live in
+  // the sibling assets/ folder, so the repo-root-relative paths in the JSON
+  // need a leading "../" when loaded from the page.
+  var TEMPLATES_PATH = '../assets/templates/templates.json';
+  var ASSET_PREFIX = '../';
 
   // Cached templates and fetch state.
   var memes = [];
@@ -59,22 +67,18 @@ MemeGen.MemeSearch = (function () {
     ensureFetched();
   }
 
-  // Fetch the template list once and cache it.
+  // Fetch the Imgflip list and the internal library once, merge, and cache.
+  // Imgflip is the primary source: if it fails we surface an error. The local
+  // library is best-effort — if it can't be loaded we just omit it.
   function ensureFetched() {
     if (fetched || fetching) return;
     fetching = true;
     setStatus('Loading memes…');
 
-    fetch(ENDPOINT)
-      .then(function (response) {
-        if (!response.ok) throw new Error('HTTP ' + response.status);
-        return response.json();
-      })
-      .then(function (data) {
-        if (!data || !data.success || !data.data || !data.data.memes) {
-          throw new Error('Unexpected response shape');
-        }
-        memes = data.data.memes;
+    Promise.all([fetchImgflipMemes(), fetchLocalTemplates()])
+      .then(function (lists) {
+        // Imgflip's popular memes first, then the internal library after them.
+        memes = lists[0].concat(lists[1]);
         fetched = true;
         fetching = false;
         setStatus('');
@@ -86,6 +90,62 @@ MemeGen.MemeSearch = (function () {
       });
   }
 
+  // Imgflip templates: { id, name, url, ... } as returned by the endpoint.
+  function fetchImgflipMemes() {
+    return fetch(ENDPOINT)
+      .then(function (response) {
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.json();
+      })
+      .then(function (data) {
+        if (!data || !data.success || !data.data || !data.data.memes) {
+          throw new Error('Unexpected response shape');
+        }
+        return data.data.memes;
+      });
+  }
+
+  // Internal-library templates, normalized to the same shape as Imgflip memes.
+  // Best-effort: any failure resolves to an empty list so it never blocks the
+  // Imgflip results from rendering.
+  function fetchLocalTemplates() {
+    return fetch(TEMPLATES_PATH)
+      .then(function (response) {
+        if (!response.ok) return [];
+        return response.json();
+      })
+      .then(function (data) {
+        return (Array.isArray(data) ? data : []).map(toMeme);
+      })
+      .catch(function () {
+        return [];
+      });
+  }
+
+  // Convert an internal template record into the meme shape used for rendering.
+  // searchText bundles the extra metadata so internal templates can be matched
+  // by character, emotion, or tag — not just by name.
+  function toMeme(t) {
+    return {
+      id: t.id,
+      name: t.name,
+      url: resolveImageUrl(t.image),
+      searchText: buildSearchText(t)
+    };
+  }
+
+  function buildSearchText(t) {
+    var parts = [t.name, t.character, t.emotion];
+    if (Array.isArray(t.tags)) parts = parts.concat(t.tags);
+    return parts.filter(Boolean).join(' ').toLowerCase();
+  }
+
+  // encodeURI keeps "/" but escapes spaces and other unsafe characters so
+  // filenames like "TAJ-weird smile.webp" resolve correctly.
+  function resolveImageUrl(image) {
+    return encodeURI(ASSET_PREFIX + image);
+  }
+
   // Filter cached templates by the current query and render the grid.
   function runSearch() {
     if (!fetched) {
@@ -95,7 +155,8 @@ MemeGen.MemeSearch = (function () {
     var query = (inputEl.value || '').trim().toLowerCase();
     var filtered = query
       ? memes.filter(function (m) {
-          return m.name.toLowerCase().indexOf(query) !== -1;
+          var haystack = m.searchText || (m.name || '').toLowerCase();
+          return haystack.indexOf(query) !== -1;
         })
       : memes;
     render(filtered);

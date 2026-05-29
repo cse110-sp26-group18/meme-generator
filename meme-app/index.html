@@ -28,24 +28,7 @@
 
     <p class="hint" id="hint" hidden>Click on the image to add text</p>
 
-    <section class="library" id="template-library" aria-labelledby="library-heading">
-      <h2 id="library-heading">Internal Library</h2>
-      <p class="library-subtitle">Or pick a template to start from.</p>
-      <div class="library-controls">
-        <input
-          type="search"
-          id="library-search"
-          class="library-search"
-          placeholder="Search by name, emotion, character, or tag"
-          aria-label="Search templates"
-        >
-        <select id="library-category" class="library-category" aria-label="Filter by category"></select>
-      </div>
-      <p class="library-status" id="library-status" hidden></p>
-      <div class="library-grid" id="library-grid"></div>
-    </section>
-
-    <!-- Meme search: pick a popular meme template instead of uploading. -->
+    <!-- Meme search: pick a template (internal library + popular memes) instead of uploading. -->
     <section class="meme-search" aria-label="Meme search">
       <h2 class="meme-search-title">Or search popular memes</h2>
       <input
@@ -65,7 +48,6 @@
   <script src="js/DragResize.js"></script>
   <script src="js/TextBoxManager.js"></script>
   <script src="js/Exporter.js"></script>
-  <script src="js/TemplateLibrary.js"></script>
   <script src="js/MemeSearch.js"></script>
   <script src="js/app.js"></script>
 </body>

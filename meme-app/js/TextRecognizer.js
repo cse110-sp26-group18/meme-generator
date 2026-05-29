@@ -57,6 +57,9 @@ MemeGen.TextRecognizer = (function () {
   function preprocess(source) {
     var w = source.width || source.naturalWidth || source.videoWidth || 0;
     var h = source.height || source.naturalHeight || source.videoHeight || 0;
+    if (w <= 0 || h <= 0) {
+      return { canvas: document.createElement('canvas'), scale: 1 };
+    }
 
     // Upscale small images toward the target; never downscale (uncapped factor).
     var scale = Math.max(1, OCR_TARGET_LONG_EDGE / Math.max(w, h));

@@ -149,6 +149,11 @@ function loadDetectedBoxes(regions) {
       container
     );
 
+    // Detected boxes hug the recognized text. Clear the default min-width/height
+    // (meant to keep manually-created boxes grabbable) so short labels like "2%"
+    // or "55" don't balloon to 80px and extend past the actual text.
+    tb.el.style.minWidth  = '0px';
+    tb.el.style.minHeight = '0px';
     tb.el.style.width  = Math.round(region.width  * scaleX) + 'px';
     tb.el.style.height = Math.round(region.height * scaleY) + 'px';
     tb.textarea.value  = region.text;

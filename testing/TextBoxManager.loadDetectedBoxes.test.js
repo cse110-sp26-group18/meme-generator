@@ -113,6 +113,17 @@ describe('TextBoxManager.loadDetectedBoxes', () => {
     expect(MemeGen.TextBoxManager.getAll().length).toBe(2);
   });
 
+  test('clears the min-width/height floor so boxes hug the detected text', () => {
+    MemeGen.TextBoxManager.loadDetectedBoxes([
+      { text: '2%', x: 10, y: 10, width: 24, height: 14, confidence: 80 }
+    ]);
+    const box = container.querySelector('.text-box');
+    // 24 * scaleX(0.5) = 12px; without the floor reset it would render at 80px.
+    expect(box.style.minWidth).toBe('0px');
+    expect(box.style.minHeight).toBe('0px');
+    expect(box.style.width).toBe('12px');
+  });
+
   test('records a non-destructive cover region per box at unscaled coordinates', () => {
     MemeGen.TextBoxManager.loadDetectedBoxes(mockRegions);
     const covers = MemeGen.TextBoxManager.getCoverRegions();

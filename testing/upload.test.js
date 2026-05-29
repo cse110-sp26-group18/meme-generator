@@ -1,5 +1,5 @@
 /**
- * v1_test_upload.test.js
+ * upload.test.js
  * Verifies First Iteration Goal: "Upload photo functionality"
  *
  * Covers:

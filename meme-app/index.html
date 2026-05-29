@@ -44,6 +44,20 @@
       <p class="library-status" id="library-status" hidden></p>
       <div class="library-grid" id="library-grid"></div>
     </section>
+
+    <!-- Meme search: pick a popular meme template instead of uploading. -->
+    <section class="meme-search" aria-label="Meme search">
+      <h2 class="meme-search-title">Or search popular memes</h2>
+      <input
+        type="text"
+        id="meme-search-input"
+        class="meme-search-input"
+        placeholder="Search meme templates (e.g. drake, distracted boyfriend)"
+        autocomplete="off"
+      >
+      <p id="meme-search-status" class="meme-search-status" role="status" aria-live="polite"></p>
+      <div id="meme-search-results" class="meme-search-results"></div>
+    </section>
   </main>
 
   <script src="js/ImageLoader.js"></script>
@@ -52,6 +66,7 @@
   <script src="js/TextBoxManager.js"></script>
   <script src="js/Exporter.js"></script>
   <script src="js/TemplateLibrary.js"></script>
+  <script src="js/MemeSearch.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

@@ -104,12 +104,25 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   detectTextBtn.addEventListener('click', function () {
+    // OCR runs for several seconds; disable the button so repeat clicks can't
+    // spawn concurrent Tesseract jobs that freeze the tab and duplicate boxes.
+    var originalText = detectTextBtn.textContent;
+    detectTextBtn.disabled = true;
+    detectTextBtn.textContent = 'Detecting…';
+
+    function restore() {
+      detectTextBtn.disabled = false;
+      detectTextBtn.textContent = originalText;
+    }
+
     var src = MemeGen.ImageLoader.getCanvas();
     MemeGen.TextRecognizer.detectText(src).then(function (regions) {
       var filtered = regions.filter(function (r) { return r.confidence > MIN_OCR_CONFIDENCE; });
       MemeGen.TextBoxManager.loadDetectedBoxes(filtered);
+      restore();
     }).catch(function (err) {
       console.error('OCR failed:', err);
+      restore();
     });
   });
   // Wire up meme search: when a result is clicked, load it onto the canvas

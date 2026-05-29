@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', function () {
   var MIN_OCR_CONFIDENCE = 60;
 
   MemeGen.ImageLoader.init(canvas, function (width, height) {
+    if (MemeGen.TextBoxManager.clear) {
+      MemeGen.TextBoxManager.clear();
+    }
     container.style.width = width + 'px';
     container.style.height = height + 'px';
     container.classList.add('has-image');

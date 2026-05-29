@@ -79,6 +79,17 @@ describe('TextBoxManager.loadDetectedBoxes', () => {
     expect(container.querySelectorAll('.text-box').length).toBe(2);
   });
 
+  test('keeps short numeric labels (e.g. "2%") but drops stray single letters', () => {
+    MemeGen.TextBoxManager.loadDetectedBoxes([
+      { text: '2%',   x: 10, y: 10, width: 40, height: 30, confidence: 80 },
+      { text: '0.1%', x: 60, y: 10, width: 60, height: 30, confidence: 80 },
+      { text: '55',   x: 10, y: 50, width: 40, height: 30, confidence: 80 },
+      { text: 'I',    x: 60, y: 50, width: 20, height: 30, confidence: 80 }
+    ]);
+    const values = Array.from(container.querySelectorAll('.text-box textarea')).map(t => t.value);
+    expect(values).toEqual(['2%', '0.1%', '55']); // 'I' (no digit, <3 alnum) dropped
+  });
+
   test('sets each textarea value to the corresponding region text', () => {
     MemeGen.TextBoxManager.loadDetectedBoxes(mockRegions);
     const textareas = Array.from(container.querySelectorAll('.text-box textarea'));

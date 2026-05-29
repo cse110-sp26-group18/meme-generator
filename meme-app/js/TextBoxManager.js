@@ -126,8 +126,12 @@ function loadDetectedBoxes(regions) {
   var scaleY = canvas.offsetHeight / canvas.height;
 
   regions.forEach(function (region) {
-    // Skip regions with no real alphanumeric content
-    if ((region.text.match(/[a-zA-Z0-9]/g) || []).length < 3) return;
+    // Skip regions with no real content. Require 3+ alphanumerics for plain
+    // text (filters stray single-letter OCR noise), but keep short numeric
+    // labels like "2%", "55", or "0.1%" — any region containing a digit.
+    var alnum = (region.text.match(/[a-zA-Z0-9]/g) || []).length;
+    var hasDigit = /[0-9]/.test(region.text);
+    if (alnum < 3 && !hasDigit) return;
 
     // Record the cover as data and re-render — the detected text is hidden by a
     // background-matched blend, not a destructive solid fill.

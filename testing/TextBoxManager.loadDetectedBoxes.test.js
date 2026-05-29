@@ -55,6 +55,8 @@ describe('TextBoxManager.loadDetectedBoxes', () => {
     // Provide a controlled 2D context so getImageData and fillRect are
     // observable — jest-canvas-mock is active but we shadow it on the instance.
     mockCtx = {
+      // Inpaint.coverRegion clamps its sample reads to ctx.canvas bounds.
+      canvas:          { width: 800, height: 600 },
       getImageData:    jest.fn((x, y, w, h) => ({ data: new Uint8ClampedArray(w * h * 4).fill(0) })),
       createImageData: jest.fn((w, h) => ({ data: new Uint8ClampedArray(w * h * 4), width: w, height: h })),
       putImageData:    jest.fn(),

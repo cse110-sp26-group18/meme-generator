@@ -16,18 +16,28 @@ MemeGen.Inpaint = (function () {
     var h = Math.round(region.height);
     if (w <= 0 || h <= 0) return;
 
-    // Sample the border lines just outside the region, clamped so the read
-    // stays on-canvas. Falling back to the region edge keeps it well-defined at
-    // the canvas boundary.
+    // Sample the border lines just outside the region, clamped to the canvas on
+    // every side so the read never goes out of bounds — an out-of-bounds read
+    // returns transparent black and bleeds black edges into the blend.
     var topY    = Math.max(0, y - 1);
-    var bottomY = y + h;
+    var bottomY = Math.min(ctx.canvas.height - 1, y + h);
     var leftX   = Math.max(0, x - 1);
-    var rightX  = x + w;
+    var rightX  = Math.min(ctx.canvas.width - 1, x + w);
 
-    var topRow    = ctx.getImageData(x, topY, w, 1).data;
-    var bottomRow = ctx.getImageData(x, bottomY, w, 1).data;
-    var leftCol   = ctx.getImageData(leftX, y, 1, h).data;
-    var rightCol  = ctx.getImageData(rightX, y, 1, h).data;
+    // A tainted canvas (e.g. a CORS-restricted meme template) makes getImageData
+    // throw a SecurityError. Fall back to a soft gray fill instead of crashing.
+    var topRow, bottomRow, leftCol, rightCol;
+    try {
+      topRow    = ctx.getImageData(x, topY, w, 1).data;
+      bottomRow = ctx.getImageData(x, bottomY, w, 1).data;
+      leftCol   = ctx.getImageData(leftX, y, 1, h).data;
+      rightCol  = ctx.getImageData(rightX, y, 1, h).data;
+    } catch (e) {
+      console.warn('Inpaint failed (canvas may be tainted):', e);
+      ctx.fillStyle = 'rgba(128, 128, 128, 0.5)';
+      ctx.fillRect(x, y, w, h);
+      return;
+    }
 
     var out = ctx.createImageData(w, h);
     var data = out.data;

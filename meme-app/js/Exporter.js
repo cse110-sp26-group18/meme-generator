@@ -28,9 +28,15 @@ MemeGen.Exporter = (function () {
     return lines.length ? lines : [''];
   }
 
-  function exportMeme(canvas, ctx, image, textBoxes) {
+  function exportMeme(canvas, ctx, image, textBoxes, coverRegions) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    // Re-apply detected-text covers so the export matches the editing view and
+    // the original baked-in text stays hidden behind the new text.
+    (coverRegions || []).forEach(function (r) {
+      MemeGen.Inpaint.coverRegion(ctx, r);
+    });
 
     textBoxes.forEach(function (tb) {
       var state = tb.getState();

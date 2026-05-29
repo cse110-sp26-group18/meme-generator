@@ -44,6 +44,9 @@ describe('TextBoxManager.loadDetectedBoxes', () => {
     // Drain boxes left over from any preceding test or test file so that
     // getAll().length is exactly 0 at the start of every test.
     MemeGen.TextBoxManager.getAll().slice().forEach(tb => tb.destroy());
+    // coverRegions is module-level state; erased covers outlive their boxes, so
+    // truncate the live array to start each test from a clean slate.
+    MemeGen.TextBoxManager.getCoverRegions().length = 0;
 
     container = makeContainer();
     canvas    = makeCanvas();
@@ -52,10 +55,13 @@ describe('TextBoxManager.loadDetectedBoxes', () => {
     // Provide a controlled 2D context so getImageData and fillRect are
     // observable — jest-canvas-mock is active but we shadow it on the instance.
     mockCtx = {
-      getImageData: jest.fn((x, y, w) => ({ data: new Uint8Array(w * 4).fill(0) })),
-      fillRect:     jest.fn(),
-      putImageData: jest.fn(),
-      fillStyle:    ''
+      getImageData:    jest.fn((x, y, w, h) => ({ data: new Uint8ClampedArray(w * h * 4).fill(0) })),
+      createImageData: jest.fn((w, h) => ({ data: new Uint8ClampedArray(w * h * 4), width: w, height: h })),
+      putImageData:    jest.fn(),
+      fillRect:        jest.fn(),
+      drawImage:       jest.fn(),
+      clearRect:       jest.fn(),
+      fillStyle:       ''
     };
     canvas.getContext = jest.fn(() => mockCtx);
 
@@ -96,17 +102,41 @@ describe('TextBoxManager.loadDetectedBoxes', () => {
     expect(MemeGen.TextBoxManager.getAll().length).toBe(2);
   });
 
-  test('clicking the erase button calls ctx.fillRect with original unscaled region coordinates', () => {
+  test('records a non-destructive cover region per box at unscaled coordinates', () => {
+    MemeGen.TextBoxManager.loadDetectedBoxes(mockRegions);
+    const covers = MemeGen.TextBoxManager.getCoverRegions();
+
+    expect(covers).toHaveLength(2);
+    expect(covers[0]).toMatchObject({ x: 10, y: 20, width: 100, height: 40 });
+    expect(covers[1]).toMatchObject({ x: 50, y: 80, width: 120, height: 40 });
+    // The original image is never mutated — no destructive solid fill.
+    expect(mockCtx.fillRect).not.toHaveBeenCalled();
+  });
+
+  test('applies covers via Inpaint.coverRegion (putImageData) on load', () => {
+    MemeGen.TextBoxManager.loadDetectedBoxes(mockRegions);
+    expect(mockCtx.putImageData).toHaveBeenCalled();
+  });
+
+  test('deleting a box removes its cover (restores original pixels)', () => {
+    MemeGen.TextBoxManager.loadDetectedBoxes(mockRegions);
+    const boxes = MemeGen.TextBoxManager.getAll();
+
+    boxes[0].deleteBtn.click();
+
+    const covers = MemeGen.TextBoxManager.getCoverRegions();
+    expect(covers).toHaveLength(1);
+    expect(covers[0]).toMatchObject({ x: 50, y: 80 });
+  });
+
+  test('erasing a box keeps its cover even after the box is destroyed', () => {
     MemeGen.TextBoxManager.loadDetectedBoxes(mockRegions);
     const boxes = MemeGen.TextBoxManager.getAll();
 
     boxes[0].eraseBtn.click();
 
-    expect(mockCtx.fillRect).toHaveBeenCalledWith(
-      mockRegions[0].x,
-      mockRegions[0].y,
-      mockRegions[0].width,
-      mockRegions[0].height
-    );
+    // Box gone, but its cover remains so the text stays erased from the image.
+    expect(MemeGen.TextBoxManager.getAll()).toHaveLength(1);
+    expect(MemeGen.TextBoxManager.getCoverRegions()).toHaveLength(2);
   });
 });

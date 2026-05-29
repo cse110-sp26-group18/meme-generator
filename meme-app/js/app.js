@@ -91,10 +91,11 @@ document.addEventListener('DOMContentLoaded', function () {
       tb.deselect();
     });
 
-    MemeGen.Exporter.exportMeme(canvas, ctx, image, textBoxes);
+    MemeGen.Exporter.exportMeme(canvas, ctx, image, textBoxes, MemeGen.TextBoxManager.getCoverRegions());
 
     setTimeout(function () {
-      MemeGen.ImageLoader.redraw();
+      // Restore the editing view: pristine image with active covers re-applied.
+      MemeGen.TextBoxManager.renderCanvas();
     }, 100);
   });
 

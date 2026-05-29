@@ -8,16 +8,30 @@ MemeGen.ImageLoader = (function () {
   var ctx = null;
   var onLoadCallback = null;
 
+  /**
+   * @param {HTMLCanvasElement} canvasEl - the canvas element images are drawn onto
+   * @param {function(number, number)} callback - invoked with (width, height)
+   *   after each image is successfully loaded and drawn
+   */
   function init(canvasEl, callback) {
     canvas = canvasEl;
     ctx = canvas.getContext('2d');
     onLoadCallback = callback;
   }
 
+  /**
+   * Scales dimensions to fit within the viewport while respecting min/max bounds.
+   * Use root font size so offsets scale with typography settings.
+   * 3rem ≈ page horizontal chrome (main padding + container borders).
+   * 11rem ≈ vertical chrome (header + controls + gaps above the canvas).
+   * @param {number} width - natural image width in px
+   * @param {number} height - natural image height in px
+   * @returns {{width: number, height: number}} display dimensions clamped
+   *   to the viewport bounds
+   */
   function fitWithinRange(width, height) {
-    // Use root font size so offsets scale with typography settings.
-    // 3rem ≈ page horizontal chrome (main padding + container borders).
-    // 11rem ≈ vertical chrome (header + controls + gaps above the canvas).
+    // getComputedStyle reads the browser's live font size, respecting user
+    // zoom and OS text-size settings — a hardcoded px value would drift.
     var rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
     var maxW = Math.min(800, Math.max(200, window.innerWidth - 3 * rem));
     var maxH = Math.min(800, Math.max(150, window.innerHeight - 11 * rem));
@@ -36,7 +50,13 @@ MemeGen.ImageLoader = (function () {
     return { width: Math.round(width), height: Math.round(height) };
   }
 
+  /**
+   * @param {File|Blob} file - image file or blob to read and draw onto the canvas
+   */
   function loadFromFile(file) {
+    // FileReader asynchronously converts the File/Blob to a base64 data URL —
+    // the only way to get a same-origin URL for a local file that can be
+    // drawn to canvas without tainting it and blocking PNG export.
     var reader = new FileReader();
     reader.onload = function (e) {
       var img = new Image();
@@ -57,23 +77,39 @@ MemeGen.ImageLoader = (function () {
           onLoadCallback(width, height);
         }
       };
+      // e.target.result is the data URL produced by readAsDataURL below.
       img.src = e.target.result;
     };
     reader.readAsDataURL(file);
   }
 
+  /**
+   * @returns {HTMLImageElement|null} the currently loaded image, or null
+   *   if no image has been loaded yet
+   */
   function getImage() {
     return image;
   }
 
+  /**
+   * @returns {HTMLCanvasElement|null} the canvas element passed to init(),
+   *   or null if init() has not been called
+   */
   function getCanvas() {
     return canvas;
   }
 
+  /**
+   * @returns {CanvasRenderingContext2D|null} the 2D rendering context for the
+   *   canvas, or null if init() has not been called
+   */
   function getContext() {
     return ctx;
   }
 
+  /**
+   * Clears the canvas and redraws the current image at its display size.
+   */
   function redraw() {
     if (!image || !canvas) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);

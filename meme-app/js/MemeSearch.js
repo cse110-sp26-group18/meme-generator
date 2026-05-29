@@ -26,11 +26,10 @@ MemeGen.MemeSearch = (function () {
   var onSelectCallback = null;
 
   /**
-   * Wire up the search UI.
-   *  opts.input    — text input element
-   *  opts.results  — container element that will hold the result cards
-   *  opts.status   — element used for loading / empty / error messages
-   *  opts.onSelect — function(meme) called when a result card is clicked
+   * @param {Object} opts - configuration object containing: input
+   *   (HTMLInputElement) for search queries, results (HTMLElement) for
+   *   rendered cards, status (HTMLElement) for loading/error messages,
+   *   and onSelect (function) called with the chosen meme template object
    */
   function init(opts) {
     inputEl = opts.input;
@@ -59,7 +58,10 @@ MemeGen.MemeSearch = (function () {
     ensureFetched();
   }
 
-  // Fetch the template list once and cache it.
+  /**
+   * Fetches the meme template list from the API if not already fetched or
+   *   in progress. Results are cached in `memes` for all subsequent searches.
+   */
   function ensureFetched() {
     if (fetched || fetching) return;
     fetching = true;
@@ -67,6 +69,8 @@ MemeGen.MemeSearch = (function () {
 
     fetch(ENDPOINT)
       .then(function (response) {
+        // fetch() only rejects on network failure; response.ok is false for
+        // HTTP error codes (4xx/5xx), so we convert those to thrown errors.
         if (!response.ok) throw new Error('HTTP ' + response.status);
         return response.json();
       })
@@ -86,7 +90,10 @@ MemeGen.MemeSearch = (function () {
       });
   }
 
-  // Filter cached templates by the current query and render the grid.
+  /**
+   * Filters the cached template list by the current input value and renders
+   *   the matching results. Triggers a fetch first if templates are not yet loaded.
+   */
   function runSearch() {
     if (!fetched) {
       ensureFetched();
@@ -101,7 +108,12 @@ MemeGen.MemeSearch = (function () {
     render(filtered);
   }
 
-  // Build the result cards. Each card is a button so it's keyboard accessible.
+  /**
+   * Clears and rebuilds the results grid from a filtered list of templates.
+   *   Each card is a button for keyboard accessibility.
+   * @param {Object[]} list - meme template objects from the Imgflip API,
+   *   each with `name` and `url` string properties
+   */
   function render(list) {
     resultsEl.innerHTML = '';
 
@@ -120,6 +132,8 @@ MemeGen.MemeSearch = (function () {
       var img = document.createElement('img');
       img.src = meme.url;
       img.alt = meme.name;
+      // lazy loading defers fetching off-screen images until they near the
+      // viewport, reducing bandwidth on initial render of the full meme grid.
       img.loading = 'lazy';
       // Anonymous CORS so the image can be drawn to canvas without tainting.
       img.crossOrigin = 'anonymous';
@@ -139,26 +153,33 @@ MemeGen.MemeSearch = (function () {
     });
   }
 
+  /**
+   * Smoothly scrolls the page to the top so the canvas is visible after
+   *   a meme template is selected from the results grid.
+   */
   function scrollPageToTop() {
     if (typeof window.scrollTo === 'function') {
       window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
     }
   }
 
+  /**
+   * @param {string} msg - message to display in the status element; pass an
+   *   empty string to clear any existing message
+   */
   function setStatus(msg) {
     if (statusEl) statusEl.textContent = msg;
   }
 
-  // Load a remote meme image onto the canvas via the existing ImageLoader.
-  //
-  // We fetch the image URL as a Blob and then hand it to ImageLoader.loadFromFile
-  // (which internally uses FileReader.readAsDataURL — that accepts any Blob,
-  // not just File objects). This avoids adding a URL-loading code path to
-  // ImageLoader and reuses its existing canvas-sizing and callback logic.
-  //
-  // Using fetch (rather than setting <img>.src directly) means the request
-  // goes through CORS and the resulting data URL is same-origin to the page,
-  // so the canvas is not tainted and the download flow keeps working.
+  /**
+   * Fetches a remote image by URL and loads it onto the canvas via
+   *   ImageLoader.loadFromFile. Fetching as a Blob (rather than setting
+   *   img.src directly) keeps the canvas untainted for PNG export, since
+   *   the resulting data URL is same-origin to the page.
+   * @param {string} url - URL of the meme image to fetch and load
+   * @param {function(Error)} onError - called with the Error if the network
+   *   request or image load fails
+   */
   function loadFromUrl(url, onError) {
     fetch(url, { mode: 'cors' })
       .then(function (response) {

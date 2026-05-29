@@ -115,6 +115,7 @@ MemeGen.TextBoxManager = (function () {
 function renderCanvas() {
   if (!canvas) return;
   var ctx = canvas.getContext('2d');
+  if (!ctx) return;
   MemeGen.ImageLoader.redraw();
   coverRegions.forEach(function (r) {
     MemeGen.Inpaint.coverRegion(ctx, r);

@@ -83,6 +83,16 @@ describe('TextRecognizer.detectText', () => {
     });
   });
 
+  test('strips hallucinated symbols (©) from a detected line', async () => {
+    stubTesseract(() => Promise.resolve({
+      data: { lines: [makeLine('HELLO ©', 10, 20, 110, 60, 90)] }
+    }));
+
+    const regions = await MemeGen.TextRecognizer.detectText(canvas);
+
+    expect(regions[0].text).toBe('HELLO');
+  });
+
   test('ignores empty/whitespace word boxes when tightening', async () => {
     const line = makeLine('HI', 0, 0, 400, 80, 80);
     line.words = [
@@ -168,6 +178,28 @@ describe('TextRecognizer.enhancePixels', () => {
     MemeGen.TextRecognizer.enhancePixels(data);
     expect(data[0]).toBe(0);
     expect(data[4]).toBe(255);
+  });
+});
+
+describe('TextRecognizer.sanitizeText', () => {
+  const clean = (t) => MemeGen.TextRecognizer.sanitizeText(t);
+
+  test('removes uncommon symbols but keeps the real text', () => {
+    expect(clean('HELLO ©')).toBe('HELLO');
+    expect(clean('©®™ FREE ¢£§')).toBe('FREE');
+  });
+
+  test('keeps letters, digits, and common punctuation', () => {
+    expect(clean("Don't panic, it's 100% fine!")).toBe("Don't panic, it's 100% fine!");
+  });
+
+  test('collapses whitespace and trims', () => {
+    expect(clean('  TOO   MANY \t spaces  ')).toBe('TOO MANY spaces');
+  });
+
+  test('reduces a noise-only line to empty (so it gets dropped downstream)', () => {
+    expect(clean('©®™')).toBe('');
+    expect(clean('')).toBe('');
   });
 });
 

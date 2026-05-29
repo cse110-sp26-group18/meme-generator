@@ -77,6 +77,18 @@ MemeGen.TextRecognizer = (function () {
     return { canvas: off, scale: scale };
   }
 
+  // Strip characters OCR sometimes hallucinates (©, ®, ™, box glyphs, …) so they
+  // don't leak into text boxes. Keeps letters, digits, whitespace, and everyday
+  // punctuation; collapses whitespace runs and trims. A line that was only noise
+  // becomes empty here and is then dropped by the caller's content filter.
+  function sanitizeText(text) {
+    if (!text) return '';
+    return text
+      .replace(/[^A-Za-z0-9\s.,!?'"():;%&\/\-]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   // Compute the tight bounding box around a line's recognized words. Returns
   // null when the line has no usable word boxes so the caller can fall back to
   // the line-level bbox.
@@ -117,7 +129,7 @@ MemeGen.TextRecognizer = (function () {
         // line bbox when word-level boxes aren't available.
         var box = tightBoxFromWords(line) || line.bbox || {};
         return {
-          text: line.text.trim(),
+          text: sanitizeText(line.text),
           x: Math.round(box.x0 / s),
           y: Math.round(box.y0 / s),
           width:  Math.round((box.x1 - box.x0) / s),
@@ -131,7 +143,8 @@ MemeGen.TextRecognizer = (function () {
   return {
     detectText: detectText,
     preprocess: preprocess,
-    enhancePixels: enhancePixels
+    enhancePixels: enhancePixels,
+    sanitizeText: sanitizeText
   };
 })();
 

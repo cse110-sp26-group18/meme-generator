@@ -129,8 +129,9 @@ function loadDetectedBoxes(regions) {
     // Skip regions with no real content. Require 3+ alphanumerics for plain
     // text (filters stray single-letter OCR noise), but keep short numeric
     // labels like "2%", "55", or "0.1%" — any region containing a digit.
-    var alnum = (region.text.match(/[a-zA-Z0-9]/g) || []).length;
-    var hasDigit = /[0-9]/.test(region.text);
+    var text = region.text || '';
+    var alnum = (text.match(/[a-zA-Z0-9]/g) || []).length;
+    var hasDigit = /[0-9]/.test(text);
     if (alnum < 3 && !hasDigit) return;
 
     // Record the cover as data and re-render — the detected text is hidden by a

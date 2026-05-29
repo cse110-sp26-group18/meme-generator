@@ -7,6 +7,10 @@ document.addEventListener('DOMContentLoaded', function () {
   var placeholder = document.getElementById('placeholder');
   var hint = document.getElementById('hint');
 
+  // Minimum Tesseract confidence (0–100) for a detected line to become a text box.
+  // Lower = catches fainter/less-clear text, at the cost of more false positives.
+  var MIN_OCR_CONFIDENCE = 60;
+
   MemeGen.ImageLoader.init(canvas, function (width, height) {
     container.style.width = width + 'px';
     container.style.height = height + 'px';
@@ -102,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function () {
   detectTextBtn.addEventListener('click', function () {
     var src = MemeGen.ImageLoader.getCanvas();
     MemeGen.TextRecognizer.detectText(src).then(function (regions) {
-      var filtered = regions.filter(function (r) { return r.confidence > 60; });
+      var filtered = regions.filter(function (r) { return r.confidence > MIN_OCR_CONFIDENCE; });
       MemeGen.TextBoxManager.loadDetectedBoxes(filtered);
     }).catch(function (err) {
       console.error('OCR failed:', err);

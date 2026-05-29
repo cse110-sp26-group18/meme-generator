@@ -20,6 +20,63 @@
 var MemeGen = window.MemeGen || {};
 
 MemeGen.TextRecognizer = (function () {
+  // Long-edge target (px) the source is upscaled toward before OCR. Tesseract
+  // recognizes far better on larger text; ~2000px is a reliable sweet spot.
+  var OCR_TARGET_LONG_EDGE = 2000;
+
+  // Grayscale + linear contrast stretch over an RGBA buffer, mutated in place.
+  // Pure (no canvas) so it can be unit-tested directly. OCR is far more reliable
+  // on high-contrast grayscale input than on raw color photos.
+  function enhancePixels(data) {
+    var min = 255, max = 0;
+
+    // Pass 1: luminance grayscale, tracking the gray range.
+    for (var i = 0; i < data.length; i += 4) {
+      var g = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+      data[i] = data[i + 1] = data[i + 2] = g;
+      if (g < min) min = g;
+      if (g > max) max = g;
+    }
+
+    // Pass 2: stretch [min,max] → [0,255]. Skip when there's nothing to gain.
+    var range = max - min;
+    if (range > 0 && range < 255) {
+      var scale = 255 / range;
+      for (var j = 0; j < data.length; j += 4) {
+        var v = Math.round((data[j] - min) * scale);
+        data[j] = data[j + 1] = data[j + 2] = v;
+      }
+    }
+
+    return data;
+  }
+
+  // Render the source onto an offscreen canvas, upscale small sources, and
+  // enhance contrast. Returns { canvas, scale } where scale maps source pixels
+  // to preprocessed pixels (so OCR coordinates can be divided back out).
+  function preprocess(source) {
+    var w = source.width || source.naturalWidth || source.videoWidth || 0;
+    var h = source.height || source.naturalHeight || source.videoHeight || 0;
+
+    // Upscale small images toward the target; never downscale (uncapped factor).
+    var scale = Math.max(1, OCR_TARGET_LONG_EDGE / Math.max(w, h));
+
+    var off = document.createElement('canvas');
+    off.width = Math.round(w * scale);
+    off.height = Math.round(h * scale);
+
+    var ctx = off.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(source, 0, 0, off.width, off.height);
+
+    var imageData = ctx.getImageData(0, 0, off.width, off.height);
+    enhancePixels(imageData.data);
+    ctx.putImageData(imageData, 0, 0);
+
+    return { canvas: off, scale: scale };
+  }
+
   // Compute the tight bounding box around a line's recognized words. Returns
   // null when the line has no usable word boxes so the caller can fall back to
   // the line-level bbox.
@@ -46,7 +103,12 @@ MemeGen.TextRecognizer = (function () {
       return Promise.reject(new Error('Tesseract is not loaded — include tesseract.min.js before TextRecognizer.js'));
     }
 
-    return T.recognize(source, 'eng').then(function (result) {
+    // Recognize on an upscaled, contrast-enhanced copy; coordinates come back in
+    // that preprocessed space and are divided by `scale` to return to source px.
+    var pre = preprocess(source);
+    var s = pre.scale;
+
+    return T.recognize(pre.canvas, 'eng').then(function (result) {
       var lines = (result && result.data && result.data.lines) || [];
       return lines.map(function (line) {
         // Prefer the union of the line's word boxes — it hugs the actual glyphs.
@@ -56,10 +118,10 @@ MemeGen.TextRecognizer = (function () {
         var box = tightBoxFromWords(line) || line.bbox || {};
         return {
           text: line.text.trim(),
-          x: box.x0,
-          y: box.y0,
-          width:  box.x1 - box.x0,
-          height: box.y1 - box.y0,
+          x: Math.round(box.x0 / s),
+          y: Math.round(box.y0 / s),
+          width:  Math.round((box.x1 - box.x0) / s),
+          height: Math.round((box.y1 - box.y0) / s),
           confidence: line.confidence
         };
       });
@@ -67,7 +129,9 @@ MemeGen.TextRecognizer = (function () {
   }
 
   return {
-    detectText: detectText
+    detectText: detectText,
+    preprocess: preprocess,
+    enhancePixels: enhancePixels
   };
 })();
 

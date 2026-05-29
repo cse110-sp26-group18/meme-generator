@@ -89,24 +89,66 @@ MemeGen.TextRecognizer = (function () {
       .trim();
   }
 
-  // Compute the tight bounding box around a line's recognized words. Returns
-  // null when the line has no usable word boxes so the caller can fall back to
-  // the line-level bbox.
-  function tightBoxFromWords(line) {
-    var words = (line && line.words) || [];
-    var x0, y0, x1, y1;
+  // A line splits into separate regions wherever the horizontal gap between two
+  // consecutive words exceeds (median word height × this ratio). 1.5× height is
+  // far wider than a normal inter-word space (~0.3× height), so phrases stay
+  // intact while genuinely separated captions on the same row break apart.
+  var WORD_GAP_SPLIT_RATIO = 1.5;
 
+  // Tight bounding box around a list of words → { x0, y0, x1, y1 } or null.
+  function unionBox(words) {
+    var x0, y0, x1, y1;
     words.forEach(function (w) {
-      if (!w || !w.bbox || !w.text || !w.text.trim()) return;
       var b = w.bbox;
       if (x0 === undefined || b.x0 < x0) x0 = b.x0;
       if (y0 === undefined || b.y0 < y0) y0 = b.y0;
       if (x1 === undefined || b.x1 > x1) x1 = b.x1;
       if (y1 === undefined || b.y1 > y1) y1 = b.y1;
     });
-
     if (x0 === undefined) return null;
     return { x0: x0, y0: y0, x1: x1, y1: y1 };
+  }
+
+  function median(nums) {
+    var sorted = nums.slice().sort(function (a, b) { return a - b; });
+    var mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+
+  // Split a Tesseract line into one or more segments { text, box }. Words on the
+  // same row but separated by a large horizontal gap (two distinct captions)
+  // become distinct segments, each with its own tight box. Falls back to a
+  // single segment from the line bbox when word-level boxes aren't available.
+  function splitLineByGaps(line) {
+    var words = ((line && line.words) || [])
+      .filter(function (w) { return w && w.bbox && w.text && w.text.trim(); })
+      .sort(function (a, b) { return a.bbox.x0 - b.bbox.x0; });
+
+    if (!words.length) {
+      var lb = (line && line.bbox) || {};
+      return [{ text: (line && line.text) || '', box: lb }];
+    }
+
+    var threshold = median(words.map(function (w) {
+      return w.bbox.y1 - w.bbox.y0;
+    })) * WORD_GAP_SPLIT_RATIO;
+
+    var groups = [[words[0]]];
+    for (var i = 1; i < words.length; i++) {
+      var gap = words[i].bbox.x0 - words[i - 1].bbox.x1;
+      if (gap > threshold) {
+        groups.push([words[i]]);
+      } else {
+        groups[groups.length - 1].push(words[i]);
+      }
+    }
+
+    return groups.map(function (group) {
+      return {
+        text: group.map(function (w) { return w.text; }).join(' '),
+        box: unionBox(group)
+      };
+    });
   }
 
   function detectText(source) {
@@ -122,21 +164,27 @@ MemeGen.TextRecognizer = (function () {
 
     return T.recognize(pre.canvas, 'eng').then(function (result) {
       var lines = (result && result.data && result.data.lines) || [];
-      return lines.map(function (line) {
-        // Prefer the union of the line's word boxes — it hugs the actual glyphs.
-        // Tesseract's line bbox often extends to the text block margin, making
-        // it wider than and shifted left of the visible text. Fall back to the
-        // line bbox when word-level boxes aren't available.
-        var box = tightBoxFromWords(line) || line.bbox || {};
-        return {
-          text: sanitizeText(line.text),
-          x: Math.round(box.x0 / s),
-          y: Math.round(box.y0 / s),
-          width:  Math.round((box.x1 - box.x0) / s),
-          height: Math.round((box.y1 - box.y0) / s),
-          confidence: line.confidence
-        };
+      var regions = [];
+
+      lines.forEach(function (line) {
+        // One Tesseract line may hold several captions on the same row; split it
+        // wherever a big horizontal gap appears so each becomes its own region.
+        // Word boxes hug the actual glyphs (the line bbox often runs to the text
+        // block margin, wider than and left of the visible text).
+        splitLineByGaps(line).forEach(function (seg) {
+          var box = seg.box || {};
+          regions.push({
+            text: sanitizeText(seg.text),
+            x: Math.round(box.x0 / s),
+            y: Math.round(box.y0 / s),
+            width:  Math.round((box.x1 - box.x0) / s),
+            height: Math.round((box.y1 - box.y0) / s),
+            confidence: line.confidence
+          });
+        });
       });
+
+      return regions;
     });
   }
 

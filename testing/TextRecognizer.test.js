@@ -83,6 +83,56 @@ describe('TextRecognizer.detectText', () => {
     });
   });
 
+  test('splits a line into two boxes across a big horizontal gap', async () => {
+    // Two captions on the same row: gap (600-100=500) ≫ threshold (40 * 1.5 = 60).
+    const line = makeLine('LEFT RIGHT', 0, 20, 700, 60, 90);
+    line.words = [
+      makeWord('LEFT', 0, 20, 100, 60),
+      makeWord('RIGHT', 600, 20, 700, 60)
+    ];
+
+    stubTesseract(() => Promise.resolve({ data: { lines: [line] } }));
+
+    const regions = await MemeGen.TextRecognizer.detectText(canvas);
+
+    expect(regions).toHaveLength(2);
+    expect(regions[0]).toEqual({ text: 'LEFT', x: 0, y: 20, width: 100, height: 40, confidence: 90 });
+    expect(regions[1]).toEqual({ text: 'RIGHT', x: 600, y: 20, width: 100, height: 40, confidence: 90 });
+  });
+
+  test('keeps normally-spaced words in a single box', async () => {
+    // Gap (120-100=20) < threshold (60): same caption, stays merged.
+    const line = makeLine('HELLO THERE', 0, 20, 200, 60, 88);
+    line.words = [
+      makeWord('HELLO', 0, 20, 100, 60),
+      makeWord('THERE', 120, 20, 200, 60)
+    ];
+
+    stubTesseract(() => Promise.resolve({ data: { lines: [line] } }));
+
+    const regions = await MemeGen.TextRecognizer.detectText(canvas);
+
+    expect(regions).toHaveLength(1);
+    expect(regions[0]).toMatchObject({ text: 'HELLO THERE', x: 0, width: 200 });
+  });
+
+  test('splits into multi-word groups on each side of the gap', async () => {
+    const line = makeLine('BIG TEXT MORE', 0, 20, 800, 60, 80);
+    line.words = [
+      makeWord('BIG', 0, 20, 90, 60),
+      makeWord('TEXT', 110, 20, 220, 60),   // gap 20 → same group
+      makeWord('MORE', 700, 20, 800, 60)    // gap 480 → new group
+    ];
+
+    stubTesseract(() => Promise.resolve({ data: { lines: [line] } }));
+
+    const regions = await MemeGen.TextRecognizer.detectText(canvas);
+
+    expect(regions).toHaveLength(2);
+    expect(regions[0]).toMatchObject({ text: 'BIG TEXT', x: 0, width: 220 });
+    expect(regions[1]).toMatchObject({ text: 'MORE', x: 700, width: 100 });
+  });
+
   test('strips hallucinated symbols (©) from a detected line', async () => {
     stubTesseract(() => Promise.resolve({
       data: { lines: [makeLine('HELLO ©', 10, 20, 110, 60, 90)] }

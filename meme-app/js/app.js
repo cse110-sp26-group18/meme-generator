@@ -4,8 +4,30 @@ document.addEventListener('DOMContentLoaded', function () {
   var imageInput = document.getElementById('image-input');
   var downloadBtn = document.getElementById('download-btn');
   var shareBtn = document.getElementById('share-btn');
+  var scanTextBtn = document.getElementById('scan-text-btn');
+  var searchIconBtn = document.getElementById('search-icon-btn');
+  var memeSearchSection = document.getElementById('meme-search');
+  var memeSearchCloseBtn = document.getElementById('meme-search-close');
+  var mobileBackBtn = document.getElementById('mobile-back-btn');
+  var mobileHomeBackBtn = document.getElementById('mobile-home-back-btn');
+  var mobileHomePlusBtn = document.getElementById('mobile-home-plus-btn');
+  var browseMemesBtn = document.getElementById('browse-memes-btn');
+  var fontsBtn = document.getElementById('fonts-btn');
   var placeholder = document.getElementById('placeholder');
   var hint = document.getElementById('hint');
+
+  // ── Mobile editor-first homepage / browse overlay (Screen 13) ──
+  // Mobile boots into the editor. Tapping Browse Memes adds
+  // body.browse-open which the @media (max-width: 768px) CSS uses to
+  // reveal the dark forest search/template grid as a fullscreen overlay.
+  // Selecting a meme (or uploading) removes the class — back to editor.
+  // Desktop ignores the class entirely; both panels stay inline there.
+  function showBrowseView() {
+    document.body.classList.add('browse-open');
+  }
+  function showEditorView() {
+    document.body.classList.remove('browse-open');
+  }
 
   MemeGen.ImageLoader.init(canvas, function (width, height) {
     container.style.width = width + 'px';
@@ -15,17 +37,36 @@ document.addEventListener('DOMContentLoaded', function () {
     hint.hidden = false;
     downloadBtn.disabled = false;
     if (shareBtn && MemeGen.Exporter.isMobileOrTablet()) shareBtn.disabled = false;
+    // Scan Text stays disabled in this version — see the inert button
+    // contract below. Do NOT enable it when an image loads.
     MemeGen.TextBoxManager.setImageLoaded(true);
     // Clear any "Loading…" message left over from the meme-search flow.
     var s = document.getElementById('meme-search-status');
     if (s) s.textContent = '';
+    // Close the legacy slide-up overlay variant if it was left open.
+    if (memeSearchSection) {
+      memeSearchSection.classList.remove('is-open');
+      if (searchIconBtn) searchIconBtn.setAttribute('aria-expanded', 'false');
+    }
+    // After a successful upload OR meme-template fetch, return to the
+    // editor view. (Meme-search's onSelect also calls showEditorView
+    // up-front so the user sees the "Loading…" state against the editor;
+    // calling again here is idempotent and covers the plain upload path.)
+    showEditorView();
   });
 
   MemeGen.TextBoxManager.init(container, canvas);
 
   // Show share button on mobile/tablet only; keep it hidden on desktop.
-  if (shareBtn && MemeGen.Exporter.isMobileOrTablet()) {
-    shareBtn.style.display = 'inline-block';
+  // Mirror: hide #download-btn on mobile so the top action row is just
+  // Upload + Share, matching the polished mobile mockup (Screen 1).
+  if (MemeGen.Exporter.isMobileOrTablet()) {
+    if (shareBtn) shareBtn.style.display = 'inline-block';
+    if (downloadBtn) downloadBtn.style.display = 'none';
+    // Mobile boots into the Browse Memes overlay so the first thing a user
+    // sees on reload is the meme template grid (per the flow correction).
+    // Desktop stays on the editor — its inline layout shows everything.
+    showBrowseView();
   }
 
   imageInput.addEventListener('change', function () {
@@ -87,85 +128,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // External meme search wiring (prepared for the future MemeSearch.js
-  // branch). If MemeSearch.js and its DOM are present, initialize it with
-  // the documented option shape and route selections through it. If either
-  // is missing — which is the current state of the mobile-adaptability
-  // branch — we no-op so the editor still works on its own.
-
-  var memeSearchSection = document.getElementById('meme-search');
-  var memeSearchStatus = document.getElementById('meme-search-status');
-
-  // ── Mobile library compaction (used by the external meme-search section)
-  // On phones (≤768 px) the section defaults to a collapsed horizontal strip
-  // so the editor stays the focus. A "Show more" toggle button switches
-  // between strip and full-grid views. Desktop hides the toggle via CSS and
-  // never enters the collapsed state. The helpers are exported below for
-  // the future MemeSearch.js to call directly if it prefers.
-  function isMobileViewport() {
-    return typeof window.innerWidth === 'number' && window.innerWidth <= 768;
-  }
-
-  function wireLibraryToggle(sectionEl, toggleBtnEl, expandedLabel, collapsedLabel) {
-    if (!sectionEl || !toggleBtnEl) return;
-    if (isMobileViewport()) {
-      sectionEl.classList.add('is-collapsed');
-      toggleBtnEl.hidden = false;
-      toggleBtnEl.textContent = collapsedLabel;
-      toggleBtnEl.setAttribute('aria-expanded', 'false');
-    } else {
-      sectionEl.classList.remove('is-collapsed');
-      toggleBtnEl.hidden = true;
-    }
-    toggleBtnEl.addEventListener('click', function () {
-      var collapsedNow = sectionEl.classList.toggle('is-collapsed');
-      toggleBtnEl.textContent = collapsedNow ? collapsedLabel : expandedLabel;
-      toggleBtnEl.setAttribute('aria-expanded', collapsedNow ? 'false' : 'true');
-    });
-  }
-
-  function collapseSectionOnMobile(sectionEl, toggleBtnEl, collapsedLabel) {
-    if (!isMobileViewport() || !sectionEl) return;
-    sectionEl.classList.add('is-collapsed');
-    if (toggleBtnEl) {
-      toggleBtnEl.textContent = collapsedLabel;
-      toggleBtnEl.setAttribute('aria-expanded', 'false');
-    }
-    if (container && typeof container.scrollIntoView === 'function') {
-      container.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }
-
-  function handleExternalSearchError() {
-    if (memeSearchStatus) {
-      memeSearchStatus.textContent =
-        'External meme search is unavailable. Try uploading an image instead.';
-      memeSearchStatus.hidden = false;
-    }
-  }
-
-  if (window.MemeGen && MemeGen.MemeSearch && document.getElementById('meme-search-input')) {
-    if (memeSearchSection) memeSearchSection.hidden = false;
-    var memeSearchToggle = document.getElementById('meme-search-toggle');
-    wireLibraryToggle(
-      memeSearchSection,
-      memeSearchToggle,
-      'Show fewer memes',
-      'Show more memes'
-    );
-    MemeGen.MemeSearch.init({
-      inputEl: document.getElementById('meme-search-input'),
-      statusEl: memeSearchStatus,
-      resultsEl: document.getElementById('meme-search-results'),
-      onError: handleExternalSearchError,
-      onSelect: function (meme) {
-        if (!meme || !meme.url) return;
-        MemeGen.MemeSearch.loadFromUrl(meme.url, handleExternalSearchError);
-        collapseSectionOnMobile(memeSearchSection, memeSearchToggle, 'Show more memes');
-      }
-    });
-  }
-
   downloadBtn.addEventListener('click', function () {
     var image = MemeGen.ImageLoader.getImage();
     var ctx = MemeGen.ImageLoader.getContext();
@@ -182,6 +144,125 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 100);
   });
 
+  // Share — mobile/tablet only (button is hidden on desktop by CSS, and
+  // app.js further gates its enable state on Exporter.isMobileOrTablet).
+  // Mirrors the download flow: deselect text boxes so the export render is
+  // clean, hand off to Exporter.shareMeme, then redraw the editor. If the
+  // platform doesn't support Web Share or the user cancels, shareMeme
+  // internally falls back to a normal download.
+  if (shareBtn) {
+    shareBtn.addEventListener('click', function () {
+      var image = MemeGen.ImageLoader.getImage();
+      var ctx = MemeGen.ImageLoader.getContext();
+      var textBoxes = MemeGen.TextBoxManager.getAll();
+
+      textBoxes.forEach(function (tb) { tb.deselect(); });
+
+      MemeGen.Exporter.shareMeme(canvas, ctx, image, textBoxes);
+
+      setTimeout(function () {
+        MemeGen.ImageLoader.redraw();
+      }, 100);
+    });
+  }
+
+  // Header search icon → toggle the meme-search overlay on mobile. Desktop
+  // CSS keeps the section visible inline regardless, so this is purely
+  // a mobile affordance, but the class toggle is harmless on desktop.
+  if (searchIconBtn && memeSearchSection) {
+    searchIconBtn.addEventListener('click', function () {
+      var nowOpen = memeSearchSection.classList.toggle('is-open');
+      searchIconBtn.setAttribute('aria-expanded', nowOpen ? 'true' : 'false');
+    });
+  }
+
+  if (memeSearchCloseBtn && memeSearchSection) {
+    memeSearchCloseBtn.addEventListener('click', function () {
+      memeSearchSection.classList.remove('is-open');
+      if (searchIconBtn) searchIconBtn.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  // Scan Text is intentionally inert in this version (future OCR feature).
+  // The button stays visible per the design but does NOT create a text
+  // box and does NOT call TextBoxManager. The native disabled attribute
+  // plus aria-disabled in the HTML are the source of truth.
+
+  // Browse overlay close button (top-left of the search panel) → return to
+  // the editor without selecting a meme. The editor's image/text boxes are
+  // not torn down — back is a pure visual switch.
+  if (mobileHomeBackBtn) {
+    mobileHomeBackBtn.addEventListener('click', function () {
+      showEditorView();
+    });
+  }
+
+  // Browse Memes pill (bottom-actions row) → open the dark forest search
+  // grid as a fullscreen overlay. The existing MemeSearch wiring renders
+  // results into the same #meme-search-results grid as before.
+  if (browseMemesBtn) {
+    browseMemesBtn.addEventListener('click', function () {
+      showBrowseView();
+    });
+  }
+
+  // The legacy header back button has no role in the new editor-first
+  // flow; it stays in the DOM for selector compatibility but is wired to
+  // a no-op so click doesn't accidentally toggle anything stale.
+  if (mobileBackBtn) {
+    mobileBackBtn.addEventListener('click', function () { /* no-op */ });
+  }
+
+  // ── Fonts button (Screen 13) ──
+  // Cycles EVERY existing text box through the meme-font list below, each
+  // advancing one step from its own current font (with wrap). Dispatching
+  // a bubbling `change` event on each fontSelect runs TextBox's existing
+  // change listener — the same path the normal per-box dropdown takes —
+  // so live update and export both stay consistent. If a text box's
+  // current font isn't in the cycle list, it starts at the first entry
+  // ('Impact'). If there are no text boxes, surface the discovery hint.
+  var MEME_FONTS = ['Impact', 'Anton', 'Bangers', 'Luckiest Guy', 'Oswald'];
+
+  function cycleFontForTextBox(tb) {
+    if (!tb || !tb.fontSelect) return;
+    var current = tb.fontSelect.value;
+    var idx = MEME_FONTS.indexOf(current);
+    var next = idx === -1
+      ? MEME_FONTS[0]
+      : MEME_FONTS[(idx + 1) % MEME_FONTS.length];
+    tb.fontSelect.value = next;
+    tb.fontSelect.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  if (fontsBtn) {
+    fontsBtn.addEventListener('click', function () {
+      var boxes = (MemeGen.TextBoxManager && typeof MemeGen.TextBoxManager.getAll === 'function')
+        ? MemeGen.TextBoxManager.getAll() : [];
+      if (boxes.length === 0) {
+        if (hint) {
+          var prev = hint.textContent;
+          var wasHidden = hint.hidden;
+          hint.textContent = 'Add or select text to change fonts';
+          hint.hidden = false;
+          setTimeout(function () {
+            hint.textContent = prev;
+            hint.hidden = wasHidden;
+          }, 3000);
+        }
+        return;
+      }
+      boxes.forEach(cycleFontForTextBox);
+    });
+  }
+
+  // Circular + button on the home view → reuse the existing file picker.
+  // ImageLoader's success callback then calls showEditorView().
+  if (mobileHomePlusBtn && imageInput) {
+    mobileHomePlusBtn.addEventListener('click', function () {
+      imageInput.click();
+    });
+  }
+
   // Wire up meme search: when a result is clicked, load it onto the canvas
   // through the same pipeline as a normal upload.
   var searchInput = document.getElementById('meme-search-input');
@@ -194,6 +275,11 @@ document.addEventListener('DOMContentLoaded', function () {
       results: searchResults,
       status: searchStatus,
       onSelect: function (meme) {
+        // Close the Browse Memes overlay up-front so the user sees the
+        // "Loading…" status against the editor instead of the search
+        // grid. ImageLoader's callback also calls showEditorView, so
+        // this is idempotent.
+        showEditorView();
         // Show a loading message; it is cleared by the ImageLoader success
         // callback on load, or replaced with an error here if the load fails.
         searchStatus.textContent = 'Loading ' + meme.name + '…';

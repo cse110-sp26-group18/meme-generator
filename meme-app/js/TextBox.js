@@ -80,8 +80,15 @@ MemeGen.TextBox = (function () {
     var fontSelect = document.createElement('select');
     fontSelect.className = 'font-select';
     var fonts = [
-      { label: 'Impact',    value: 'Impact' },
-      { label: 'Arial',     value: 'Arial' },
+      { label: 'Impact',       value: 'Impact' },
+      // ── Meme-style display fonts used by the "fonts" cycle button in app.js.
+      // Loaded via Google Fonts in index.html; browsers without network
+      // access fall back to the system default sans-serif.
+      { label: 'Anton',        value: 'Anton' },
+      { label: 'Bangers',      value: 'Bangers' },
+      { label: 'Luckiest Guy', value: 'Luckiest Guy' },
+      { label: 'Oswald',       value: 'Oswald' },
+      { label: 'Arial',        value: 'Arial' },
       { label: 'Comic Sans', value: "'Comic Sans MS', cursive" },
       { label: 'Helvetica', value: 'Helvetica, Arial, sans-serif' },
       { label: 'Montserrat', value: "'Montserrat', sans-serif" }
@@ -265,6 +272,63 @@ MemeGen.TextBox = (function () {
     };
 
     document.addEventListener('keydown', this._handleKeyDown);
+
+    // --- Quick-action menu wiring (mobile long-press output) ---
+    // Edit → focus the textarea for typing.
+    // Border → reuse the existing border-toggle handler so the toolbar
+    //          label / state stay in sync; no behaviour duplication.
+    // Delete → only fires after this explicit second tap; the long-press
+    //          itself never destroys.
+    this.qEditBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      self.hideQuickActions();
+      self.focusTextarea();
+    });
+    this.qBorderBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      self.borderBtn.click();
+      self.hideQuickActions();
+    });
+    this.qDeleteBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      self.destroy();
+    });
+
+    // Tap anywhere outside the menu closes it. Stored on the instance so
+    // destroy() can detach it.
+    this._outsideClickHandler = function (e) {
+      if (!self.quickMenu.classList.contains('is-open')) return;
+      if (self.quickMenu.contains(e.target)) return;
+      self.hideQuickActions();
+    };
+    document.addEventListener('click', this._outsideClickHandler);
+
+    // --- Mobile double-tap → focus textarea ---
+    // Two single-finger touchend events within 300 ms call focusTextarea(),
+    // which puts the textarea into :focus and (via the mobile pointer-events
+    // gate in styles.css) makes it interactive for typing. Guards:
+    //   • Pinch suppression — if DragResize.js just set el.dataset.pinchAt,
+    //     skip for 500 ms so a 2-finger lift can't be misread.
+    //   • Menu open — if the quick-action menu is open, taps belong to it.
+    //   • Multi-touch — only single-finger ends count.
+    // Never deletes — Delete remains gated behind the visible × button or
+    // the long-press menu's Delete action.
+    var lastTapAt = 0;
+    this.el.addEventListener('touchend', function (e) {
+      if (self.quickMenu && self.quickMenu.classList.contains('is-open')) return;
+      if (e.touches && e.touches.length > 0) return;
+      if (e.changedTouches && e.changedTouches.length !== 1) return;
+      var pinchAt = parseInt(self.el.dataset.pinchAt || '0', 10);
+      if (pinchAt && Date.now() - pinchAt < 500) return;
+      var now = Date.now();
+      if (now - lastTapAt < 300) {
+        self.focusTextarea();
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+        lastTapAt = 0;
+      } else {
+        lastTapAt = now;
+      }
+    });
   };
 
   // Single source of truth for font size changes.
@@ -367,6 +431,10 @@ MemeGen.TextBox = (function () {
   TextBox.prototype.destroy = function () {
     if (this._handleKeyDown) {
       document.removeEventListener('keydown', this._handleKeyDown);
+    }
+    if (this._outsideClickHandler) {
+      document.removeEventListener('click', this._outsideClickHandler);
+      this._outsideClickHandler = null;
     }
 
     if (this.onDelete) {

@@ -92,7 +92,7 @@ MemeGen.Exporter = (function () {
 
   function isMobileOrTablet() {
     var mq = typeof window.matchMedia === 'function'
-      ? window.matchMedia('(max-width: 1024px)')
+      ? window.matchMedia('(max-width: 768px)')
       : null;
     var smallOrTabletScreen = mq ? mq.matches : false;
     var hasTouch = 'ontouchstart' in window || (navigator.maxTouchPoints || 0) > 0;

@@ -55,52 +55,33 @@ describe('Mobile overflow — document level', () => {
 
 // ── Mobile bottom toolbar ────────────────────────────────────────────────────
 
-describe('Mobile toolbar — fixed-bottom layout (max-width: 768px)', () => {
+describe('Mobile toolbar — hidden on mobile, X delete button shown instead', () => {
   const mobile = mobileBlock();
 
   it('exists — a @media (max-width: 768px) block is present in styles.css', () => {
     expect(mobile.length).toBeGreaterThan(0);
   });
 
-  it('re-anchors .text-box-toolbar to position: fixed inside the mobile block', () => {
-    // Pull the .text-box-toolbar rule body from the mobile block specifically.
-    const rule = mobile.match(/\.text-box-toolbar\s*\{([\s\S]*?)\}/);
-    expect(rule).not.toBeNull();
-    expect(rule[1]).toMatch(/position:\s*fixed/);
+  it('hides .text-box-toolbar on selected text boxes on mobile (display: none override)', () => {
+    // The bottom toolbar is intentionally removed on mobile; delete/move/resize
+    // are handled by the X button, hold-to-move, and pinch gestures instead.
+    expect(mobile).toMatch(/\.text-box\.selected\s+\.text-box-toolbar\s*\{[\s\S]*?display:\s*none/);
   });
 
-  it('pins the mobile toolbar to the bottom edge with safe gutters (scalable or px)', () => {
-    const rule = mobile.match(/\.text-box-toolbar\s*\{([\s\S]*?)\}/);
-    // Accept either small px values (visual-detail tier) or scalable units —
-    // both express the same "small inset from the viewport edge" intent.
-    const edge = /(?:\d+(?:\.\d+)?(?:px|rem|em|vw|vh)|calc\([^)]+\))/;
-    expect(rule[1]).toMatch(new RegExp('bottom:\\s*' + edge.source));
-    expect(rule[1]).toMatch(new RegExp('left:\\s*'   + edge.source));
-    expect(rule[1]).toMatch(new RegExp('right:\\s*'  + edge.source));
+  it('shows the .mobile-delete-btn on selected text boxes on mobile', () => {
+    expect(mobile).toMatch(/\.text-box\.selected\s+\.mobile-delete-btn\s*\{[\s\S]*?display:\s*flex/);
   });
 
-  it('caps the mobile toolbar width so it cannot push the page wider than the viewport', () => {
-    const rule = mobile.match(/\.text-box-toolbar\s*\{([\s\S]*?)\}/);
-    // calc(100vw - 16px) or calc(100vw - 1rem) — either is acceptable.
-    expect(rule[1]).toMatch(/max-width:\s*calc\(\s*100vw\s*-\s*[\d.]+(?:px|rem|em)\s*\)/);
+  it('the base CSS defines .mobile-delete-btn as hidden by default (desktop never sees it)', () => {
+    expect(css).toMatch(/\.mobile-delete-btn\s*\{[\s\S]*?display:\s*none/);
   });
 
-  it('uses a SCALABLE min tap target for every toolbar button / select (not raw px)', () => {
-    const rule = mobile.match(/\.text-box-toolbar button,\s*\.text-box-toolbar select\s*\{([\s\S]*?)\}/);
-    expect(rule).not.toBeNull();
-    // Must be clamp() / rem / em / vw — explicitly NOT raw px. This is the
-    // contract the prompt's "scalable units" rule requires for mobile UI.
-    const scalable = /(?:clamp\([^)]+\)|[\d.]+(?:rem|em|%|vw|vh))/;
-    expect(rule[1]).toMatch(new RegExp('min-height:\\s*' + scalable.source));
-    expect(rule[1]).toMatch(new RegExp('min-width:\\s*'  + scalable.source));
+  it('the base CSS positions .mobile-delete-btn absolutely at the top-right of the text box', () => {
+    expect(css).toMatch(/\.mobile-delete-btn\s*\{[\s\S]*?position:\s*absolute/);
   });
 
   it('clamps .text-box itself to max-width: 100% on mobile so a resize cannot push the page wider', () => {
     expect(mobile).toMatch(/\.text-box\s*\{[\s\S]*?max-width:\s*100%/);
-  });
-
-  it('hides the .move-handle button on mobile — replaced by press-and-hold gesture', () => {
-    expect(mobile).toMatch(/\.text-box-toolbar\s+\.move-handle\s*\{[\s\S]*?display:\s*none/);
   });
 
   it('routes touches on an unfocused textarea through to the .text-box parent so hold-to-move works', () => {

@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   MemeGen.TextBoxManager.init(container, canvas);
-
+  MemeGen.LayoutManager.init('panel-resizer', 'meme-search');
   // Show share button on mobile/tablet only; keep it hidden on desktop.
   // Mirror: hide #download-btn on mobile so the top action row is just
   // Upload + Share, matching the polished mobile mockup (Screen 1).

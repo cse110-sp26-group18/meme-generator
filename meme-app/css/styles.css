@@ -851,263 +851,87 @@ main {
  * unfocused-textarea touches through to the .text-box parent so hold-to-move
  * works, and uses scalable units (rem/clamp) so the layout adapts to any
  * phone size. Desktop never enters this block. */
-@media (max-width: 768px) {
-  body {
-    overflow-x: hidden;
-  }
-
-  header {
-    padding: 0.875rem;
-  }
-
-  header h1 {
-    font-size: 1.5rem;
-  }
-
-  main {
-    /* Extra bottom padding clears the fixed-bottom .bottom-actions row
-     * (Browse Memes + Share) so editor content can scroll without ever
-     * being covered. */
-    padding: 0 0.75rem 5rem;
-    gap: 0.75rem;
-  }
-
-  .controls {
-    width: 100%;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .upload-btn,
-  #share-btn,
-  #scan-text-btn,
-  #browse-memes-btn,
-  #download-btn {
-    flex: 1 1 8.75rem;
-    min-height: clamp(2.5rem, 8vw, 3.25rem);
-    padding: 0.75rem 1rem;
-    text-align: center;
-  }
-
-  /* ── Mobile editor-first homepage (Screen 13) ──
-   * Mobile boots into the editor (cream background + canvas + fonts +
-   * Browse Memes / Share). The dark forest meme-search section is hidden
-   * by default and only appears as a fullscreen overlay when the user
-   * taps Browse Memes (body.browse-open). The legacy editor-open state
-   * has been retired — the editor IS the default now. */
-
-  /* Hide the top Upload / Download row on mobile — they are not part of
-   * Screen 13. Upload still works via tap-canvas / drag-drop / the + in
-   * the browse overlay; Share lives in .bottom-actions instead of here. */
-  .controls {
-    display: none;
-  }
-
-  /* Hide Scan Text on mobile — not part of Screen 13. Stays disabled +
-   * visible on desktop. The button itself is inert. */
-  .scan-text-row {
-    display: none;
-  }
-
-  /* Hide the legacy editor-back arrow permanently on mobile (the editor
-   * IS the default mobile view now, so there is no editor-back direction).
-   * Also hide the legacy magnifying-glass icon — Browse Memes is the new
-   * entry point. */
-  .mobile-back-btn,
-  .search-icon-btn {
-    display: none;
-  }
-
-  /* Meme-search section: hidden by default; fullscreen overlay when the
-   * user opens Browse Memes. */
-  .meme-search {
-    display: none;
-  }
-
-  body.browse-open .meme-search {
-    display: flex;
-    position: fixed;
-    inset: 0;
-    margin: 0;
-    border-radius: 0;
-    z-index: 50;
-    padding: 1.25rem 1rem 1rem;
+/* ── Desktop (>768 px) 布局大重构 ── */
+@media (min-width: 769px) {
+  /* 1. 强行锁定视口，禁止全局页面上下滚动 */
+  html, body {
+    height: 100vh;
     overflow: hidden;
   }
-
-  .meme-search-title {
-    text-align: center;
-    font-size: 1.4rem;
+  
+  body {
+    align-items: stretch; /* 改变原本的 center 限制，让内容撑满左右 */
   }
 
-  .meme-search-bottom-row {
-    margin-top: auto;
-  }
-
-  /* Header layout on mobile — centered title with the settings gear on
-   * the right. The legacy buttons next to it are display:none above. */
   header {
-    justify-content: space-between;
+    max-width: none; /* 解除 900px 限制 */
+    border-bottom: 1px solid var(--soft-gray); /* 加一条精致的分隔线 */
+    flex-shrink: 0;
   }
 
-  header h1 {
-    text-align: center;
-    flex: 1 1 auto;
+  /* 2. 将 main 改造为横向弹性工作区 */
+  main {
+    flex-direction: row !important; 
+    align-items: stretch !important;
+    max-width: none !important;
+    height: calc(100vh - 4.5rem); /* 减去 header 高度，填满剩余全屏空间 */
+    padding: 0 !important;
+    gap: 0 !important;
   }
 
-  /* Fonts pill anchored to the right under the canvas, per Screen 13. */
-  .fonts-row {
-    padding-right: 0.25rem;
-  }
-
-  .canvas-container {
-    min-width: 0;
-    width: 100%;
-    max-width: 100%;
-    /* Canvas overflow clip is in the base .canvas-container.has-image rule
-     * — applies to desktop and mobile so the rounded border always wins. */
-  }
-
-  #meme-canvas {
-    width: 100%;
-    height: auto;
-  }
-
-  .placeholder {
-    font-size: 1rem;
-    text-align: center;
-    width: 90%;
-  }
-
-  /* Mobile bottom toolbar (Canva-style): same DOM as desktop, just
-   * re-anchored to position: fixed at the viewport bottom so it cannot
-   * push the page wider and a text box near the right edge cannot drag
-   * its toolbar off-screen. */
-  .text-box-toolbar {
-    position: fixed;
-    left: 0.5rem;
-    right: 0.5rem;
-    bottom: 0.5rem;
-    top: auto;
-    margin-bottom: 0;
-    flex-wrap: wrap;
-    justify-content: center;
-    white-space: normal;
-    gap: 6px;
-    padding: 0.5rem;
-    max-width: calc(100vw - 1rem);
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.4);
-  }
-
-  .toolbar-sep {
-    display: none;
-  }
-
-  /* Mobile: hide the Move button — replaced by press-and-hold gesture in
-   * DragResize.js. Desktop keeps the button visible. */
-  .text-box-toolbar .move-handle {
-    display: none;
-  }
-
-  .text-box-toolbar button,
-  .text-box-toolbar select {
-    min-height: clamp(2.5rem, 8vw, 3.25rem);
-    min-width: clamp(2.5rem, 8vw, 3.25rem);
-    font-size: 0.875rem;
-    padding: 0.375rem 0.625rem;
-  }
-
-  /* Keep the text box itself inside the viewport even if resized larger
-   * than the canvas — prevents the inline `width: …px` from DragResize
-   * pushing the page wider. */
-  .text-box {
-    max-width: 100%;
-  }
-
-  /* When the textarea is NOT focused, route touches through to the
-   * .text-box parent so press-and-hold-to-move can work across the whole
-   * box. Once focused (via focusTextarea on creation or double-tap), the
-   * textarea accepts touches again for normal typing. Desktop unaffected. */
-  .text-box .text-content:not(:focus) {
-    pointer-events: none;
-  }
-
-  /* Visual confirmation that a hold-to-move gesture is armed. */
-  .text-box.hold-active {
-    box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.6);
-  }
-
-  /* While the quick-action menu is open, hide the floating toolbar so the
-   * two never overlap. Toolbar returns the moment the menu closes. */
-  .text-box.menu-open .text-box-toolbar {
-    display: none;
-  }
-
-  /* Keep the meme-search results from pushing the editor too far down on
-   * phones — scroll inside the section rather than the page. */
-  .meme-search-results {
-    max-height: 60vh;
-    overflow-y: auto;
-  }
-
-  /* Anchor Browse Memes + Share at the bottom of the viewport so they
-   * are always thumb-reachable instead of floating just under the canvas
-   * with cream space below. All sizing in scalable units so spacing
-   * scales with viewport and root font size.
-   *
-   * Display: grid with minmax(0, 1fr) columns is the fix for the Share
-   * overflow on narrow phones — flex items default to min-width: auto,
-   * which refuses to shrink below "Browse Memes" + padding's intrinsic
-   * width and pushes the row past the viewport. minmax(0, 1fr) explicitly
-   * allows the column to shrink to 0; min-width: 0 on each button lets
-   * it accept that column width. */
-  .bottom-actions {
-    position: fixed;
-    left: clamp(1rem, 5vw, 2rem);
-    right: clamp(1rem, 5vw, 2rem);
-    bottom: clamp(1rem, 4vh, 2rem);
-    margin-top: 0;
-    z-index: 10;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: clamp(0.75rem, 3vw, 1.25rem);
+  /* 3. 左侧独立工作面板：画布放这里，如果图片太大只在左侧内部生成滚动条 */
+  .editor-panel {
+    flex: 1;
+    overflow: auto; 
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    max-width: 90vw;
-    box-sizing: border-box;
+    gap: 20px;
   }
 
-  .bottom-actions > button {
-    width: 100%;
-    min-width: 0;
-    box-sizing: border-box;
+  /* 4. 右侧 Template 栏：从下方移到右侧，直角切边贴合屏幕 */
+  .meme-search {
+    width: 380px; /* 初始宽度 */
+    min-width: 280px; /* 限制最窄拖到这 */
+    max-width: 600px; /* 限制最宽拖到这 */
+    height: 100%;
+    margin-top: 0 !important;
+    border-radius: 0 !important; 
+    overflow-y: auto; /* 允许模板列表内部独立滚动 */
+    flex-shrink: 0;
   }
 
-  /* When a text box is selected the floating bottom toolbar takes over
-   * the viewport bottom. Hide .bottom-actions so the two don't overlap;
-   * Browse Memes / Share reappear the moment selection is cleared. */
-  body:has(.text-box.selected) .bottom-actions {
-    display: none;
+  /* 5. 垂直拖拽条样式 */
+  .resizer {
+    width: 8px;
+    background-color: var(--soft-gray);
+    cursor: col-resize;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+    z-index: 99;
+    border-left: 1px solid rgba(0, 0, 0, 0.04);
+    border-right: 1px solid rgba(0, 0, 0, 0.04);
   }
-}
-
-/* Desktop (>768 px): mobile-only affordances stay hidden. The quick-action
- * menu is never opened here either (the gesture handlers in DragResize.js
- * are touch-only), but belt-and-braces force it hidden if .is-open ever
- * gets toggled on. */
-@media (min-width: 769px) {
-  .meme-search-toggle {
-    display: none;
-  }
-
-  .quick-action-menu.is-open {
-    display: none;
+  
+  .resizer:hover,
+  .resizer:active {
+    background-color: var(--forest-green); /* 激活时高亮为你项目的森林绿 */
   }
 
-  /* Mobile-only affordances stay hidden on desktop. Desktop has its own
-   * Upload button in .controls and never enters the home/editor view
-   * switching flow. The legacy search-icon-btn that used to toggle a
-   * meme-search overlay is also redundant now that the section sits
-   * inline on desktop and IS the home page on mobile. */
+  /* 6. 顺应右侧窄屏，优化模板卡片的网格平铺 */
+  .meme-search-results {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+    gap: 12px !important;
+  }
+  
+  .meme-search-card img {
+    height: 100px !important; /* 稍微缩减高度适配侧边栏 */
+  }
+
+  /* 7. 保持你原本就隐藏掉的移动端组件 */
+  .meme-search-toggle,
+  .quick-action-menu.is-open,
   .mobile-home-plus-btn,
   .mobile-back-btn,
   .mobile-home-back-btn,
@@ -1115,30 +939,6 @@ main {
   .bottom-actions,
   .fonts-row,
   .settings-btn {
-    display: none;
-  }
-}
-
-/* On narrow screens, tighten the grid so cards stay readable. */
-@media (max-width: 480px) {
-  .meme-search-results {
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 8px;
-  }
-
-  .meme-search-card img {
-    height: 90px;
-  }
-
-  .text-box-toolbar button,
-  .text-box-toolbar select {
-    font-size: 0.8125rem;
-    padding: 0.375rem 0.5rem;
-  }
-
-  /* On the smallest phones drop the read-only size readout to free space.
-   * A− / A+ still work. */
-  .text-box-toolbar .font-size-display {
     display: none;
   }
 }

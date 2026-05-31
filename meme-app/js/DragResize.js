@@ -62,47 +62,79 @@ MemeGen.DragResize = (function () {
 
       var dx = e.clientX - startX;
       var dy = e.clientY - startY;
-      var newWidth, newHeight, newLeft, newTop;
+
+      var newWidth = startWidth;
+      var newHeight = startHeight;
+      var newLeft = startLeft;
+      var newTop = startTop;
+
+      var rightEdge = startLeft + startWidth;
+      var bottomEdge = startTop + startHeight;
 
       switch (resizeCorner) {
         case 'bottom-right':
-          newWidth  = Math.max(MIN_WIDTH,  startWidth  + dx);
-          newHeight = Math.max(MIN_HEIGHT, startHeight + dy);
-          el.style.width  = newWidth  + 'px';
-          el.style.height = newHeight + 'px';
+          newWidth = startWidth + dx;
+          newHeight = startHeight + dy;
           break;
 
         case 'bottom-left':
-          newWidth  = Math.max(MIN_WIDTH,  startWidth  - dx);
-          newHeight = Math.max(MIN_HEIGHT, startHeight + dy);
-          newLeft   = startLeft + (startWidth - newWidth);
-          el.style.width  = newWidth  + 'px';
-          el.style.height = newHeight + 'px';
-          el.style.left   = newLeft   + 'px';
+          newLeft = startLeft + dx;
+
+          // Do not let the left edge pass the right edge minus MIN_WIDTH
+          newLeft = Math.min(newLeft, rightEdge - MIN_WIDTH);
+          newLeft = Math.max(0, newLeft);
+
+          newWidth = rightEdge - newLeft;
+          newHeight = startHeight + dy;
           break;
 
         case 'top-right':
-          newWidth  = Math.max(MIN_WIDTH,  startWidth  + dx);
-          newHeight = Math.max(MIN_HEIGHT, startHeight - dy);
-          newTop    = startTop + (startHeight - newHeight);
-          el.style.width  = newWidth  + 'px';
-          el.style.height = newHeight + 'px';
-          el.style.top    = newTop    + 'px';
+          newTop = startTop + dy;
+
+          // Do not let the top edge pass the bottom edge minus MIN_HEIGHT
+          newTop = Math.min(newTop, bottomEdge - MIN_HEIGHT);
+          newTop = Math.max(0, newTop);
+
+          newWidth = startWidth + dx;
+          newHeight = bottomEdge - newTop;
           break;
 
         case 'top-left':
-          newWidth  = Math.max(MIN_WIDTH,  startWidth  - dx);
-          newHeight = Math.max(MIN_HEIGHT, startHeight - dy);
-          newLeft   = startLeft + (startWidth  - newWidth);
-          newTop    = startTop  + (startHeight - newHeight);
-          el.style.width  = newWidth  + 'px';
-          el.style.height = newHeight + 'px';
-          el.style.left   = newLeft   + 'px';
-          el.style.top    = newTop    + 'px';
+          newLeft = startLeft + dx;
+          newTop = startTop + dy;
+
+          // Do not let the left edge pass the right edge minus MIN_WIDTH
+          newLeft = Math.min(newLeft, rightEdge - MIN_WIDTH);
+          newLeft = Math.max(0, newLeft);
+
+          // Do not let the top edge pass the bottom edge minus MIN_HEIGHT
+          newTop = Math.min(newTop, bottomEdge - MIN_HEIGHT);
+          newTop = Math.max(0, newTop);
+
+          newWidth = rightEdge - newLeft;
+          newHeight = bottomEdge - newTop;
           break;
       }
 
-      // Keep font size in sync with box height so live editor and exporter always match.
+      // Keep right edge inside container
+      if (newLeft + newWidth > container.offsetWidth) {
+        newWidth = container.offsetWidth - newLeft;
+      }
+
+      // Keep bottom edge inside container
+      if (newTop + newHeight > container.offsetHeight) {
+        newHeight = container.offsetHeight - newTop;
+      }
+
+      // Final safety clamp
+      newWidth = Math.max(MIN_WIDTH, newWidth);
+      newHeight = Math.max(MIN_HEIGHT, newHeight);
+
+      el.style.left = newLeft + 'px';
+      el.style.top = newTop + 'px';
+      el.style.width = newWidth + 'px';
+      el.style.height = newHeight + 'px';
+
       textBox.applyFontSize(newHeight * 0.4);
     });
 

@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var mobileHomePlusBtn = document.getElementById('mobile-home-plus-btn');
   var browseMemesBtn = document.getElementById('browse-memes-btn');
   var fontsBtn = document.getElementById('fonts-btn');
+  var aiPandaBtn = document.getElementById('ai-panda-btn');
   var placeholder = document.getElementById('placeholder');
   var hint = document.getElementById('hint');
 
@@ -24,6 +25,11 @@ document.addEventListener('DOMContentLoaded', function () {
   // Desktop ignores the class entirely; both panels stay inline there.
   function showBrowseView() {
     document.body.classList.add('browse-open');
+    // Show the back button only when there is a loaded image to return to.
+    // On first reload no image exists yet so the back button stays hidden.
+    if (mobileHomeBackBtn) {
+      mobileHomeBackBtn.hidden = !container.classList.contains('has-image');
+    }
   }
   function showEditorView() {
     document.body.classList.remove('browse-open');
@@ -263,17 +269,97 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // AI panda button — placeholder only; no action in this version.
+  if (aiPandaBtn) {
+    aiPandaBtn.addEventListener('click', function () { /* AI meme ideas — coming soon */ });
+  }
+
   // Wire up meme search: when a result is clicked, load it onto the canvas
   // through the same pipeline as a normal upload.
   var searchInput = document.getElementById('meme-search-input');
   var searchResults = document.getElementById('meme-search-results');
   var searchStatus = document.getElementById('meme-search-status');
+  var editorLibraryResults = document.getElementById('editor-library-results');
+  var editorLibrarySearchInput = document.getElementById('editor-library-search-input');
+
+  // Cached meme list for the editor preview's own search.
+  var allEditorMemes = [];
+  // Guard prevents duplicate input listeners if onFetched fires more than once.
+  var editorPreviewListenerAdded = false;
+
+  // Render (or re-render) cards into the editor preview container.
+  function buildEditorPreviewCards(list) {
+    if (!editorLibraryResults) return;
+    editorLibraryResults.innerHTML = '';
+    list.slice(0, 50).forEach(function (meme) {
+      var card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'meme-search-card';
+      card.title = meme.name;
+
+      var img = document.createElement('img');
+      img.src = meme.url;
+      img.alt = meme.name;
+      img.loading = 'lazy';
+      img.crossOrigin = 'anonymous';
+
+      var label = document.createElement('span');
+      label.className = 'meme-search-name';
+      label.textContent = meme.name;
+
+      card.appendChild(img);
+      card.appendChild(label);
+      card.addEventListener('click', function () {
+        if (searchStatus) searchStatus.textContent = 'Loading ' + meme.name + '…';
+        MemeGen.MemeSearch.loadFromUrl(meme.url, function (err) {
+          if (searchStatus) searchStatus.textContent =
+            'Could not load that meme: ' + (err && err.message ? err.message : 'unknown error');
+        });
+      });
+
+      editorLibraryResults.appendChild(card);
+    });
+  }
+
+  // Filter the cached meme list by the preview search query and re-render.
+  function filterEditorPreview() {
+    var query = (editorLibrarySearchInput ? editorLibrarySearchInput.value : '').trim().toLowerCase();
+    var filtered = query
+      ? allEditorMemes.filter(function (m) { return m.name.toLowerCase().indexOf(query) !== -1; })
+      : allEditorMemes;
+    buildEditorPreviewCards(filtered);
+  }
+
+  // Called by MemeSearch's onFetched callback. Sets up the preview once;
+  // subsequent calls update the cache but skip re-adding input listeners.
+  function renderEditorPreview(memesData) {
+    if (!editorLibraryResults) return;
+    allEditorMemes = memesData;
+    buildEditorPreviewCards(memesData);
+
+    if (!editorPreviewListenerAdded && editorLibrarySearchInput) {
+      editorPreviewListenerAdded = true;
+      var debounce = null;
+      editorLibrarySearchInput.addEventListener('input', function () {
+        clearTimeout(debounce);
+        debounce = setTimeout(filterEditorPreview, 150);
+      });
+      editorLibrarySearchInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          clearTimeout(debounce);
+          filterEditorPreview();
+          e.preventDefault();
+        }
+      });
+    }
+  }
 
   if (searchInput && searchResults && MemeGen.MemeSearch) {
     MemeGen.MemeSearch.init({
       input: searchInput,
       results: searchResults,
       status: searchStatus,
+      onFetched: renderEditorPreview,
       onSelect: function (meme) {
         // Close the Browse Memes overlay up-front so the user sees the
         // "Loading…" status against the editor instead of the search

@@ -49,10 +49,10 @@
         <button id="download-btn" disabled>Download Meme</button>
       </div>
 
-      <div id="canvas-container" class="canvas-container">
-        <canvas id="meme-canvas"></canvas>
-        <div class="placeholder" id="placeholder">Click here or drag &amp; drop an image to get started</div>
-      </div>
+    <div id="canvas-container" class="canvas-container">
+      <canvas id="meme-canvas"></canvas>
+      <div class="placeholder" id="placeholder">Click here or drag &amp; drop an image to get started</div>
+    </div>
 
       <div class="fonts-row">
         <button type="button" id="fonts-btn" class="fonts-btn">fonts</button>
@@ -68,7 +68,7 @@
         >Scan Text</button>
       </div>
 
-      <p class="hint" id="hint" hidden>Click on the image to add text</p>
+    <p class="hint" id="hint" hidden>Click on the image to add text</p>
 
       <div class="bottom-actions">
         <button type="button" id="browse-memes-btn" class="browse-memes-btn">Browse Memes</button>
@@ -79,6 +79,8 @@
     <div class="resizer" id="panel-resizer"></div>
 
     <section class="meme-search" id="meme-search" aria-label="Meme search">
+      <!-- Top-left close-browse affordance shown inside the browse overlay.
+           Returns to the editor view without selecting a meme. -->
       <button
         type="button"
         id="mobile-home-back-btn"
@@ -88,7 +90,9 @@
       <h2 class="meme-search-title">Meme Generator</h2>
       <p id="meme-search-status" class="meme-search-status" role="status" aria-live="polite"></p>
       <div id="meme-search-results" class="meme-search-results"></div>
-      
+      <!-- Bottom row anchored at the foot of the home view: search input on
+           the left, circular + upload button on the right. The + reuses
+           the existing #image-input file picker. -->
       <div class="meme-search-bottom-row">
         <input
           type="text"

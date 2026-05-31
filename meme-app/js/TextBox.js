@@ -158,6 +158,15 @@ MemeGen.TextBox = (function () {
 
     el.appendChild(quickMenu);
 
+    // Mobile-only X delete button — shown on the right of selected text boxes
+    // on mobile. Replaces the need for the bottom toolbar just for deletion.
+    var mobileDeleteBtn = document.createElement('button');
+    mobileDeleteBtn.type = 'button';
+    mobileDeleteBtn.className = 'mobile-delete-btn';
+    mobileDeleteBtn.textContent = '×';
+    mobileDeleteBtn.setAttribute('aria-label', 'Delete text box');
+    el.appendChild(mobileDeleteBtn);
+
     this.el = el;
     this.textarea = textarea;
     this.fontSelect = fontSelect;
@@ -172,6 +181,7 @@ MemeGen.TextBox = (function () {
     this.qEditBtn = qEditBtn;
     this.qBorderBtn = qBorderBtn;
     this.qDeleteBtn = qDeleteBtn;
+    this.mobileDeleteBtn = mobileDeleteBtn;
 
     this.container.appendChild(el);
 
@@ -290,6 +300,11 @@ MemeGen.TextBox = (function () {
       self.hideQuickActions();
     });
     this.qDeleteBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      self.destroy();
+    });
+
+    this.mobileDeleteBtn.addEventListener('click', function (e) {
       e.stopPropagation();
       self.destroy();
     });

@@ -82,7 +82,7 @@ MemeGen.Exporter = (function () {
     }, 'image/png');
   }
 
-  return { exportMeme: exportMeme };
+  return { exportMeme: exportMeme, wrapText: wrapText };
 })();
 
 window.MemeGen = MemeGen;

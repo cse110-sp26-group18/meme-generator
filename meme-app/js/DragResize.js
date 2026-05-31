@@ -47,8 +47,6 @@ MemeGen.DragResize = (function () {
       e.stopPropagation();
       resizing = true;
       resizeCorner = target.dataset.corner;
-      // Manual corner-resize overrides auto-fit so typing won't shrink the box back.
-      textBox.manuallyResized = true;
       startX = e.clientX;
       startY = e.clientY;
       startLeft   = el.offsetLeft;
@@ -102,8 +100,9 @@ MemeGen.DragResize = (function () {
           break;
       }
 
-      // Keep font size in sync with box height so live editor and exporter always match.
-      textBox.applyFontSize(newHeight * 0.4);
+      // Rescale the font to the largest size that fits the new box dimensions,
+      // so the text fills the box without overflowing (and the exporter matches).
+      textBox.fitFontToBox();
     });
 
     document.addEventListener('mouseup', function () {

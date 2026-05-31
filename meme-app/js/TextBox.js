@@ -21,9 +21,6 @@ MemeGen.TextBox = (function () {
     this._handleKeyDown = null;
     this.onDelete = null;
     this.onSelect = null;
-    // Once the user drags a corner handle, auto-fit is disabled for this box
-    // so their explicit sizing isn't overwritten by subsequent typing.
-    this.manuallyResized = false;
 
     this._buildDOM();
     this._bindEvents();
@@ -166,9 +163,10 @@ MemeGen.TextBox = (function () {
     });
 
     this.textarea.addEventListener('input', function () {
-      if (!self.manuallyResized) {
-        self.fitToText();
-      }
+      // The box is the fixed boundary; keep the text fitting inside it by
+      // shrinking the font when it would overflow and growing it back when
+      // there is spare room.
+      self.fitFontToBox();
     });
 
     // A− decreases font size and shrinks the box to match
@@ -255,35 +253,43 @@ MemeGen.TextBox = (function () {
     this.el.style.height = newHeight + 'px';
   };
 
-  // Shrink/grow the box so it hugs the textarea content with no extra slack.
-  // Measures each line's width using a canvas 2d context (consistent with
-  // Exporter), then sets el width/height to match. Horizontal chrome = 16px
-  // (textarea padding 6px*2 + border 2px*2); vertical chrome = 12px
-  // (padding 4px*2 + border 2px*2). Floored at the CSS min sizes (80x40).
-  TextBox.prototype.fitToText = function () {
+  // Pick the largest font size in [MIN, MAX] at which the current text wraps to
+  // fit entirely inside the current box — in both width and height. Shrinks the
+  // font to prevent overflow and grows it to fill spare room, so the text always
+  // fits the allotted box size. Wraps with the Exporter's wrapText so the live
+  // preview matches the exported PNG exactly.
+  //
+  // Box chrome: the textarea has 6px horizontal + 4px vertical padding and a 2px
+  // border per side (border-box) → 16px horizontal, 12px vertical.
+  TextBox.prototype.fitFontToBox = function () {
     var text = this.textarea.value;
-    var lines = text.length ? text.split('\n') : [''];
+    var boxWidth  = parseInt(this.el.style.width, 10)  || this.el.offsetWidth  || this.width;
+    var boxHeight = parseInt(this.el.style.height, 10) || this.el.offsetHeight || this.height;
+
+    var innerWidth  = Math.max(1, boxWidth  - 16);
+    var innerHeight = Math.max(1, boxHeight - 12);
 
     var ctx = (TextBox._measureCanvas || (TextBox._measureCanvas = document.createElement('canvas'))).getContext('2d');
-    ctx.font = this.fontSize + 'px ' + this.fontFamily;
 
-    var maxWidth = 0;
-    for (var i = 0; i < lines.length; i++) {
-      var w = ctx.measureText(lines[i]).width;
-      if (w > maxWidth) maxWidth = w;
+    var best = FONT_SIZE_MIN;
+    for (var size = FONT_SIZE_MIN; size <= FONT_SIZE_MAX; size++) {
+      ctx.font = size + 'px ' + this.fontFamily;
+
+      var lines = MemeGen.Exporter.wrapText(ctx, text, innerWidth);
+      var totalHeight = lines.length * size * 1.2;
+
+      var widest = 0;
+      for (var i = 0; i < lines.length; i++) {
+        var w = ctx.measureText(lines[i]).width;
+        if (w > widest) widest = w;
+      }
+
+      if (totalHeight <= innerHeight && widest <= innerWidth) {
+        best = size;
+      }
     }
 
-    var lineHeight = this.fontSize * 1.2;
-    var textHeight = lines.length * lineHeight;
-
-    var HORIZ_CHROME = 16;
-    var VERT_CHROME = 12;
-
-    var newWidth = Math.max(80, Math.ceil(maxWidth + HORIZ_CHROME));
-    var newHeight = Math.max(40, Math.ceil(textHeight + VERT_CHROME));
-
-    this.el.style.width = newWidth + 'px';
-    this.el.style.height = newHeight + 'px';
+    this.applyFontSize(best);
   };
 
   TextBox.prototype.select = function () {

@@ -75,18 +75,38 @@ MemeGen.MemeSearch = (function () {
     fetching = true;
     setStatus('Loading memes…');
 
-    Promise.all([fetchImgflipMemes(), fetchLocalTemplates()])
-      .then(function (lists) {
-        // Imgflip's popular memes first, then the internal library after them.
-        memes = lists[0].concat(lists[1]);
+    Promise.allSettled([fetchImgflipMemes(), fetchLocalTemplates()])
+      .then(function (results) {
+        var imgflipMemes = [];
+        var localMemes = [];
+
+        if (results[0].status === 'fulfilled') {
+          imgflipMemes = results[0].value;
+        }
+
+        if (results[1].status === 'fulfilled') {
+          localMemes = results[1].value;
+        }
+
+        // Normal case: API memes first, then internal memes.
+        // Fallback case: if API fails, localMemes still show.
+        memes = imgflipMemes.concat(localMemes);
+
         fetched = true;
         fetching = false;
-        setStatus('');
+
+        if (!memes.length) {
+          setStatus('Could not load any memes.');
+          return;
+        }
+
+        if (!imgflipMemes.length && localMemes.length) {
+          setStatus('Showing internal library because the online meme API could not load.');
+        } else {
+          setStatus('');
+        }
+
         runSearch();
-      })
-      .catch(function (err) {
-        fetching = false;
-        setStatus('Could not load memes: ' + err.message);
       });
   }
 
@@ -309,12 +329,8 @@ MemeGen.MemeSearch = (function () {
       // Anonymous CORS so the image can be drawn to canvas without tainting.
       img.crossOrigin = 'anonymous';
 
-      var label = document.createElement('span');
-      label.className = 'meme-search-name';
-      label.textContent = meme.name;
-
       card.appendChild(img);
-      card.appendChild(label);
+
       card.addEventListener('click', function () {
         if (onSelectCallback) onSelectCallback(meme);
         scrollPageToTop();

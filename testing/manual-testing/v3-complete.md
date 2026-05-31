@@ -122,8 +122,8 @@
 | pic quality| downloaded pic quality is visibilly worse that preview |
 
 ### Suggestions / Feedback
-> Implement a graceful error pop-up for when user picks an unsupported image file. 
-> Fix text-box resizing visibility, and deleting empty ones automatically 
-> improve meme search functionality by tagging the images automatically 
-> Find how we can improve downloaded picture quality 
-```
+1. Implement a graceful error pop-up for when user picks an unsupported image file.   
+2. Fix text-box resizing visibility, and deleting empty ones automatically   
+3. Improve meme search functionality by tagging the images automatically   
+4. Find how we can improve downloaded picture quality   
+

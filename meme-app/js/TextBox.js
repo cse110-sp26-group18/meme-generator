@@ -41,17 +41,17 @@ MemeGen.TextBox = (function () {
     var toolbar = document.createElement('div');
     toolbar.className = 'text-box-toolbar';
 
-    // ✥ Move — first, easy to grab
-    var moveBtn = document.createElement('button');
-    moveBtn.className = 'move-handle';
-    moveBtn.textContent = '✥ Move';
-    moveBtn.title = 'Drag to move';
-    toolbar.appendChild(moveBtn);
+    // // ✥ Move — first, easy to grab
+    // var moveBtn = document.createElement('button');
+    // moveBtn.className = 'move-handle';
+    // moveBtn.textContent = '✥ Move';
+    // moveBtn.title = 'Drag to move';
+    // toolbar.appendChild(moveBtn);
 
-    // Separator
-    var sep = document.createElement('span');
-    sep.className = 'toolbar-sep';
-    toolbar.appendChild(sep);
+    // // Separator
+    // var sep = document.createElement('span');
+    // sep.className = 'toolbar-sep';
+    // toolbar.appendChild(sep);
 
     // A− / size display / A+
     var fontSizeDecBtn = document.createElement('button');
@@ -129,7 +129,7 @@ MemeGen.TextBox = (function () {
     this.fontSelect = fontSelect;
     this.borderBtn = borderBtn;
     this.deleteBtn = deleteBtn;
-    this.moveBtn = moveBtn;
+    // this.moveBtn = moveBtn;
     this.fontSizeDecBtn = fontSizeDecBtn;
     this.fontSizeIncBtn = fontSizeIncBtn;
     this.fontSizeDisplay = fontSizeDisplay;

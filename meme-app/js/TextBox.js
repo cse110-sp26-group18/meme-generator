@@ -284,6 +284,7 @@ MemeGen.TextBox = (function () {
 
     this.el.style.width = newWidth + 'px';
     this.el.style.height = newHeight + 'px';
+    this.keepInsideContainer();
   };
 
   TextBox.prototype.select = function () {
@@ -335,6 +336,17 @@ MemeGen.TextBox = (function () {
       fontSize: this.fontSize,       // explicit state — read by Exporter directly
       borderEnabled: this.borderEnabled
     };
+  };
+
+  TextBox.prototype.keepInsideContainer = function () {
+    var maxLeft = Math.max(0, this.container.offsetWidth - this.el.offsetWidth);
+    var maxTop = Math.max(0, this.container.offsetHeight - this.el.offsetHeight);
+
+    var newLeft = Math.max(0, Math.min(this.el.offsetLeft, maxLeft));
+    var newTop = Math.max(0, Math.min(this.el.offsetTop, maxTop));
+
+    this.el.style.left = newLeft + 'px';
+    this.el.style.top = newTop + 'px';
   };
 
   return TextBox;

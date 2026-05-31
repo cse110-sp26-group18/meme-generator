@@ -23,8 +23,12 @@
           var deltaX = e.clientX - startX;
           var newWidth = startWidth - deltaX;
 
-          // 限制拉伸临界值，保护两端样式不发生坍塌
-          if (newWidth >= 280 && newWidth <= 600) {
+          // Allow the panel to shrink to 1 card wide and expand up to 75 % of
+          // the viewport. Both limits are evaluated at drag time so they adapt
+          // when the window is resized between drags.
+          var minW = 160;
+          var maxW = Math.round(window.innerWidth * 0.75);
+          if (newWidth >= minW && newWidth <= maxW) {
             rightPanel.style.width = newWidth + 'px';
           }
         }

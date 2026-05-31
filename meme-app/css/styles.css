@@ -1248,17 +1248,40 @@ main {
   }
 
   /* Right meme search panel — display: flex !important overrides mobile
-   * display: none so it stays permanently visible on desktop. */
+   * display: none so it stays permanently visible on desktop.
+   * min-width allows the grid to shrink to 1 card; max-width lets the user
+   * drag up to 75 % of the viewport (LayoutManager enforces the same limit). */
   .meme-search {
     width: 380px;
-    min-width: 280px;
-    max-width: 600px;
+    min-width: 160px;
+    max-width: 75vw;
     height: 100%;
     margin-top: 0 !important;
     border-radius: 0 !important;
     overflow-y: auto;
     flex-shrink: 0;
     display: flex !important;
+  }
+
+  /* Canvas container fills the editor panel on desktop instead of staying
+   * at its inline-block intrinsic size.  align-self: stretch overrides the
+   * parent's align-items: center; min-width: 0 removes the 400 px floor. */
+  .canvas-container {
+    display: block;
+    align-self: stretch;
+    min-width: 0;
+    max-width: 100%;
+    min-height: clamp(18rem, 40vh, 28rem);
+    box-sizing: border-box;
+  }
+
+  /* Once an image is loaded JS sets explicit pixel dimensions; the
+   * minimum height is no longer needed and max-width prevents wide images
+   * from overflowing the panel. */
+  .canvas-container.has-image {
+    min-height: 0;
+    max-width: 100%;
+    width: auto;
   }
 
   /* Draggable vertical resizer between the two panels. */

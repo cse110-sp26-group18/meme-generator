@@ -1,14 +1,10 @@
 /**
- * textbox_fit.test.js
- * Verifies the auto-fit textbox behavior on feature/fitting-txtbox.
+ * v1_textbox_fit.test.js
+ * Verifies the auto-fit textbox behavior added on feature/fitting-txtbox.
  *
- * The box is the fixed boundary; the FONT scales to fit inside it. As the user
- * types, the font shrinks so the text never overflows the box (and grows back
- * when there is spare room). Resizing the box rescales the font to match.
- *
- * Note: jest-canvas-mock's measureText().width returns the character count
- * (font-size independent), so these tests drive the fit through line count and
- * box height — the deterministic levers — rather than pixel widths.
+ * The textbox should hug its text content (width + height) as the user types,
+ * unless they have manually resized it via a corner handle — in which case the
+ * manual sizing wins and auto-fit is disabled for that box.
  *
  * Modules under test: meme-app/js/TextBox.js, meme-app/js/DragResize.js
  * Loaded globally via testing/setup.js.
@@ -23,9 +19,9 @@ function makeContainer(w = 800, h = 600) {
   return div;
 }
 
-// ── fitFontToBox() — direct API ───────────────────────────────────────────────
+// ── fitToText() — direct API ──────────────────────────────────────────────────
 
-describe('TextBox.fitFontToBox() — font fits the box', () => {
+describe('TextBox.fitToText() — direct sizing', () => {
   let container;
   let textBox;
 
@@ -38,66 +34,65 @@ describe('TextBox.fitFontToBox() — font fits the box', () => {
     document.body.removeChild(container);
   });
 
-  it('grows the font when the box gets taller (same text)', () => {
-    textBox.el.style.width = '200px';
-    textBox.textarea.value = 'hi';
-
-    textBox.el.style.height = '80px';
-    textBox.fitFontToBox();
-    const smallBoxFont = textBox.fontSize;
-
-    textBox.el.style.height = '300px';
-    textBox.fitFontToBox();
-    const tallBoxFont = textBox.fontSize;
-
-    expect(tallBoxFont).toBeGreaterThan(smallBoxFont);
+  it('collapses near the CSS minimums (80x40) when the textarea is empty', () => {
+    textBox.textarea.value = '';
+    textBox.fitToText();
+    // Width: text width 0 + chrome 16 → 16, floored at 80.
+    // Height: one empty line (fontSize*1.2) + chrome 12 ≈ 41 at fontSize 24.
+    expect(parseInt(textBox.el.style.width, 10)).toBe(80);
+    expect(parseInt(textBox.el.style.height, 10)).toBeLessThanOrEqual(45);
+    expect(parseInt(textBox.el.style.height, 10)).toBeGreaterThanOrEqual(40);
   });
 
-  it('shrinks the font when more lines are added to a fixed box', () => {
-    textBox.el.style.width = '200px';
-    textBox.el.style.height = '150px';
+  it('produces a wider box for longer single-line text', () => {
+    // Use text long enough that both measurements clear the 80px CSS minimum,
+    // so the comparison reflects actual text-width sensitivity (not the floor).
+    textBox.textarea.value = 'a'.repeat(80);
+    textBox.fitToText();
+    const shortWidth = parseInt(textBox.el.style.width, 10);
 
+    textBox.textarea.value = 'a'.repeat(200);
+    textBox.fitToText();
+    const longWidth = parseInt(textBox.el.style.width, 10);
+
+    expect(longWidth).toBeGreaterThan(shortWidth);
+  });
+
+  it('produces a taller box for multi-line text', () => {
     textBox.textarea.value = 'one';
-    textBox.fitFontToBox();
-    const fewLinesFont = textBox.fontSize;
+    textBox.fitToText();
+    const oneLineHeight = parseInt(textBox.el.style.height, 10);
 
-    textBox.textarea.value = 'one\ntwo\nthree\nfour\nfive\nsix';
-    textBox.fitFontToBox();
-    const manyLinesFont = textBox.fontSize;
+    textBox.textarea.value = 'one\ntwo\nthree';
+    textBox.fitToText();
+    const threeLineHeight = parseInt(textBox.el.style.height, 10);
 
-    expect(manyLinesFont).toBeLessThan(fewLinesFont);
+    expect(threeLineHeight).toBeGreaterThan(oneLineHeight);
   });
 
-  it('never lets the text overflow the box height', () => {
-    textBox.el.style.width = '200px';
-    textBox.el.style.height = '120px';
-    textBox.textarea.value = 'a\nb\nc\nd\ne'; // 5 short lines, no width wrapping
+  it('shrinks the box back down when text is deleted', () => {
+    textBox.textarea.value = 'a'.repeat(200);
+    textBox.fitToText();
+    const wideWidth = parseInt(textBox.el.style.width, 10);
 
-    textBox.fitFontToBox();
+    textBox.textarea.value = 'x';
+    textBox.fitToText();
+    const narrowWidth = parseInt(textBox.el.style.width, 10);
 
-    const innerHeight = 120 - 12;          // vertical chrome
-    const usedHeight = 5 * textBox.fontSize * 1.2;
-    expect(usedHeight).toBeLessThanOrEqual(innerHeight);
+    expect(narrowWidth).toBeLessThan(wideWidth);
   });
 
-  it('floors at the minimum font size (8px) for an impossible amount of text', () => {
-    textBox.el.style.width = '120px';
-    textBox.el.style.height = '40px';
-    textBox.textarea.value = Array(40).fill('x').join('\n'); // 40 lines, tiny box
+  it('grows taller when font size increases for the same text', () => {
+    textBox.textarea.value = 'meme text';
+    textBox.applyFontSize(16);
+    textBox.fitToText();
+    const smallHeight = parseInt(textBox.el.style.height, 10);
 
-    textBox.fitFontToBox();
+    textBox.applyFontSize(48);
+    textBox.fitToText();
+    const bigHeight = parseInt(textBox.el.style.height, 10);
 
-    expect(textBox.fontSize).toBe(8);
-  });
-
-  it('caps at the maximum font size (120px) when the box is huge and text is tiny', () => {
-    textBox.el.style.width = '2000px';
-    textBox.el.style.height = '2000px';
-    textBox.textarea.value = 'a';
-
-    textBox.fitFontToBox();
-
-    expect(textBox.fontSize).toBe(120);
+    expect(bigHeight).toBeGreaterThan(smallHeight);
   });
 });
 
@@ -116,65 +111,39 @@ describe('TextBox live auto-fit — fires on textarea "input"', () => {
     document.body.removeChild(container);
   });
 
-  it('shrinks the font (not the box) when typing would overflow', () => {
-    textBox.el.style.width = '200px';
-    textBox.el.style.height = '200px';
-    const initialFont = textBox.fontSize;
-    const widthBefore = textBox.el.style.width;
-    const heightBefore = textBox.el.style.height;
+  it('resizes the box automatically when the textarea fires an input event', () => {
+    const initialWidth = parseInt(textBox.el.style.width, 10);
 
-    textBox.textarea.value = Array(10).fill('x').join('\n'); // 10 lines overflow
+    textBox.textarea.value = 'top text '.repeat(20);
     textBox.textarea.dispatchEvent(new Event('input', { bubbles: true }));
 
-    // Box dimensions are untouched — only the font changes.
-    expect(textBox.el.style.width).toBe(widthBefore);
-    expect(textBox.el.style.height).toBe(heightBefore);
-    expect(textBox.fontSize).toBeLessThan(initialFont);
+    const afterWidth = parseInt(textBox.el.style.width, 10);
+    expect(afterWidth).not.toBe(initialWidth);
+    // For a long string the fit width should clear the 80px CSS minimum.
+    expect(afterWidth).toBeGreaterThan(80);
   });
-});
 
-// ── Resize rescales the font — through the real drag handler ───────────────────
-
-describe('DragResize — resizing the box rescales the font', () => {
-  let container;
-  let textBox;
-
-  beforeEach(() => {
-    container = makeContainer();
-    textBox = new MemeGen.TextBox(0, 0, container);
+  it('does NOT auto-fit after the user has manually corner-resized the box', () => {
     MemeGen.DragResize.attach(textBox);
-    textBox.textarea.value = 'hello';
 
-    // jsdom has no layout; mirror style dimensions onto offset* like the
-    // customization suite so the drag math has real start sizes to work from.
-    Object.defineProperty(textBox.el, 'offsetWidth', {
-      get: () => parseInt(textBox.el.style.width) || 200,
-      configurable: true
-    });
-    Object.defineProperty(textBox.el, 'offsetHeight', {
-      get: () => parseInt(textBox.el.style.height) || 60,
-      configurable: true
-    });
-  });
-
-  afterEach(() => {
-    document.body.removeChild(container);
-  });
-
-  function dragBottomRight(dx, dy) {
+    // Simulate the user grabbing a corner handle — DragResize sets the
+    // manuallyResized flag on mousedown of a .resize-handle.
     const handle = textBox.el.querySelector('.resize-handle.bottom-right');
     handle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 0, clientY: 0 }));
-    document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: dx, clientY: dy }));
+    // Release immediately — we only care that the flag flipped.
     document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-  }
 
-  it('uses a larger font for a larger box and a smaller font for a smaller box', () => {
-    dragBottomRight(200, 300); // grow: 200×60 → 400×360
-    const bigFont = textBox.fontSize;
+    expect(textBox.manuallyResized).toBe(true);
 
-    dragBottomRight(-100, -300); // shrink: 400×360 → 300×60
-    const smallFont = textBox.fontSize;
+    // User-set dimensions
+    textBox.el.style.width = '300px';
+    textBox.el.style.height = '120px';
 
-    expect(bigFont).toBeGreaterThan(smallFont);
+    // Now type — box should stay at user-set size, not snap to text content.
+    textBox.textarea.value = 'x';
+    textBox.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+
+    expect(textBox.el.style.width).toBe('300px');
+    expect(textBox.el.style.height).toBe('120px');
   });
 });

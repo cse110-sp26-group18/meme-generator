@@ -1,4 +1,3 @@
-```md
 # Meme Generator - Manual Testing Checklist
 
 **Developer:** __________  

@@ -1,4 +1,3 @@
-```md
 # Meme Generator - Manual Testing Checklist
 
 **Developer:** Aila Jahromi  
@@ -14,56 +13,56 @@
 - [X] No obvious UI issues or console errors
 
 **Comments**
-> 
+> There is no implementation of internal library fallback workflow
 
 ---
 
 ## 2. Template & Image Selection
 
 ### Template Selection
-- [ ] User can select a template 
-- [ ] Selected template opens in editor
+- [X] User can select a template 
+- [X] Selected template opens in editor
 
 ### Image Upload
-- [ ] Drag-and-drop upload works
-- [ ] File picker upload works
-- [ ] Uploaded image opens in editor
+- [X] Drag-and-drop upload works
+- [X] File picker upload works
+- [X] Uploaded image opens in editor
 
 **Comments**
-> 
+> HEIC images do not upload, and no error is shown
 
 ---
 
 ## 3. Meme Editing
 
 ### Text Creation
-- [ ] Clicking image creates a text box
-- [ ] Multiple text boxes can be added
+- [X] Clicking image creates a text box
+- [X] Multiple text boxes can be added
 
 ### Text Editing
-- [ ] User can type/edit text
-- [ ] Text box auto-expands for long text
+- [X] User can type/edit text
+- [X] Text box auto-expands for long text
 - [ ] Text remains visible at all times
 
 ### Styling
-- [ ] Font can be changed
-- [ ] +/- buttons change font size
-- [ ] Text box can be resized by dragging
-- [ ] Text border can be enabled
+- [X] Font can be changed
+- [X] +/- buttons change font size
+- [X] Text box can be resized by dragging
+- [X] Text border can be enabled
 
 ### Text Removal
-- [ ] X button deletes text box
+- [X] X button deletes text box
 - [ ] Empty text box is removed when clicking away
 
 **Comments**
-> 
-
+> If the font size is large, resizing the text-box makes parts of the text invisible
+> An empty text box should disappear upon clicking outside of it 
 ---
 
 ## 4. Navigation
 
-- [ ] User can return to template selection
-- [ ] User can upload a different image without issues
+- [X] User can return to template selection
+- [X] User can upload a different image without issues
 
 **Comments**
 > 
@@ -72,12 +71,12 @@
 
 ## 5. Template Search
 
-- [ ] Search returns relevant templates
+- [X] Search returns relevant templates
 - [ ] Search works with meme keywords/emotions
-- [ ] Clearing search restores results
+- [X] Clearing search restores results
 
 **Comments**
-> 
+> Search only works for meme titles and not emotions or descriptions
 
 ---
 
@@ -89,19 +88,20 @@
 - [ ] Failure/error states are handled gracefully
 
 **Comments**
-> 
+> not implemeted in this version 
 
 ---
 
 ## 7. Share/Download
 
 - [ ] Clicking the Share button pops up the device's native share sheet
-- [ ] Downloaded/share image opens correctly
-- [ ] Text, borders, and formatting appear correctly
-- [ ] Downloaded image matches editor preview
+- [X] Downloaded/share image opens correctly
+- [X] Text, borders, and formatting appear correctly
+- [X] Downloaded image matches editor preview
 
 **Comments**
-> 
+> There is no share button at the moment, only download 
+> The downlaoded picture is worse quality that preview 
 
 ---
 
@@ -109,15 +109,21 @@
 
 ### Status
 - [ ] Pass
-- [ ] Pass with Minor Issues
+- [X] Pass with Minor Issues
 - [ ] Fail
 
 ### Bugs Found
 | Severity | Description |
 |-----------|-------------|
-|           |             |
-|           |             |
+| unsupported image files        |       there is no pop-up to tell the user why their image did not upload if they use unsupported file types     |
+|    text box       |   resizing the text-box makes parts of the text invisible          |
+| emptry text box | should be deleted upon clicking away, but right now it stays on | 
+| meme search | only works for meme titles, not emotions or descriptions, or even slight misspellings |
+| pic quality| downloaded pic quality is visibilly worse that preview |
 
 ### Suggestions / Feedback
->
+> Implement a graceful error pop-up for when user picks an unsupported image file. 
+> Fix text-box resizing visibility, and deleting empty ones automatically 
+> improve meme search functionality by tagging the images automatically 
+> Find how we can improve downloaded picture quality 
 ```

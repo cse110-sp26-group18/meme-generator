@@ -542,3 +542,115 @@ describe('Meme Search — loadFromUrl()', () => {
     await flushPromises();
   });
 });
+
+// ── Imgflip alias tagging ────────────────────────────────────────────────────
+// Curated alias keywords let users find Imgflip templates by emotion / concept
+// (e.g. "cheating" → Distracted Boyfriend) without typing the exact title.
+
+describe('Meme Search — Imgflip alias tagging', () => {
+  let dom;
+
+  beforeEach(async () => {
+    dom = mountSearchDom();
+    global.fetch = mockFetchJson(makeImgflipPayload());
+    MemeGen.MemeSearch.init({ input: dom.input, results: dom.results, status: dom.status });
+    await flushPromises();
+  });
+
+  function search(term) {
+    dom.input.value = term;
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    return Array.from(dom.results.querySelectorAll('.meme-search-name'))
+      .map(el => el.textContent);
+  }
+
+  it('matches Distracted Boyfriend by the alias "cheating"', () => {
+    expect(search('cheating')).toContain('Distracted Boyfriend');
+  });
+
+  it('matches Drake Hotline Bling by the alias "reject"', () => {
+    expect(search('reject')).toContain('Drake Hotline Bling');
+  });
+
+  it('matches Two Buttons by the alias "dilemma"', () => {
+    expect(search('dilemma')).toContain('Two Buttons');
+  });
+
+  it('still matches by the original template name', () => {
+    expect(search('drake')).toContain('Drake Hotline Bling');
+  });
+
+  it('is case-insensitive across alias keywords', () => {
+    expect(search('CHEATING')).toContain('Distracted Boyfriend');
+  });
+
+  it('returns nothing for an alias that no template uses', () => {
+    expect(search('photosynthesis')).toEqual([]);
+  });
+
+  it('matches multiple memes that share an emotion tag (overlap)', () => {
+    // "thoughtful" was added to Drake and Two Buttons, but not Distracted Boyfriend.
+    expect(search('thoughtful').sort())
+      .toEqual(['Drake Hotline Bling', 'Two Buttons'].sort());
+  });
+
+  it('matches multiple memes for a worry-family emotion (overlap)', () => {
+    // "worried" was added to Distracted Boyfriend and Two Buttons.
+    expect(search('worried').sort())
+      .toEqual(['Distracted Boyfriend', 'Two Buttons'].sort());
+  });
+});
+
+// ── Alias coverage guard ─────────────────────────────────────────────────────
+// Every emotion word in the curated taxonomy must be reachable from at least
+// 10% of Imgflip's top-100 templates so search overlap stays meaningful — if a
+// future edit drops a meme's tag, this test catches the regression.
+
+describe('Meme Search — emotion-tag coverage', () => {
+  // The full word list the search index promises to support at ≥10/100 coverage.
+  const REQUIRED_EMOTIONS = [
+    // basic
+    'happy', 'sad', 'angry', 'scared', 'surprised', 'disgusted', 'confused',
+    'nervous', 'excited', 'bored', 'calm', 'embarrassed', 'proud', 'jealous',
+    'lonely', 'hopeful', 'disappointed', 'frustrated', 'relaxed', 'worried',
+    // stronger / dramatic
+    'heartbroken', 'devastated', 'furious', 'terrified', 'shocked', 'overwhelmed',
+    'exhausted', 'stressed', 'anxious', 'panicked', 'miserable', 'joyful',
+    'ecstatic', 'peaceful', 'emotional', 'crying', 'laughing', 'screaming',
+    // subtle vibe
+    'thoughtful', 'serious', 'shy', 'awkward', 'annoyed', 'suspicious', 'curious',
+    'playful', 'confident', 'insecure', 'guilty', 'grateful', 'nostalgic',
+    'romantic', 'dreamy', 'bittersweet', 'determined', 'relieved', 'uncomfortable'
+  ];
+
+  // Reach into the private alias map by reading the module source. The map is
+  // not exported, but it is a static literal — parsing the file keeps the test
+  // dependency-free and avoids changing the module's public surface.
+  function loadAliasMap() {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(
+      path.join(__dirname, '..', 'meme-app', 'js', 'MemeSearch.js'),
+      'utf8'
+    );
+    const start = src.indexOf('var IMGFLIP_ALIASES =');
+    const open = src.indexOf('{', start);
+    const close = src.indexOf('};', open);
+    // eslint-disable-next-line no-new-func
+    return Function('return (' + src.slice(open, close + 1) + ');')();
+  }
+
+  it('tags each emotion word on at least 10 of the 100 templates', () => {
+    const aliases = loadAliasMap();
+    const allEntries = Object.values(aliases);
+    expect(allEntries.length).toBe(100);
+
+    const under = [];
+    REQUIRED_EMOTIONS.forEach(word => {
+      const hits = allEntries.filter(list => list.includes(word)).length;
+      if (hits < 10) under.push(`${word}=${hits}`);
+    });
+
+    expect(under).toEqual([]);
+  });
+});

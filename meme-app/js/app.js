@@ -64,32 +64,20 @@ document.addEventListener('DOMContentLoaded', function () {
   MemeGen.TextBoxManager.init(container, canvas);
   MemeGen.LayoutManager.init('panel-resizer', 'meme-search');
 
-    // ── 移动端与平板特有配置流 ──
-    if (MemeGen.Exporter.isMobileOrTablet()) {
-      if (shareBtn) shareBtn.style.display = 'inline-block';
-      if (downloadBtn) downloadBtn.style.display = 'none';
-      // 移动端重载时默认直接唤起模板覆盖层
-      showBrowseView();
-    }
-
-    // ── 以下代码成功自移动端判定中“解脱”，桌面端现在可以完美执行了 ──
-    imageInput.addEventListener('change', function () {
-      if (this.files && this.files[0]) {
-        MemeGen.ImageLoader.loadFromFile(this.files[0]);
-      }
-    });
-  // Show share button on mobile/tablet only; keep it hidden on desktop.
-  // Mirror: hide #download-btn on mobile so the top action row is just
-  // Upload + Share, matching the polished mobile mockup (Screen 1).
+// Show share button on mobile/tablet only; keep it hidden on desktop.
   if (MemeGen.Exporter.isMobileOrTablet()) {
     if (shareBtn) shareBtn.style.display = 'inline-block';
     if (downloadBtn) downloadBtn.style.display = 'none';
-    // Mobile boots into the Browse Memes overlay so the first thing a user
-    // sees on reload is the meme template grid (per the flow correction).
-    // Desktop stays on the editor — its inline layout shows everything.
     showBrowseView();
   }
 
+  // 核心上传事件（仅绑定一次）
+  imageInput.addEventListener('change', function () {
+    if (this.files && this.files[0]) {
+      MemeGen.ImageLoader.loadFromFile(this.files[0]);
+    }
+  });
+  
   imageInput.addEventListener('change', function () {
     if (this.files && this.files[0]) {
       MemeGen.ImageLoader.loadFromFile(this.files[0]);

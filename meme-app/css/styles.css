@@ -264,17 +264,35 @@ main {
 }
 
 /* Move handle */
-.text-box-toolbar .move-handle {
+/* .text-box-toolbar .move-handle {
   cursor: grab;
   touch-action: none;
   user-select: none;
   color: #adf;
   border-color: #446;
-}
+} */
 
-.text-box-toolbar .move-handle:active {
+/* .text-box-toolbar .move-handle:active {
   cursor: grabbing;
   background: #333;
+} */
+
+.text-box.selected {
+  cursor: move;
+}
+
+.text-box.selected textarea {
+  cursor: move;
+}
+
+.text-box.selected textarea:focus {
+  cursor: text;
+}
+
+.text-box-toolbar,
+.text-box-toolbar *,
+.resize-handle {
+  touch-action: none;
 }
 
 /* Visual separator between toolbar groups */

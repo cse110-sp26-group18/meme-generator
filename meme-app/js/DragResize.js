@@ -7,36 +7,93 @@ MemeGen.DragResize = (function () {
   function attach(textBox) {
     var el = textBox.el;
     var container = textBox.container;
-    var moveBtn = textBox.moveBtn;
+    // var moveBtn = textBox.moveBtn;
 
     var resizing = false;
     var resizeCorner = null;
     var startX, startY, startLeft, startTop, startWidth, startHeight;
 
-    // --- Move via dedicated handle using pointer capture ---
-    moveBtn.addEventListener('pointerdown', function (e) {
-      moveBtn.setPointerCapture(e.pointerId);
+    // --- Move selected textbox directly, like Google Slides ---
+    el.addEventListener('pointerdown', function (e) {
+      var target = e.target;
+
+      // Resize handles should resize, not move
+      if (target.classList.contains('resize-handle')) {
+        return;
+      }
+
+      // Toolbar buttons/selects should not move the textbox
+      if (target.closest('.text-box-toolbar')) {
+        return;
+      }
+
+      // Only allow drag when textbox is selected
+      if (!textBox.selected) {
+        return;
+      }
+
+      el.setPointerCapture(e.pointerId);
+
       startX = e.clientX;
       startY = e.clientY;
       startLeft = el.offsetLeft;
       startTop = el.offsetTop;
     });
 
-    moveBtn.addEventListener('pointermove', function (e) {
-      if (!moveBtn.hasPointerCapture(e.pointerId)) return;
+    el.addEventListener('pointermove', function (e) {
+      if (!el.hasPointerCapture(e.pointerId)) {
+        return;
+      }
+
       var dx = e.clientX - startX;
       var dy = e.clientY - startY;
-      var newLeft = Math.max(0, Math.min(startLeft + dx, container.offsetWidth - el.offsetWidth));
-      var newTop  = Math.max(0, Math.min(startTop  + dy, container.offsetHeight - el.offsetHeight));
+
+      var maxLeft = Math.max(0, container.offsetWidth - el.offsetWidth);
+      var maxTop = Math.max(0, container.offsetHeight - el.offsetHeight);
+
+      var newLeft = Math.max(0, Math.min(startLeft + dx, maxLeft));
+      var newTop = Math.max(0, Math.min(startTop + dy, maxTop));
+
       el.style.left = newLeft + 'px';
-      el.style.top  = newTop  + 'px';
+      el.style.top = newTop + 'px';
     });
 
-    moveBtn.addEventListener('pointerup', function (e) {
-      if (moveBtn.hasPointerCapture(e.pointerId)) {
-        moveBtn.releasePointerCapture(e.pointerId);
+    el.addEventListener('pointerup', function (e) {
+      if (el.hasPointerCapture(e.pointerId)) {
+        el.releasePointerCapture(e.pointerId);
       }
     });
+
+    el.addEventListener('pointercancel', function (e) {
+      if (el.hasPointerCapture(e.pointerId)) {
+        el.releasePointerCapture(e.pointerId);
+      }
+    });
+
+    // --- Move via dedicated handle using pointer capture ---
+    // moveBtn.addEventListener('pointerdown', function (e) {
+    //   moveBtn.setPointerCapture(e.pointerId);
+    //   startX = e.clientX;
+    //   startY = e.clientY;
+    //   startLeft = el.offsetLeft;
+    //   startTop = el.offsetTop;
+    // });
+
+    // moveBtn.addEventListener('pointermove', function (e) {
+    //   if (!moveBtn.hasPointerCapture(e.pointerId)) return;
+    //   var dx = e.clientX - startX;
+    //   var dy = e.clientY - startY;
+    //   var newLeft = Math.max(0, Math.min(startLeft + dx, container.offsetWidth - el.offsetWidth));
+    //   var newTop  = Math.max(0, Math.min(startTop  + dy, container.offsetHeight - el.offsetHeight));
+    //   el.style.left = newLeft + 'px';
+    //   el.style.top  = newTop  + 'px';
+    // });
+
+    // moveBtn.addEventListener('pointerup', function (e) {
+    //   if (moveBtn.hasPointerCapture(e.pointerId)) {
+    //     moveBtn.releasePointerCapture(e.pointerId);
+    //   }
+    // });
 
     // --- Resize via corner handles using mouse events ---
     el.addEventListener('mousedown', function (e) {

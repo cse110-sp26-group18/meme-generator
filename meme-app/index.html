@@ -39,82 +39,60 @@
     >⚙</button>
   </header>
 
-  <main>
-    <!-- Top action row — kept for desktop. On mobile the new design
-         (Screen 13) hides this row entirely; Share lives at the bottom
-         and uploads happen via tap-canvas / drag-drop / the + in the
-         Browse Memes overlay. -->
-    <div class="controls">
-      <label class="upload-btn">
-        Upload
-        <input type="file" id="image-input" accept="image/*" hidden>
-      </label>
-      <button id="download-btn" disabled>Download Meme</button>
-    </div>
+<main>
+    <div class="editor-panel">
+      <div class="controls">
+        <label class="upload-btn">
+          Upload
+          <input type="file" id="image-input" accept="image/*" hidden>
+        </label>
+        <button id="download-btn" disabled>Download Meme</button>
+      </div>
 
-    <div id="canvas-container" class="canvas-container">
-      <!-- canvas-frame clips only the canvas to the rounded border.
-           Text boxes are siblings of this frame (children of canvas-container)
-           so they and their toolbars are never clipped. -->
-      <div class="canvas-frame">
-        <canvas id="meme-canvas"></canvas>
-        <div class="placeholder" id="placeholder">Click here or drag &amp; drop an image to get started</div>
+      <div id="canvas-container" class="canvas-container">
+        <div class="canvas-frame">
+          <canvas id="meme-canvas"></canvas>
+          <div class="placeholder" id="placeholder">Click here or drag &amp; drop an image to get started</div>
+        </div>
+      </div>
+
+      <div class="fonts-row">
+        <button type="button" id="fonts-btn" class="fonts-btn">fonts</button>
+      </div>
+
+      <div class="scan-text-row">
+        <button
+          type="button"
+          id="scan-text-btn"
+          disabled
+          aria-disabled="true"
+          title="Scan Text coming soon"
+        >Scan Text</button>
+      </div>
+
+      <p class="hint" id="hint" hidden>Click on the image to add text</p>
+
+      <section id="editor-library-preview" class="editor-library-preview" aria-label="Meme library">
+        <input
+          type="text"
+          id="editor-library-search-input"
+          class="editor-library-search-input"
+          placeholder="Search memes…"
+          autocomplete="off"
+        >
+        <div id="editor-library-results" class="editor-library-results"></div>
+      </section>
+
+      <div class="bottom-actions">
+        <button type="button" id="browse-memes-btn" class="browse-memes-btn">Browse Memes</button>
+        <button type="button" id="share-btn" disabled>Share</button>
       </div>
     </div>
 
-    <!-- "fonts" discovery affordance (Screen 13). Anchored to the right
-         just below the canvas. Click reveals/focuses the existing per-text-box
-         font dropdown if a text box is selected; otherwise shows a hint. -->
-    <div class="fonts-row">
-      <button type="button" id="fonts-btn" class="fonts-btn">fonts</button>
-    </div>
+    <div class="resizer" id="panel-resizer"></div>
 
-    <!-- Scan Text — future OCR affordance. Inert in this version (no
-         click handler, native disabled, aria-disabled). Hidden on mobile
-         per the new design; still visible on desktop. -->
-    <div class="scan-text-row">
-      <button
-        type="button"
-        id="scan-text-btn"
-        disabled
-        aria-disabled="true"
-        title="Scan Text coming soon"
-      >Scan Text</button>
-    </div>
-
-    <p class="hint" id="hint" hidden>Click on the image to add text</p>
-
-    <!-- Compact meme library preview — mobile editor screen only.
-         Populated from the same MemeSearch data via app.js (onFetched callback).
-         Uses separate IDs from the full Browse Memes page to avoid conflicts. -->
-    <section id="editor-library-preview" class="editor-library-preview" aria-label="Meme library">
-      <input
-        type="text"
-        id="editor-library-search-input"
-        class="editor-library-search-input"
-        placeholder="Search memes…"
-        autocomplete="off"
-      >
-      <div id="editor-library-results" class="editor-library-results"></div>
-    </section>
-
-    <!-- Bottom action row (Screen 13). Mobile-primary place for Browse
-         Memes and Share. Desktop hides this row because Upload/Share/
-         Download already live in the top .controls. -->
-    <div class="bottom-actions">
-      <button type="button" id="browse-memes-btn" class="browse-memes-btn">Browse Memes</button>
-      <button type="button" id="share-btn" disabled>Share</button>
-    </div>
-
-    <!-- Meme search section — on mobile this IS the home/search page
-         (full-screen dark forest panel per Screen 11 / Screen 12); on
-         desktop it remains an inline section below the editor. The IDs
-         on input / results / status stay unchanged so MemeSearch.js wires
-         up the same way it always has. -->
     <section class="meme-search" id="meme-search" aria-label="Meme search">
-      <!-- Header row: back button (absolute left) + centered title. -->
       <div class="meme-search-header">
-        <!-- Hidden by default; JS reveals it only after an image is loaded. -->
         <button
           type="button"
           id="mobile-home-back-btn"
@@ -124,7 +102,6 @@
         >←</button>
         <h2 class="meme-search-title">Meme Generator</h2>
       </div>
-      <!-- Search input near the top so users can filter templates immediately. -->
       <input
         type="text"
         id="meme-search-input"
@@ -134,16 +111,12 @@
       >
       <p id="meme-search-status" class="meme-search-status" role="status" aria-live="polite"></p>
       <div id="meme-search-results" class="meme-search-results"></div>
-      <!-- Floating circular upload button anchored at bottom-right of the panel.
-           Reuses the existing #image-input file picker (wired in app.js). -->
       <button
         type="button"
         id="mobile-home-plus-btn"
         class="mobile-home-plus-btn"
         aria-label="Upload an image"
       >+</button>
-      <!-- AI panda placeholder — bottom-left, mirrors the upload + button.
-           Inert in this version; future AI meme-idea generation. -->
       <button
         type="button"
         id="ai-panda-btn"
@@ -154,7 +127,7 @@
       >🐼</button>
     </section>
   </main>
-
+  <script src="js/LayoutManager.js"></script>
   <script src="js/ImageLoader.js"></script>
   <script src="js/TextBox.js"></script>
   <script src="js/DragResize.js"></script>

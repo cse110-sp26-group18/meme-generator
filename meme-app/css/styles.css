@@ -1234,12 +1234,20 @@ main {
   body:has(.text-box.selected) .bottom-actions {
     display: none;
   }
+/* 确保新元素在移动端完全不参与任何排版计算，子项直接暴露给 main 容器 */
+  .editor-panel {
+    display: contents;
+  }
+  .resizer {
+    display: none; /* 移动端彻底隐藏拖拽条 */
+  }
 }
 
 /* Desktop (>768 px): mobile-only affordances stay hidden. The quick-action
  * menu is never opened here either (the gesture handlers in DragResize.js
  * are touch-only), but belt-and-braces force it hidden if .is-open ever
  * gets toggled on. */
+/* ── Desktop (>768 px) 现代化双栏重构 ── */
 @media (min-width: 769px) {
   .meme-search-toggle {
     display: none;
@@ -1249,11 +1257,7 @@ main {
     display: none;
   }
 
-  /* Mobile-only affordances stay hidden on desktop. Desktop has its own
-   * Upload button in .controls and never enters the home/editor view
-   * switching flow. The legacy search-icon-btn that used to toggle a
-   * meme-search overlay is also redundant now that the section sits
-   * inline on desktop and IS the home page on mobile. */
+  /* 完美继承队友设定的桌面端隐藏规则，保持逻辑一致 */
   .mobile-home-plus-btn,
   .mobile-back-btn,
   .mobile-home-back-btn,
@@ -1264,6 +1268,79 @@ main {
   .ai-panda-btn,
   .editor-library-preview {
     display: none;
+  }
+
+  /* 锁定视口：利用弹性盒自动分摊高度，不硬编码任何尺寸 */
+  html, body {
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  body {
+    align-items: stretch;
+  }
+
+  header {
+    max-width: none;
+    border-bottom: 1px solid var(--soft-gray);
+    flex-shrink: 0;
+  }
+
+  main {
+    flex: 1;
+    min-height: 0; /* 阻止子元素撑爆外层 flex 容器 */
+    flex-direction: row !important;
+    align-items: stretch !important;
+    max-width: none !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+
+  /* 左侧独立画布工作舱 */
+  .editor-panel {
+    flex: 1;
+    overflow: auto;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  /* 右侧素材搜索栏 */
+  .meme-search {
+    width: 380px; /* 初始宽度 */
+    min-width: 280px;
+    max-width: 600px;
+    height: 100%;
+    margin-top: 0 !important;
+    border-radius: 0 !important;
+    overflow-y: auto;
+    flex-shrink: 0;
+    display: flex !important; /* 强制覆盖移动端的 display:none 保持常驻 */
+  }
+
+  /* 垂直拖拽控制条 */
+  .resizer {
+    display: block;
+    width: 8px;
+    background-color: var(--soft-gray);
+    cursor: col-resize;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+    z-index: 99;
+    border-left: 1px solid rgba(0, 0, 0, 0.04);
+    border-right: 1px solid rgba(0, 0, 0, 0.04);
+  }
+  
+  .resizer:hover,
+  .resizer:active {
+    background-color: var(--forest-green);
+  }
+
+  .meme-search-results {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
+    gap: 10px !important;
   }
 }
 

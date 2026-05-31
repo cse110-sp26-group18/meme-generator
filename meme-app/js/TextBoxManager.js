@@ -86,6 +86,55 @@ MemeGen.TextBoxManager = (function () {
     tb.focusTextarea();
   }
 
+  /**
+   * Batch-create text boxes from a list of {x, y, text} items.
+   * Unlike createTextBox, this does NOT auto-select or focus any box — useful
+   * when populating multiple boxes at once (e.g. from an AI suggestion) so the
+   * user is not yanked into editing one of them.
+   *
+   * Returns the array of created TextBox instances.
+   */
+  function createBatch(items) {
+    if (!Array.isArray(items)) return [];
+
+    var created = [];
+    items.forEach(function (item) {
+      var tb = new MemeGen.TextBox(0, 0, container);
+
+      tb.onDelete = function (box) {
+        var idx = textBoxes.indexOf(box);
+        if (idx !== -1) textBoxes.splice(idx, 1);
+      };
+
+      tb.onSelect = function (box) {
+        deselectAll();
+        box.select();
+      };
+
+      MemeGen.DragResize.attach(tb);
+      textBoxes.push(tb);
+
+      var x = typeof item.x === 'number' ? item.x : 0;
+      var y = typeof item.y === 'number' ? item.y : 0;
+      var clampedX = Math.max(0, Math.min(x, container.offsetWidth  - tb.el.offsetWidth));
+      var clampedY = Math.max(0, Math.min(y, container.offsetHeight - tb.el.offsetHeight));
+      tb.el.style.left = clampedX + 'px';
+      tb.el.style.top  = clampedY + 'px';
+
+      if (typeof item.text === 'string' && item.text.length > 0) {
+        tb.textarea.value = item.text;
+        // Trigger the existing input listener so fit-to-text runs.
+        tb.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+
+      created.push(tb);
+    });
+
+    // Leave every box deselected so no textarea steals focus.
+    deselectAll();
+    return created;
+  }
+
   function deleteSelectedTextBox() {
     var selectedBox = textBoxes.find(function (tb) {
       return tb.selected;
@@ -119,7 +168,8 @@ MemeGen.TextBoxManager = (function () {
     init: init,
     setImageLoaded: setImageLoaded,
     getAll: getAll,
-    createTextBoxAt: createTextBoxAt
+    createTextBoxAt: createTextBoxAt,
+    createBatch: createBatch
   };
 })();
 

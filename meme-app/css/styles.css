@@ -983,55 +983,108 @@ main {
  * unfocused-textarea touches through to the .text-box parent so hold-to-move
  * works, and uses scalable units (rem/clamp) so the layout adapts to any
  * phone size. Desktop never enters this block. */
-/* ── Desktop (>768 px) 布局大重构 ── */
-@media (min-width: 769px) {
-  /* 1. 强行锁定视口，禁止全局页面上下滚动 */
-  html, body {
-    height: 100vh;
-    overflow: hidden;
-  }
-  
+@media (max-width: 768px) {
   body {
-    align-items: stretch; /* 改变原本的 center 限制，让内容撑满左右 */
+    overflow-x: hidden;
   }
 
   header {
-    max-width: none; /* 解除 900px 限制 */
-    border-bottom: 1px solid var(--soft-gray); /* 加一条精致的分隔线 */
-    flex-shrink: 0;
+    padding: 0.875rem;
   }
 
-  /* 2. 将 main 改造为横向弹性工作区 */
+  header h1 {
+    font-size: 1.5rem;
+  }
+
   main {
-    flex-direction: row !important; 
-    align-items: stretch !important;
-    max-width: none !important;
-    height: calc(100vh - 4.5rem); /* 减去 header 高度，填满剩余全屏空间 */
-    padding: 0 !important;
-    gap: 0 !important;
+    /* Extra bottom padding clears the fixed-bottom .bottom-actions row
+     * (Browse Memes + Share) so editor content can scroll without ever
+     * being covered. */
+    padding: 0 0.75rem 5rem;
+    gap: 0.75rem;
   }
 
-  /* 3. 左侧独立工作面板：画布放这里，如果图片太大只在左侧内部生成滚动条 */
-  .editor-panel {
-    flex: 1;
-    overflow: auto; 
-    padding: 2rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
+  .controls {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
-  /* 4. 右侧 Template 栏：从下方移到右侧，直角切边贴合屏幕 */
+  .upload-btn,
+  #share-btn,
+  #scan-text-btn,
+  #browse-memes-btn,
+  #download-btn {
+    flex: 1 1 8.75rem;
+    min-height: clamp(2.5rem, 8vw, 3.25rem);
+    padding: 0.75rem 1rem;
+    text-align: center;
+  }
+
+  /* ── Mobile editor-first homepage (Screen 13) ──
+   * Mobile boots into the editor (cream background + canvas + fonts +
+   * Browse Memes / Share). The dark forest meme-search section is hidden
+   * by default and only appears as a fullscreen overlay when the user
+   * taps Browse Memes (body.browse-open). The legacy editor-open state
+   * has been retired — the editor IS the default now. */
+
+  /* Hide the top Upload / Download row on mobile — they are not part of
+   * Screen 13. Upload still works via tap-canvas / drag-drop / the + in
+   * the browse overlay; Share lives in .bottom-actions instead of here. */
+  .controls {
+    display: none;
+  }
+
+  /* Hide Scan Text on mobile — not part of Screen 13. Stays disabled +
+   * visible on desktop. The button itself is inert. */
+  .scan-text-row {
+    display: none;
+  }
+
+  /* Hide the legacy editor-back arrow permanently on mobile (the editor
+   * IS the default mobile view now, so there is no editor-back direction).
+   * Also hide the legacy magnifying-glass icon — Browse Memes is the new
+   * entry point. */
+  .mobile-back-btn,
+  .search-icon-btn {
+    display: none;
+  }
+
+  /* Meme-search section: hidden by default; fullscreen overlay when the
+   * user opens Browse Memes. */
   .meme-search {
-    width: 380px; /* 初始宽度 */
-    min-width: 280px; /* 限制最窄拖到这 */
-    max-width: 600px; /* 限制最宽拖到这 */
-    height: 100%;
-    margin-top: 0 !important;
-    border-radius: 0 !important; 
-    overflow-y: auto; /* 允许模板列表内部独立滚动 */
-    flex-shrink: 0;
+    display: none;
+  }
+
+  body.browse-open .meme-search {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    margin: 0;
+    border-radius: 0;
+    z-index: 50;
+    padding: 1.25rem 1rem 1rem;
+    overflow: hidden;
+  }
+
+  .meme-search-title {
+    text-align: center;
+    font-size: 1.4rem;
+  }
+
+  .meme-search-bottom-row {
+    margin-top: auto;
+  }
+
+  /* Header layout on mobile — centered title with the settings gear on
+   * the right. The legacy buttons next to it are display:none above. */
+  header {
+    justify-content: space-between;
+  }
+
+  header h1 {
+    text-align: center;
+    flex: 1 1 auto;
   }
 
   /* Fonts pill anchored to the right under the canvas, per Screen 13. */
@@ -1058,54 +1111,89 @@ main {
     width: 90%;
   }
 
-  /* Mobile bottom toolbar (Canva-style): same DOM as desktop, just
-   * re-anchored to position: fixed at the viewport bottom so it cannot
-   * push the page wider and a text box near the right edge cannot drag
-   * its toolbar off-screen. */
-  .text-box-toolbar {
-    position: fixed;
-    left: 0.5rem;
-    right: 0.5rem;
-    bottom: 0.5rem;
-    top: auto;
-    margin-bottom: 0;
-    flex-wrap: wrap;
-    justify-content: center;
-    white-space: normal;
-    gap: 6px;
-    padding: 0.5rem;
-    max-width: calc(100vw - 1rem);
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.4);
+  /* Show the editor library preview on mobile in editor view. */
+  .editor-library-preview {
+    display: block;
   }
 
-  .toolbar-sep {
+  /* Issue 4: Hide the bottom text toolbar on mobile entirely.
+   * Delete → mobile X button; move → hold-to-move; resize → pinch;
+   * edit → double-tap; fonts → fonts pill button. */
+  .text-box.selected .text-box-toolbar {
     display: none;
   }
 
-  /* Mobile: hide the Move button — replaced by press-and-hold gesture in
-   * DragResize.js. Desktop keeps the button visible. */
-  .text-box-toolbar .move-handle {
+  /* Show the X delete button on the right of selected text boxes on mobile. */
+  .text-box.selected .mobile-delete-btn {
+    display: flex;
+  }
+
+  /* Keep the text box itself inside the viewport even if resized larger
+   * than the canvas — prevents the inline `width: …px` from DragResize
+   * pushing the page wider. */
+  .text-box {
+    max-width: 100%;
+  }
+
+  /* When the textarea is NOT focused, route touches through to the
+   * .text-box parent so press-and-hold-to-move can work across the whole
+   * box. Once focused (via focusTextarea on creation or double-tap), the
+   * textarea accepts touches again for normal typing. Desktop unaffected. */
+  .text-box .text-content:not(:focus) {
+    pointer-events: none;
+  }
+
+  /* Visual confirmation that a hold-to-move gesture is armed. */
+  .text-box.hold-active {
+    box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.6);
+  }
+
+  /* While the quick-action menu is open, hide the floating toolbar so the
+   * two never overlap. Toolbar returns the moment the menu closes. */
+  .text-box.menu-open .text-box-toolbar {
     display: none;
   }
 
-  .text-box-toolbar button,
-  .text-box-toolbar select {
-    min-height: clamp(2.5rem, 8vw, 3.25rem);
-    min-width: clamp(2.5rem, 8vw, 3.25rem);
-    font-size: 0.875rem;
-    padding: 0.375rem 0.625rem;
-  }
-  
-  .resizer:hover,
-  .resizer:active {
-    background-color: var(--forest-green); /* 激活时高亮为你项目的森林绿 */
-  }
-
-  /* Keep the meme-search results from pushing the editor too far down on
-   * phones — scroll inside the section rather than the page. */
-  .meme-search-results {
-    max-height: 60vh;
+  /* Results fill the remaining panel height and scroll internally.
+   * align-content: start packs rows to the top so the flex-grown container
+   * doesn't spread row gaps across the full panel height. */
+  body.browse-open .meme-search-results {
+    flex: 1 1 0;
+    min-height: 0;
+    max-height: none;
     overflow-y: auto;
+    padding-bottom: 5rem; /* clear the floating + and panda buttons */
+    align-content: start;
+  }
+
+  /* Issue 6: floating Google-Drive-style upload button — position: absolute
+   * within the position: fixed browse panel so it anchors bottom-right. */
+  .mobile-home-plus-btn {
+    position: absolute;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    width: 3.5rem;
+    height: 3.5rem;
+    background: var(--forest-green);
+    color: var(--off-white);
+    border: none;
+    font-size: 1.75rem;
+    font-weight: 700;
+    border-radius: 50%;
+    flex: none;
+    z-index: 5;
+    box-shadow: 0 2px 8px rgba(15, 43, 26, 0.5);
+  }
+
+  .mobile-home-plus-btn:hover,
+  .mobile-home-plus-btn:focus-visible {
+    background: var(--dark-forest);
+  }
+
+  /* AI panda placeholder shown in the browse panel — same visual treatment
+   * as the + upload button but at the bottom-left. */
+  body.browse-open .ai-panda-btn {
+    display: inline-flex;
   }
 
   /* Anchor Browse Memes + Share at the bottom of the viewport so they
@@ -1256,17 +1344,17 @@ main {
   }
 }
 
-/* On narrow screens, tighten the grid so cards stay readable. */
-@media (max-width: 480px) {
+/* On very narrow screens (≤360 px) fall back to 2 columns so cards stay
+ * readable. Most phones (375 px+) keep the full 3-column layout. */
+@media (max-width: 360px) {
   .meme-search-results {
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
+}
 
-  .meme-search-card img {
-    height: 90px;
-  }
-
+/* On narrow screens, tighten toolbar controls. */
+@media (max-width: 480px) {
   .text-box-toolbar button,
   .text-box-toolbar select {
     font-size: 0.8125rem;

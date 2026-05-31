@@ -62,7 +62,6 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   MemeGen.TextBoxManager.init(container, canvas);
-
   MemeGen.LayoutManager.init('panel-resizer', 'meme-search');
 
     // ── 移动端与平板特有配置流 ──

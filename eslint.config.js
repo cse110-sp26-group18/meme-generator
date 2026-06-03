@@ -18,8 +18,6 @@ module.exports = [
       'no-unreachable': 'error',
       'no-dupe-keys': 'error',
       // style violations
-      'semi': ['warn', 'always'],
-      'no-extra-semi': 'warn', 
       'no-unused-vars': 'warn',
       'no-console': 'warn',
     },

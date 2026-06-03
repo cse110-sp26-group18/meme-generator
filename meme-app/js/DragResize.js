@@ -14,7 +14,7 @@ MemeGen.DragResize = (function () {
   function attach(textBox) {
     var el = textBox.el;
     var container = textBox.container;
-    // var moveBtn = textBox.moveBtn;
+    var moveBtn = textBox.moveBtn;
 
     var resizing = false;
     var resizeCorner = null;

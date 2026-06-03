@@ -169,6 +169,14 @@ MemeGen.TextBoxManager = (function () {
     return !tb.textarea.value.trim();
   }
 
+  function reset() {
+    textBoxes.slice().forEach(function (tb) {
+      tb.destroy();
+    });
+    textBoxes = [];
+    imageLoaded = false;
+  }
+
   function deselectOrDeleteSelectedTextBox() {
     var selectedBox = getSelectedTextBox();
 

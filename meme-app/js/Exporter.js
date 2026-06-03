@@ -49,10 +49,10 @@ MemeGen.Exporter = (function () {
    * @param {function} [callback] - optional callback invoked after the 
    * export is complete
    */
-  function exportMeme(canvas, ctx, image, textBoxes, callback) {
+  function getMemeBlob(canvas, ctx, image, textBoxes, callback) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     // Checks image parameter to prevent ctx.drawImage from throwing a TypeError and crashing the application.
-    if (!image) return;
+    if (!image) { if (callback) callback(null); return; }
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
     textBoxes.forEach(function (tb) {
@@ -99,11 +99,15 @@ MemeGen.Exporter = (function () {
 
       ctx.restore();
     });
-  }
 
     // toBlob() is asynchronous — the callback fires once the browser has
     // finished encoding the canvas contents as a PNG Blob.
-    canvas.toBlob(function (blob) {
+    canvas.toBlob(callback);
+  }
+
+  function exportMeme(canvas, ctx, image, textBoxes, callback) {
+    getMemeBlob(canvas, ctx, image, textBoxes, function (blob) {
+      if (!blob) return;
       // createObjectURL creates a temporary in-memory URL for the Blob;
       // it must be revoked after use to free the memory reference.
       var url = URL.createObjectURL(blob);
@@ -118,6 +122,7 @@ MemeGen.Exporter = (function () {
       // Revoke after the click is queued so the browser can still access
       // the URL while initiating the download, then releases the memory.
       URL.revokeObjectURL(url);
+      if (typeof callback === 'function') callback();
     });
   }
 

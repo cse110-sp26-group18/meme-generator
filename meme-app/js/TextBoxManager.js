@@ -160,6 +160,8 @@ MemeGen.TextBoxManager = (function () {
     if (!imageLoaded) return null;
     createTextBox(x, y);
     return textBoxes[textBoxes.length - 1] || null;
+  }
+
   function getSelectedTextBox() {
     return textBoxes.find(function (tb) {
       return tb.selected;
@@ -190,7 +192,7 @@ MemeGen.TextBoxManager = (function () {
     init: init,
     setImageLoaded: setImageLoaded,
     getAll: getAll,
-    createTextBoxAt: createTextBoxAt
+    createTextBoxAt: createTextBoxAt,
     reset: reset
   };
 })();

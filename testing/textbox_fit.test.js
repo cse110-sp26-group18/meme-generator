@@ -23,9 +23,9 @@ function makeContainer(w = 800, h = 600) {
   return div;
 }
 
-// ── fitFontToBox() — direct API ───────────────────────────────────────────────
+// ── fitToText() — direct API ───────────────────────────────────────────────
 
-describe('TextBox.fitFontToBox() — font fits the box', () => {
+describe('TextBox.fitToText() — font fits the box', () => {
   let container;
   let textBox;
 
@@ -43,11 +43,11 @@ describe('TextBox.fitFontToBox() — font fits the box', () => {
     textBox.textarea.value = 'hi';
 
     textBox.el.style.height = '80px';
-    textBox.fitFontToBox();
+    textBox.fitToText();
     const smallBoxFont = textBox.fontSize;
 
     textBox.el.style.height = '300px';
-    textBox.fitFontToBox();
+    textBox.fitToText();
     const tallBoxFont = textBox.fontSize;
 
     expect(tallBoxFont).toBeGreaterThan(smallBoxFont);
@@ -58,11 +58,11 @@ describe('TextBox.fitFontToBox() — font fits the box', () => {
     textBox.el.style.height = '150px';
 
     textBox.textarea.value = 'one';
-    textBox.fitFontToBox();
+    textBox.fitToText();
     const fewLinesFont = textBox.fontSize;
 
     textBox.textarea.value = 'one\ntwo\nthree\nfour\nfive\nsix';
-    textBox.fitFontToBox();
+    textBox.fitToText();
     const manyLinesFont = textBox.fontSize;
 
     expect(manyLinesFont).toBeLessThan(fewLinesFont);
@@ -73,7 +73,7 @@ describe('TextBox.fitFontToBox() — font fits the box', () => {
     textBox.el.style.height = '120px';
     textBox.textarea.value = 'a\nb\nc\nd\ne'; // 5 short lines, no width wrapping
 
-    textBox.fitFontToBox();
+    textBox.fitToText();
 
     const innerHeight = 120 - 12;          // vertical chrome
     const usedHeight = 5 * textBox.fontSize * 1.2;
@@ -85,7 +85,7 @@ describe('TextBox.fitFontToBox() — font fits the box', () => {
     textBox.el.style.height = '40px';
     textBox.textarea.value = Array(40).fill('x').join('\n'); // 40 lines, tiny box
 
-    textBox.fitFontToBox();
+    textBox.fitToText();
 
     expect(textBox.fontSize).toBe(8);
   });
@@ -95,7 +95,7 @@ describe('TextBox.fitFontToBox() — font fits the box', () => {
     textBox.el.style.height = '2000px';
     textBox.textarea.value = 'a';
 
-    textBox.fitFontToBox();
+    textBox.fitToText();
 
     expect(textBox.fontSize).toBe(120);
   });

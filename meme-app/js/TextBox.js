@@ -233,7 +233,7 @@ MemeGen.TextBox = (function () {
       // The box is the fixed boundary; keep the text fitting inside it by
       // shrinking the font when it would overflow and growing it back when
       // there is spare room.
-      self.fitFontToBox();
+      self.fitToText();
     });
 
     // A− decreases font size and shrinks the box to match

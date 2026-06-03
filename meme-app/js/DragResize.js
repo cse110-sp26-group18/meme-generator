@@ -191,7 +191,7 @@ MemeGen.DragResize = (function () {
 
       // Rescale the font to the largest size that fits the new box dimensions,
       // so the text fills the box without overflowing (and the exporter matches).
-      textBox.fitFontToBox();
+      textBox.fitToText();
     });
 
     document.addEventListener('mouseup', function () {

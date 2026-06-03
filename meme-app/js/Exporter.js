@@ -102,7 +102,7 @@ MemeGen.Exporter = (function () {
 
     // toBlob() is asynchronous — the callback fires once the browser has
     // finished encoding the canvas contents as a PNG Blob.
-    canvas.toBlob(callback);
+    canvas.toBlob(callback, 'image/png');
   }
 
   function exportMeme(canvas, ctx, image, textBoxes, callback) {

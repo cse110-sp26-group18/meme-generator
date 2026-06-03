@@ -18,6 +18,10 @@ MemeGen.TextBoxManager = (function () {
 
     container.addEventListener('mousedown', function (e) {
       if (e.target === canvas && imageLoaded) {
+        if (getSelectedTextBox()) {
+          deselectOrDeleteSelectedTextBox();
+          return;
+        }
         // getBoundingClientRect() returns viewport-relative coordinates;
         // subtracting rect.left/top converts them to canvas-local coordinates.
         var rect = canvas.getBoundingClientRect();

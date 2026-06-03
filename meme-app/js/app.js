@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Click the empty canvas region to open the file picker. Once an image
   // is loaded, clicks inside the canvas are reserved for adding text boxes,
   // so we gate on .has-image to avoid hijacking that interaction.
-  container.addEventListener('click', function (e) {
+  container.addEventListener('click', function () {
     if (container.classList.contains('has-image')) return;
     imageInput.click();
   });

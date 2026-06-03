@@ -6,8 +6,8 @@ on:
     branches: [main]
 
 jobs:
-  test:
-    name: v1 tests (Jest)
+  lint-and-test:
+    name: Lint and Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,6 +20,21 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Add ESLint problem matcher
+        run: echo "::add-matcher::.github/eslint-problem-matcher.json"
+
+      - name: Run ESLint
+        id: eslint
+        run: npm run lint
+
+      - name: Notify testers of lint failures
+        if: failure() && steps.eslint.outcome == 'failure'
+        run: |
+          echo "## Linting Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "ESLint found syntax errors or style violations in \`meme-app/js/\`. Review the annotations above, fix all reported issues, and re-push before merging." >> $GITHUB_STEP_SUMMARY
+          echo "::error::ESLint found violations — fix all syntax errors and style rule violations before merging."
 
       - name: Run tests
         run: npm test

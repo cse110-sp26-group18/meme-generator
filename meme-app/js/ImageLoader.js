@@ -3,6 +3,7 @@ var MemeGen = window.MemeGen || {};
 MemeGen.ImageLoader = (function () {
   var MIN_WIDTH = 400;
   var MIN_HEIGHT = 300;
+  const FALLBACK = 16;
   var image = null;
   var canvas = null;
   var ctx = null;
@@ -32,7 +33,7 @@ MemeGen.ImageLoader = (function () {
   function fitWithinRange(width, height) {
     // getComputedStyle reads the browser's live font size, respecting user
     // zoom and OS text-size settings — a hardcoded px value would drift.
-    var rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    var rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || FALLBACK;
     var maxW = Math.min(800, Math.max(200, window.innerWidth - 3 * rem));
     var maxH = Math.min(800, Math.max(150, window.innerHeight - 11 * rem));
 

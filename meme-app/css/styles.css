@@ -464,7 +464,7 @@ main {
 }
 
 /* Move handle */
-.text-box-toolbar .move-handle {
+/* .text-box-toolbar .move-handle {
   cursor: grab;
   touch-action: none;
   user-select: none;
@@ -472,7 +472,7 @@ main {
   border-color: var(--off-white);
 }
 
-.text-box-toolbar .move-handle:active {
+/* .text-box-toolbar .move-handle:active {
   cursor: grabbing;
   background: var(--off-white);
   color: var(--dark-forest);

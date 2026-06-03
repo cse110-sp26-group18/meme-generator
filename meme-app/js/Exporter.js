@@ -49,8 +49,10 @@ MemeGen.Exporter = (function () {
    * @param {function} [callback] - optional callback invoked after the 
    * export is complete
    */
-  function exportMeme(canvas, ctx, image, textBoxes, callback) {
+  function getMemeBlob(canvas, ctx, image, textBoxes, callback) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Checks image parameter to prevent ctx.drawImage from throwing a TypeError and crashing the application.
+    if (!image) { if (callback) callback(null); return; }
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
     textBoxes.forEach(function (tb) {
@@ -100,7 +102,12 @@ MemeGen.Exporter = (function () {
 
     // toBlob() is asynchronous — the callback fires once the browser has
     // finished encoding the canvas contents as a PNG Blob.
-    canvas.toBlob(function (blob) {
+    canvas.toBlob(callback, 'image/png');
+  }
+
+  function exportMeme(canvas, ctx, image, textBoxes, callback) {
+    getMemeBlob(canvas, ctx, image, textBoxes, function (blob) {
+      if (!blob) return;
       // createObjectURL creates a temporary in-memory URL for the Blob;
       // it must be revoked after use to free the memory reference.
       var url = URL.createObjectURL(blob);
@@ -115,10 +122,61 @@ MemeGen.Exporter = (function () {
       // Revoke after the click is queued so the browser can still access
       // the URL while initiating the download, then releases the memory.
       URL.revokeObjectURL(url);
-    }, 'image/png');
+      if (typeof callback === 'function') callback();
+    });
   }
 
-  return { exportMeme: exportMeme };
+  function isMobileOrTablet() {
+    var mq = typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 768px)')
+      : null;
+    var smallOrTabletScreen = mq ? mq.matches : false;
+    var hasTouch = 'ontouchstart' in window || (navigator.maxTouchPoints || 0) > 0;
+    return smallOrTabletScreen && hasTouch;
+  }
+
+  function canUseNativeShare() {
+    return isMobileOrTablet() && typeof navigator.share === 'function';
+  }
+
+  function shareMeme(canvas, ctx, image, textBoxes) {
+    getMemeBlob(canvas, ctx, image, textBoxes, function (blob) {
+      if (!blob) {
+        exportMeme(canvas, ctx, image, textBoxes);
+        return;
+      }
+
+      var file = new File([blob], 'meme.png', { type: 'image/png' });
+      var shareData = { files: [file] };
+
+      if (
+        isMobileOrTablet() &&
+        typeof navigator.share === 'function' &&
+        typeof navigator.canShare === 'function' &&
+        navigator.canShare(shareData)
+      ) {
+        navigator.share(shareData).then(function () {
+          // share succeeded
+        }).catch(function (err) {
+          // AbortError = user cancelled — do nothing
+          if (err && err.name !== 'AbortError') {
+            exportMeme(canvas, ctx, image, textBoxes);
+          }
+        });
+      } else {
+        exportMeme(canvas, ctx, image, textBoxes);
+      }
+    });
+  }
+
+    return {
+    exportMeme: exportMeme,
+    getMemeBlob: getMemeBlob,
+    shareMeme: shareMeme,
+    isMobileOrTablet: isMobileOrTablet,
+    canUseNativeShare: canUseNativeShare,
+    wrapText: wrapText
+  };
 })();
 
 window.MemeGen = MemeGen;

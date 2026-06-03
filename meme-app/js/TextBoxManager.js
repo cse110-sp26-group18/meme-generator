@@ -18,14 +18,17 @@ MemeGen.TextBoxManager = (function () {
 
     container.addEventListener('mousedown', function (e) {
       if (e.target === canvas && imageLoaded) {
+        if (getSelectedTextBox()) {
+          deselectOrDeleteSelectedTextBox();
+          return;
+        }
         // getBoundingClientRect() returns viewport-relative coordinates;
         // subtracting rect.left/top converts them to canvas-local coordinates.
         var rect = canvas.getBoundingClientRect();
         var x = e.clientX - rect.left;
         var y = e.clientY - rect.top;
+
         createTextBox(x, y);
-      } else if (e.target === canvas) {
-        deselectAll();
       }
     });
 
@@ -39,8 +42,10 @@ MemeGen.TextBoxManager = (function () {
         // changedTouches contains only the touches that changed in this event;
         // [0] is the first (and typically only) finger involved in the tap.
         var touch = e.changedTouches[0];
+
         var x = touch.clientX - rect.left;
         var y = touch.clientY - rect.top;
+
         createTextBox(x, y);
       }
     });
@@ -92,7 +97,7 @@ MemeGen.TextBoxManager = (function () {
    * @param {number} y - y position in px relative to the canvas origin
    */
   function createTextBox(x, y) {
-    var tb = new MemeGen.TextBox(x, y, container);
+    var tb = new MemeGen.TextBox(0, 0, container);
 
     tb.onDelete = function (box) {
       var idx = textBoxes.indexOf(box);
@@ -105,8 +110,17 @@ MemeGen.TextBoxManager = (function () {
     };
 
     MemeGen.DragResize.attach(tb);
+
     textBoxes.push(tb);
     deselectAll();
+
+    // Keep new textbox fully inside the image/template.
+    var clampedX = Math.max(0, Math.min(x, container.offsetWidth - tb.el.offsetWidth));
+    var clampedY = Math.max(0, Math.min(y, container.offsetHeight - tb.el.offsetHeight));
+
+    tb.el.style.left = clampedX + 'px';
+    tb.el.style.top = clampedY + 'px';
+
     tb.select();
     tb.focusTextarea();
   }
@@ -140,10 +154,55 @@ MemeGen.TextBoxManager = (function () {
     return textBoxes;
   }
 
+  // Public wrapper so the Scan Text button (and any future callers) can
+  // create a text box without simulating a canvas touch event. Honors the
+  // same imageLoaded gate as the tap-on-canvas path.
+  function createTextBoxAt(x, y) {
+    if (!imageLoaded) return null;
+    createTextBox(x, y);
+    return textBoxes[textBoxes.length - 1] || null;
+  }
+
+  function getSelectedTextBox() {
+    return textBoxes.find(function (tb) {
+      return tb.selected;
+    });
+  }
+
+  function isTextBoxEmpty(tb) {
+    return !tb.textarea.value.trim();
+  }
+
+  function reset() {
+    textBoxes.slice().forEach(function (tb) {
+      tb.destroy();
+    });
+    textBoxes = [];
+    imageLoaded = false;
+  }
+
+  function deselectOrDeleteSelectedTextBox() {
+    var selectedBox = getSelectedTextBox();
+
+    if (!selectedBox) {
+      return;
+    }
+
+    // Empty textbox should disappear when user clicks out.
+    if (isTextBoxEmpty(selectedBox)) {
+      selectedBox.destroy();
+      return;
+    }
+
+    selectedBox.deselect();
+  }
+
   return {
     init: init,
     setImageLoaded: setImageLoaded,
-    getAll: getAll
+    getAll: getAll,
+    createTextBoxAt: createTextBoxAt,
+    reset: reset
   };
 })();
 

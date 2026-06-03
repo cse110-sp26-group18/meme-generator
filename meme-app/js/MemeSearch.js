@@ -19,11 +19,12 @@ MemeGen.MemeSearch = (function () {
   var fetched = false;
   var fetching = false;
 
-  // DOM references and callback set during init().
+  // DOM references and callbacks set during init().
   var inputEl = null;
   var resultsEl = null;
   var statusEl = null;
   var onSelectCallback = null;
+  var onFetchedCallback = null;
 
   /**
    * @param {Object} opts - configuration object containing: input
@@ -36,6 +37,12 @@ MemeGen.MemeSearch = (function () {
     resultsEl = opts.results;
     statusEl = opts.status;
     onSelectCallback = opts.onSelect || null;
+    onFetchedCallback = opts.onFetched || null;
+
+    // If data is already cached from a previous init, fire immediately.
+    if (fetched && onFetchedCallback) {
+      onFetchedCallback(memes.slice());
+    }
 
     // Simple debounce so we don't re-render on every keystroke.
     var debounceTimer = null;
@@ -83,6 +90,7 @@ MemeGen.MemeSearch = (function () {
         fetching = false;
         setStatus('');
         runSearch();
+        if (onFetchedCallback) onFetchedCallback(memes.slice());
       })
       .catch(function (err) {
         fetching = false;
@@ -196,7 +204,8 @@ MemeGen.MemeSearch = (function () {
 
   return {
     init: init,
-    loadFromUrl: loadFromUrl
+    loadFromUrl: loadFromUrl,
+    getAll: function () { return memes.slice(); }
   };
 })();
 

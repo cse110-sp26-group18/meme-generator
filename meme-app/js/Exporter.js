@@ -28,8 +28,11 @@ MemeGen.Exporter = (function () {
     return lines.length ? lines : [''];
   }
 
+  
   function renderToCanvas(ctx, canvas, image, textBoxes) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Checks image parameter to prevent ctx.drawImage from throwing a TypeError and crashing the application.
+    if (!image) return;
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
     textBoxes.forEach(function (tb) {

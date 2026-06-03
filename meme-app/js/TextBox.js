@@ -421,9 +421,6 @@ MemeGen.TextBox = (function () {
     // deselect restores that gating once a different box (or no box) is
     // active. On desktop blur is harmless — focus would have been lost
     // anyway when the user clicked outside.
-    if (document.activeElement === this.textarea) {
-      this.textarea.blur();
-    }
   };
 
   TextBox.prototype.showQuickActions = function () {

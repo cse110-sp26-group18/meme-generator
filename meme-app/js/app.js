@@ -1,3 +1,5 @@
+// DOMContentLoaded fires once the HTML is parsed but before images and
+// stylesheets finish loading — all DOM elements queried below are available.
 document.addEventListener('DOMContentLoaded', function () {
   var canvas = document.getElementById('meme-canvas');
   var container = document.getElementById('canvas-container');
@@ -83,6 +85,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
+  /**
+   * Scans a FileList and returns the first file whose MIME type starts with
+   *   "image/" — used to safely pick the image from a mixed drag-and-drop.
+   * @param {FileList|null} fileList - list of files from a drop event
+   * @returns {File|null} the first image file found, or null if none present
+   */
   function firstImageFile(fileList) {
     if (!fileList) return null;
     for (var i = 0; i < fileList.length; i++) {
@@ -95,8 +103,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
   ['dragenter', 'dragover'].forEach(function (evt) {
     container.addEventListener(evt, function (e) {
+      // preventDefault on dragover is required for the drop event to fire;
+      // without it the browser cancels the drag and drop never triggers.
       e.preventDefault();
       e.stopPropagation();
+      // dropEffect visually signals to the user that dropping will copy content
+      // (shows a + cursor on most platforms).
       if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
       container.classList.add('drag-over');
     });
@@ -106,6 +118,9 @@ document.addEventListener('DOMContentLoaded', function () {
     container.addEventListener(evt, function (e) {
       e.preventDefault();
       e.stopPropagation();
+      // relatedTarget is the element the pointer moved to; if it is still
+      // inside the container the dragleave crossed a child element — ignore it
+      // so the drag-over highlight doesn't flicker on child boundaries.
       if (evt === 'dragleave' && container.contains(e.relatedTarget)) return;
       container.classList.remove('drag-over');
     });
@@ -124,7 +139,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Click the empty canvas region to open the file picker. Once an image
   // is loaded, clicks inside the canvas are reserved for adding text boxes,
   // so we gate on .has-image to avoid hijacking that interaction.
-  container.addEventListener('click', function (e) {
+  container.addEventListener('click', function () {
     if (container.classList.contains('has-image')) return;
     imageInput.click();
   });
@@ -145,11 +160,9 @@ document.addEventListener('DOMContentLoaded', function () {
       tb.deselect();
     });
 
-    MemeGen.Exporter.exportMeme(canvas, ctx, image, textBoxes);
-
-    setTimeout(function () {
+    MemeGen.Exporter.exportMeme(canvas, ctx, image, textBoxes, function () {
       MemeGen.ImageLoader.redraw();
-    }, 100);
+    });
   });
 
   // Share — mobile/tablet only (button is hidden on desktop by CSS, and

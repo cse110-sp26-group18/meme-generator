@@ -88,7 +88,7 @@
 - [ ] Failure/error states are handled gracefully
 
 **Comments**
-> not implemeted in this version 
+> not implemented in this version 
 
 ---
 
@@ -101,7 +101,7 @@
 
 **Comments**
 > There is no share button at the moment, only download 
-> The downlaoded picture is worse quality that preview 
+> The downloaded picture is worse quality than preview 
 
 ---
 
@@ -117,9 +117,9 @@
 |-----------|-------------|
 | unsupported image files        |       there is no pop-up to tell the user why their image did not upload if they use unsupported file types     |
 |    text box       |   resizing the text-box makes parts of the text invisible          |
-| emptry text box | should be deleted upon clicking away, but right now it stays on | 
+| empty text box | should be deleted upon clicking away, but right now it stays on | 
 | meme search | only works for meme titles, not emotions or descriptions, or even slight misspellings |
-| pic quality| downloaded pic quality is visibilly worse that preview |
+| pic quality| downloaded pic quality is visibily worse than preview |
 
 ### Suggestions / Feedback
 1. Implement a graceful error pop-up for when user picks an unsupported image file.   

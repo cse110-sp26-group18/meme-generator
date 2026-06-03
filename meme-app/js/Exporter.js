@@ -46,8 +46,10 @@ MemeGen.Exporter = (function () {
    * @param {HTMLImageElement} image - the base image drawn beneath the text
    * @param {MemeGen.TextBox[]} textBoxes - all text boxes whose state is
    *   read and rendered onto the canvas
+   * @param {function} [callback] - optional callback invoked after the 
+   * export is complete
    */
-  function exportMeme(canvas, ctx, image, textBoxes) {
+  function exportMeme(canvas, ctx, image, textBoxes, callback) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 

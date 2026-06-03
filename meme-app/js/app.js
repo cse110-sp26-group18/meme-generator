@@ -104,14 +104,9 @@ document.addEventListener('DOMContentLoaded', function () {
       tb.deselect();
     });
 
-    MemeGen.Exporter.exportMeme(canvas, ctx, image, textBoxes);
-
-    // Brief delay lets the browser finish the programmatic <a> click inside
-    // exportMeme before the canvas is repainted, preventing a blank frame
-    // from appearing in the downloaded PNG.
-    setTimeout(function () {
+    MemeGen.Exporter.exportMeme(canvas, ctx, image, textBoxes, function () {
       MemeGen.ImageLoader.redraw();
-    }, 100);
+    });
   });
 
   // Wire up meme search: when a result is clicked, load it onto the canvas

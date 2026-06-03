@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git stash *)"
+      "Bash(npx jest *)",
+      "Bash(npm install *)",
+      "Bash(git add *)",
+      "Bash(git stash *)",
+      "Bash(npx --yes jest@29 --no-coverage)",
+      "Bash(npm test *)",
+      "Bash(node -e ' *)"
     ]
   }
 }

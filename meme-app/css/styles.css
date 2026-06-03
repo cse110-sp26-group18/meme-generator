@@ -4,10 +4,32 @@
   box-sizing: border-box;
 }
 
+/* Palette — applied from the polished mobile design references under
+ * documentation/designs/. Surfaces are cream, primary buttons are forest
+ * green pills, accents stay subtle. Delete is the only red. */
+:root {
+  --cream-bg: #F8F4EA;
+  --forest-green: #2F4F35;
+  --dark-forest: #14351F;
+  --deep-green: #0F2B1A;
+  --soft-green-outline: #6F806F;
+  --off-white: #FFFDF6;
+  --soft-gray: #E8E6DE;
+  --dark-text: #102819;
+  --muted-text: #6F746A;
+  --delete-red: #E74B3C;
+}
+
+html,
 body {
-  font-family: Arial, sans-serif;
-  background: #1a1a2e;
-  color: #eee;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: 'Montserrat', Arial, sans-serif;
+  background: var(--cream-bg);
+  color: var(--dark-text);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -15,13 +37,47 @@ body {
 }
 
 header {
-  padding: 20px;
-  text-align: center;
+  padding: 1rem 1.25rem 0.5rem;
+  text-align: left;
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 header h1 {
-  font-size: 2rem;
-  color: #fff;
+  font-size: 1.6rem;
+  color: var(--dark-forest);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* Circled magnifying-glass icon button — toggles the meme-search overlay on
+ * mobile (no-op on desktop where the search section is already visible). */
+.search-icon-btn {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--dark-forest);
+  border: 2px solid var(--dark-forest);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.05rem;
+  line-height: 1;
+  padding: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.search-icon-btn:hover,
+.search-icon-btn:focus-visible {
+  background: var(--dark-forest);
+  color: var(--off-white);
+  outline: none;
 }
 
 main {
@@ -40,28 +96,29 @@ main {
   align-items: center;
 }
 
+/* Forest-green pill — the primary action button in the polished design. */
 .upload-btn {
   display: inline-block;
-  padding: 10px 20px;
-  background: #e94560;
-  color: #fff;
-  border-radius: 6px;
+  padding: 0.625rem 1.5rem;
+  background: var(--forest-green);
+  color: var(--off-white);
+  border-radius: 999px;
   cursor: pointer;
   font-size: 1rem;
   font-weight: 600;
-  transition: background 0.2s;
+  transition: background 0.2s, transform 0.1s;
 }
 
 .upload-btn:hover {
-  background: #c73650;
+  background: var(--dark-forest);
 }
 
 #download-btn {
-  padding: 10px 20px;
-  background: #0f3460;
-  color: #fff;
+  padding: 0.625rem 1.5rem;
+  background: var(--forest-green);
+  color: var(--off-white);
   border: none;
-  border-radius: 6px;
+  border-radius: 999px;
   cursor: pointer;
   font-size: 1rem;
   font-weight: 600;
@@ -69,7 +126,7 @@ main {
 }
 
 #download-btn:hover:not(:disabled) {
-  background: #16213e;
+  background: var(--dark-forest);
 }
 
 #download-btn:disabled {
@@ -77,12 +134,120 @@ main {
   cursor: not-allowed;
 }
 
+/* Share button — hidden by default; JS reveals it on mobile/tablet only. */
+#share-btn {
+  display: none;
+  padding: 0.625rem 1.5rem;
+  background: var(--forest-green);
+  color: var(--off-white);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+#share-btn:hover:not(:disabled) {
+  background: var(--dark-forest);
+}
+
+#share-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Small meme library preview shown in the editor screen on mobile.
+ * Sits between the canvas area and the fixed bottom-actions row.
+ * Uses the same .meme-search-card / .meme-search-name classes as the
+ * full Browse Memes page so no duplicate card styles are needed. */
+.editor-library-preview {
+  display: none; /* hidden on desktop; mobile block below enables it */
+  width: 100%;
+  background: var(--dark-forest);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+/* Search input inside the compact editor preview */
+.editor-library-search-input {
+  width: 100%;
+  padding: 0.5rem 0.875rem;
+  background: transparent;
+  color: var(--off-white);
+  border: 1.5px solid rgba(255, 253, 246, 0.45);
+  border-radius: 999px;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.editor-library-search-input::placeholder {
+  color: var(--soft-green-outline);
+}
+
+.editor-library-search-input:focus {
+  border-color: var(--off-white);
+}
+
+.editor-library-results {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  align-items: start;
+  align-content: start;
+  max-height: clamp(12rem, 32vh, 20rem);
+  overflow-y: auto;
+  padding: 0.75rem;
+}
+
+/* Scan Text — persistent "add text box to the meme" affordance below the
+ * canvas. Forest green pill flanked by soft green dividers on either side.
+ * Disabled until an image is loaded, matching the download/share pattern. */
+#scan-text-btn {
+  padding: 0.625rem 1.75rem;
+  background: var(--forest-green);
+  color: var(--off-white);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+#scan-text-btn:hover:not(:disabled) {
+  background: var(--dark-forest);
+}
+
+#scan-text-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.scan-text-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.scan-text-row::before,
+.scan-text-row::after {
+  content: '';
+  flex: 1 1 0;
+  max-width: 6rem;
+  height: 1px;
+  background: var(--dark-forest);
+}
+
 .canvas-container {
   position: relative;
   display: inline-block;
-  background: #16213e;
-  border: 2px dashed #333;
-  border-radius: 8px;
+  background: var(--off-white);
+  border: 1.5px solid var(--dark-forest);
+  border-radius: 1.5rem;
   min-width: 400px;
   min-height: 300px;
   max-width: 100%;
@@ -92,24 +257,40 @@ main {
 
 .canvas-container.has-image {
   cursor: default;
-  border-style: solid;
-  border-color: #0f3460;
+  border-color: var(--dark-forest);
   min-width: 0;
   min-height: 0;
+  /* Clip the loaded canvas inside the rounded forest-green border. Without
+   * this, box-sizing: border-box + the inline width set by ImageLoader
+   * makes the canvas spill ~3 px past the border on each side and its
+   * square corners poke through the rounded outline. Export is unaffected:
+   * canvas.toBlob uses the canvas's pixel buffer, not the CSS clip. */
+  /*overflow: hidden;*/
 }
 
 .canvas-container.drag-over {
   border-style: dashed;
-  border-color: #e94560;
-  background: #1f2a4a;
+  border-color: var(--forest-green);
+  background: var(--soft-gray);
 }
 
 .canvas-container.drag-over .placeholder {
-  color: #e94560;
+  color: var(--forest-green);
+}
+
+/* Inner wrapper that clips only the canvas layer to the rounded border.
+ * overflow: hidden here rather than on .canvas-container, which would
+ * clip the absolutely-positioned .text-box-toolbar that floats above it. */
+.canvas-frame {
+  display: block;
+  overflow: hidden;
+  border-radius: inherit;
 }
 
 #meme-canvas {
   display: block;
+  max-width: 100%;
+  height: auto;
 }
 
 .placeholder {
@@ -117,14 +298,16 @@ main {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 1.2rem;
-  color: #555;
+  font-size: 1.05rem;
+  color: var(--muted-text);
   pointer-events: none;
   user-select: none;
+  text-align: center;
+  width: 90%;
 }
 
 .hint {
-  color: #888;
+  color: var(--muted-text);
   font-size: 0.9rem;
 }
 
@@ -145,7 +328,7 @@ main {
   width: 100%;
   height: 100%;
   background: transparent;
-  border: 2px dashed rgba(255, 255, 255, 0.5);
+  border: 2px dashed rgba(15, 43, 26, 0.45);
   color: #fff;
   font-family: Impact, sans-serif;
   font-size: 24px;
@@ -153,6 +336,9 @@ main {
   resize: none;
   outline: none;
   overflow: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
   cursor: text;
   -webkit-text-stroke: 1px black;
   text-shadow:
@@ -168,23 +354,27 @@ main {
 }
 
 .text-box.selected textarea {
-  border-color: rgba(0, 123, 255, 0.8);
+  border-color: var(--forest-green);
 }
 
-/* Toolbar */
+/* Toolbar — dark forest panel with cream-outlined controls, matching the
+ * polished mobile mockup (Screen 6). The base block sets the look; the
+ * @media (max-width: 768px) block lower in the file re-anchors it to the
+ * viewport bottom for mobile. */
 .text-box-toolbar {
   display: none;
   position: absolute;
   bottom: 100%;
   left: 0;
-  background: rgba(0, 0, 0, 0.85);
-  border-radius: 4px;
-  padding: 4px 6px;
+  background: var(--dark-forest);
+  border-radius: 1rem;
+  padding: 0.4rem 0.5rem;
   gap: 6px;
   align-items: center;
   white-space: nowrap;
   margin-bottom: 4px;
   z-index: 30;
+  max-width: 100vw;
 }
 
 .text-box.selected .text-box-toolbar {
@@ -192,35 +382,45 @@ main {
 }
 
 .text-box-toolbar select {
-  padding: 2px 4px;
-  border-radius: 3px;
-  border: 1px solid #555;
-  background: #222;
-  color: #fff;
-  font-size: 12px;
+  padding: 0.3rem 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--off-white);
+  background: transparent;
+  color: var(--off-white);
+  font-size: 0.8rem;
   cursor: pointer;
+}
+
+.text-box-toolbar select option {
+  background: var(--dark-forest);
+  color: var(--off-white);
 }
 
 .text-box-toolbar button {
-  padding: 2px 8px;
-  border-radius: 3px;
-  border: 1px solid #555;
-  background: #222;
-  color: #fff;
-  font-size: 12px;
+  padding: 0.3rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--off-white);
+  background: transparent;
+  color: var(--off-white);
+  font-size: 0.8rem;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
 .text-box-toolbar button:hover {
-  background: #444;
+  background: var(--off-white);
+  color: var(--dark-forest);
 }
 
 .text-box-toolbar .delete-btn {
-  color: #e94560;
-  font-weight: bold;
-  font-size: 14px;
-  padding: 2px 6px;
+  color: var(--delete-red);
+  border-color: var(--delete-red);
+  font-weight: 700;
+}
+
+.text-box-toolbar .delete-btn:hover {
+  background: var(--delete-red);
+  color: var(--off-white);
 }
 
 /* Resize Handles */
@@ -229,8 +429,8 @@ main {
   position: absolute;
   width: 12px;
   height: 12px;
-  background: #007bff;
-  border: 1px solid #fff;
+  background: var(--forest-green);
+  border: 1px solid var(--off-white);
   border-radius: 2px;
   z-index: 25;
 }
@@ -268,31 +468,14 @@ main {
   cursor: grab;
   touch-action: none;
   user-select: none;
-  color: #adf;
-  border-color: #446;
-} */
+  color: var(--off-white);
+  border-color: var(--off-white);
+}
 
 /* .text-box-toolbar .move-handle:active {
   cursor: grabbing;
-  background: #333;
-} */
-
-.text-box.selected {
-  cursor: move;
-}
-
-.text-box.selected textarea {
-  cursor: move;
-}
-
-.text-box.selected textarea:focus {
-  cursor: text;
-}
-
-.text-box-toolbar,
-.text-box-toolbar *,
-.resize-handle {
-  touch-action: none;
+  background: var(--off-white);
+  color: var(--dark-forest);
 }
 
 /* Visual separator between toolbar groups */
@@ -300,97 +483,133 @@ main {
   display: inline-block;
   width: 1px;
   height: 16px;
-  background: #555;
+  background: var(--soft-green-outline);
   align-self: center;
 }
 
 /* Font-size A− / display / A+ controls */
 .text-box-toolbar .font-size-btn {
   font-weight: bold;
-  font-size: 13px;
-  min-width: 30px;
-  padding: 2px 6px;
+  font-size: 0.825rem;
+  min-width: 2.25rem;
+  padding: 0.3rem 0.5rem;
 }
 
 .font-size-display {
   display: inline-block;
-  min-width: 34px;
+  min-width: 2.5rem;
   text-align: center;
-  font-size: 11px;
-  color: #fff;
-  background: #111;
-  border: 1px solid #555;
-  border-radius: 3px;
-  padding: 2px 4px;
+  font-size: 0.7rem;
+  color: var(--off-white);
+  background: var(--deep-green);
+  border: 1px solid var(--off-white);
+  border-radius: 0.4rem;
+  padding: 0.2rem 0.3rem;
   pointer-events: none;
   user-select: none;
 }
 
-/* ── Meme Search ─────────────────────────────────────────────────────────── */
+/* ── Meme Search ──
+ * Forest-green rounded panel containing the search input + template cards,
+ * matching the polished mockup (Screen 5). On mobile the panel is hidden
+ * by default and opens as a slide-up overlay when the user taps the
+ * header search icon. On desktop it stays visible inline below the editor. */
 
 .meme-search {
   width: 100%;
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid #2a2a45;
+  margin-top: 1.25rem;
+  padding: 1.25rem 1rem 1rem;
+  background: var(--dark-forest);
+  color: var(--off-white);
+  border-radius: 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0.625rem;
+  position: relative;
+}
+
+/* Browse panel header: back button sits absolute-left so the title text
+ * stays truly centered regardless of whether the button is visible. */
+.meme-search-header {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+}
+
+/* Override the base absolute positioning so the button anchors to the
+ * header row instead of floating over the full panel. */
+.meme-search-header .mobile-home-back-btn {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .meme-search-title {
-  font-size: 1.1rem;
-  color: #fff;
-  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--off-white);
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .meme-search-input {
   width: 100%;
-  padding: 10px 14px;
-  background: #16213e;
-  color: #fff;
-  border: 1px solid #0f3460;
-  border-radius: 6px;
+  padding: 0.625rem 0.875rem;
+  background: transparent;
+  color: var(--off-white);
+  border: 1.5px solid var(--off-white);
+  border-radius: 999px;
   font-size: 1rem;
   outline: none;
   transition: border-color 0.15s;
 }
 
+.meme-search-input::placeholder {
+  color: var(--soft-green-outline);
+}
+
 .meme-search-input:focus {
-  border-color: #e94560;
+  border-color: var(--cream-bg);
 }
 
 .meme-search-status {
-  color: #888;
+  color: var(--soft-green-outline);
   font-size: 0.9rem;
   min-height: 1.2em;
 }
 
-/* Responsive grid: cards auto-size, more columns on wider screens. */
+/* Fixed 3-column grid. align-content: start packs rows to the top so no
+ * gaps appear between rows when the container is taller than the content. */
 .meme-search-results {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.625rem;
+  align-items: start;
+  align-content: start;
 }
 
 .meme-search-card {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 6px;
-  padding: 8px;
-  background: #16213e;
-  border: 1px solid #0f3460;
-  border-radius: 6px;
+  align-self: start;
+  gap: 0.375rem;
+  padding: 0.5rem;
+  background: transparent;
+  border: 1.5px solid var(--off-white);
+  border-radius: 1rem;
   cursor: pointer;
-  color: #eee;
+  color: var(--off-white);
   font-family: inherit;
   text-align: left;
-  transition: border-color 0.15s, transform 0.1s;
+  transition: background 0.15s, transform 0.1s;
 }
 
 .meme-search-card:hover {
-  border-color: #e94560;
+  background: rgba(255, 253, 246, 0.06);
 }
 
 .meme-search-card:active {
@@ -399,28 +618,715 @@ main {
 
 .meme-search-card img {
   width: 100%;
-  height: 120px;
-  object-fit: contain;
-  background: #0a0a1a;
-  border-radius: 4px;
+  aspect-ratio: 1 / 1;
+  height: auto;
+  object-fit: cover;
+  background: var(--deep-green);
+  border-radius: 0.5rem;
 }
 
 .meme-search-name {
   font-size: 0.8rem;
-  color: #ddd;
+  color: var(--off-white);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* On narrow screens, tighten the grid so cards stay readable. */
-@media (max-width: 480px) {
-  .meme-search-results {
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 8px;
+/* Mobile overlay state for the meme-search panel. Triggered by the
+ * header search icon adding .is-open to the section. The chevron handle
+ * at the top doubles as a close affordance. Desktop never sees this — the
+ * @media (min-width: 769px) block forces the inline layout there. */
+.meme-search-close {
+  position: absolute;
+  top: 0.4rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2rem;
+  height: 1.25rem;
+  background: transparent;
+  border: none;
+  color: var(--off-white);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  display: none;
+  line-height: 1;
+}
+
+/* Bottom row inside the meme-search home view: search input on the left,
+ * circular + upload button on the right. Pinned to the foot of the panel
+ * via the mobile @media block; on desktop it flows naturally inline. */
+.meme-search-bottom-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+}
+
+.meme-search-bottom-row .meme-search-input {
+  flex: 1 1 auto;
+}
+
+/* Circular + button to the right of the search input. Reuses the existing
+ * #image-input file picker (wired in app.js). */
+.mobile-home-plus-btn {
+  flex: 0 0 auto;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--off-white);
+  border: 1.5px solid var(--off-white);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mobile-home-plus-btn:hover,
+.mobile-home-plus-btn:focus-visible {
+  background: var(--off-white);
+  color: var(--dark-forest);
+  outline: none;
+}
+
+/* AI panda placeholder — bottom-left of the browse panel, mirrors the
+ * upload + button at bottom-right. Inert in this version (aria-disabled). */
+.ai-panda-btn {
+  display: none;
+  position: absolute;
+  bottom: 1.25rem;
+  left: 1.25rem;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: var(--forest-green);
+  color: var(--off-white);
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  z-index: 5;
+  box-shadow: 0 2px 8px rgba(15, 43, 26, 0.5);
+  cursor: default;
+  opacity: 0.85;
+}
+
+/* Mobile back-to-editor button — sits at the top-left of the home view
+ * (Screen 12) when there is editor state to return to. Hidden via the
+ * `hidden` attribute on initial load; JS removes the attribute the first
+ * time an image is successfully loaded. */
+.mobile-home-back-btn {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--off-white);
+  border: 2px solid var(--off-white);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0;
+  transition: background 0.15s, color 0.15s;
+  z-index: 1;
+}
+
+.mobile-home-back-btn:hover,
+.mobile-home-back-btn:focus-visible {
+  background: var(--off-white);
+  color: var(--dark-forest);
+  outline: none;
+}
+
+/* Ensure [hidden] beats the display: inline-flex above. Author-CSS specificity
+ * (0,2,0) > the base rule (0,1,0) so this reliably wins in all browsers. */
+.mobile-home-back-btn[hidden] {
+  display: none;
+}
+
+/* Mobile-only X delete button inside each text box. Visible on mobile when
+ * the text box is selected. Hidden on desktop — the toolbar handles delete there. */
+.mobile-delete-btn {
+  display: none;
+  position: absolute;
+  top: -0.625rem;
+  right: -0.625rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--delete-red);
+  color: #fff;
+  border: 2px solid #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  padding: 0;
+  touch-action: manipulation;
+}
+
+/* Mobile back button — only visible on mobile in editor view (body.editor-open).
+ * Sits at the top-left of the header. Matches the search-icon-btn shape so
+ * the header chrome stays balanced. Hidden by [hidden] attr by default. */
+.mobile-back-btn {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--dark-forest);
+  border: 2px solid var(--dark-forest);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mobile-back-btn:hover,
+.mobile-back-btn:focus-visible {
+  background: var(--dark-forest);
+  color: var(--off-white);
+  outline: none;
+}
+
+/* Settings gear button (Screen 13). Same circular shape as the legacy
+ * search-icon-btn; pushed to the right of the header by margin-left: auto. */
+.settings-btn {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--dark-forest);
+  border: 2px solid var(--dark-forest);
+  border-radius: 50%;
+  cursor: not-allowed;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0;
+  opacity: 0.85;
+}
+
+.settings-btn[disabled],
+.settings-btn[aria-disabled="true"] {
+  opacity: 0.5;
+}
+
+/* "fonts" pill — removed from mobile UI; fonts are accessible via the
+ * per-text-box dropdown on desktop. Hidden globally. */
+.fonts-row {
+  display: none;
+}
+
+.fonts-btn {
+  padding: 0.4rem 1.5rem;
+  background: var(--forest-green);
+  color: var(--off-white);
+  border: none;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.fonts-btn:hover,
+.fonts-btn:focus-visible {
+  background: var(--dark-forest);
+  outline: none;
+}
+
+/* Browse Memes pill — matches the Share/Upload pill style. Triggers the
+ * browse overlay (sets body.browse-open). */
+.browse-memes-btn {
+  padding: 0.625rem 1.5rem;
+  background: var(--forest-green);
+  color: var(--off-white);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.browse-memes-btn:hover,
+.browse-memes-btn:focus-visible {
+  background: var(--dark-forest);
+  outline: none;
+}
+
+/* Bottom action row (Screen 13). On mobile this is the primary place for
+ * Browse Memes + Share; desktop hides the row via @media (min-width: 769px)
+ * since Share/Download still live in the top .controls there. */
+.bottom-actions {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: auto;
+}
+
+
+/* ── Quick-action menu (mobile long-press) ──
+ * Appears when the user holds on a text box without dragging (DragResize.js
+ * calls textBox.showQuickActions()). Replaces the floating toolbar visually
+ * while open so the two never overlap. Sized in rem/clamp so it stays
+ * usable on any phone size, and clamped to the viewport so it cannot push
+ * the page wider. Hidden entirely on desktop by the @media override below. */
+.quick-action-menu {
+  display: none;
+}
+
+.quick-action-menu.is-open {
+  display: flex;
+  position: fixed;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem;
+  background: var(--dark-forest);
+  border-radius: 1.25rem;
+  max-width: calc(100vw - 1rem);
+  box-shadow: 0 -2px 8px rgba(15, 43, 26, 0.45);
+  z-index: 40;
+}
+
+.quick-action-btn {
+  flex: 1 1 4.5rem;
+  min-height: clamp(2.5rem, 8vw, 3.25rem);
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  color: var(--off-white);
+  border: 1.5px solid var(--off-white);
+  border-radius: 999px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.quick-action-btn:hover,
+.quick-action-btn:focus-visible {
+  background: var(--off-white);
+  color: var(--dark-forest);
+  outline: none;
+}
+
+.quick-action-btn.quick-action-delete {
+  color: var(--delete-red);
+  border-color: var(--delete-red);
+}
+
+.quick-action-btn.quick-action-delete:hover,
+.quick-action-btn.quick-action-delete:focus-visible {
+  background: var(--delete-red);
+  color: var(--off-white);
+}
+
+/* Toggle button used to collapse/expand the meme-search section on mobile —
+ * scaled in rem so it stays a comfortable tap target across phone sizes. */
+.meme-search-toggle {
+  display: block;
+  width: 100%;
+  margin-top: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  background: transparent;
+  color: var(--off-white);
+  border: 1.5px solid var(--off-white);
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 2.75rem;
+}
+
+.meme-search-toggle:hover,
+.meme-search-toggle:focus-visible {
+  background: var(--off-white);
+  color: var(--dark-forest);
+  outline: none;
+}
+
+/* ── Mobile (≤768 px) ──
+ * Hides the Move button (replaced by press-and-hold in DragResize.js),
+ * gates unfocused-textarea touches through to .text-box for hold-to-move,
+ * and uses scalable units so the layout adapts to any phone size.
+ * Desktop never enters this block. */
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
   }
 
-  .meme-search-card img {
-    height: 90px;
+  header {
+    padding: 0.875rem;
+    justify-content: space-between;
+  }
+
+  header h1 {
+    font-size: 1.5rem;
+    text-align: center;
+    flex: 1 1 auto;
+  }
+
+  main {
+    /* Extra bottom padding clears the fixed .bottom-actions row. */
+    padding: 0 0.75rem 5rem;
+    gap: 0.75rem;
+  }
+
+  /* The .editor-panel wrapper is transparent on mobile — its children
+   * behave as direct flex children of main. */
+  .editor-panel {
+    display: contents;
+  }
+
+  /* Hide the desktop resize handle on mobile. */
+  .resizer {
+    display: none;
+  }
+
+  .controls {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .upload-btn,
+  #share-btn,
+  #scan-text-btn,
+  #browse-memes-btn,
+  #download-btn {
+    flex: 1 1 8.75rem;
+    min-height: clamp(2.5rem, 8vw, 3.25rem);
+    padding: 0.75rem 1rem;
+    text-align: center;
+  }
+
+  /* Hide the top Upload / Download row on mobile. */
+  .controls {
+    display: none;
+  }
+
+  /* Hide Scan Text on mobile. */
+  .scan-text-row {
+    display: none;
+  }
+
+  /* Hide legacy header buttons on mobile. */
+  .mobile-back-btn,
+  .search-icon-btn {
+    display: none;
+  }
+
+  /* Full Browse Memes/search: hidden by default; shown as fullscreen
+   * overlay when the user opens Browse Memes (body.browse-open). */
+  .meme-search {
+    display: none;
+  }
+
+  body.browse-open .meme-search {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    margin: 0;
+    border-radius: 0;
+    z-index: 50;
+    padding: 1.25rem 1rem 1rem;
+    overflow: hidden;
+  }
+
+  .meme-search-title {
+    text-align: center;
+    font-size: 1.4rem;
+  }
+
+  .canvas-container {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  #meme-canvas {
+    width: 100%;
+    height: auto;
+  }
+
+  .placeholder {
+    font-size: 1rem;
+    text-align: center;
+    width: 90%;
+  }
+
+  /* Show the compact editor library preview on mobile in editor view. */
+  .editor-library-preview {
+    display: block;
+  }
+
+  /* Hide the bottom text toolbar on mobile entirely — X button + gestures
+   * replace it. */
+  .text-box.selected .text-box-toolbar {
+    display: none;
+  }
+
+  /* Show the mobile X delete button when a text box is selected. */
+  .text-box.selected .mobile-delete-btn {
+    display: flex;
+  }
+
+  .text-box {
+    max-width: 100%;
+  }
+
+  /* Route touches on unfocused textarea to the text-box parent so
+   * press-and-hold-to-move works. */
+  .text-box .text-content:not(:focus) {
+    pointer-events: none;
+  }
+
+  .text-box.hold-active {
+    box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.6);
+  }
+
+  .text-box.menu-open .text-box-toolbar {
+    display: none;
+  }
+
+  /* Results fill the panel height and scroll internally; rows pack to top. */
+  body.browse-open .meme-search-results {
+    flex: 1 1 0;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    padding-bottom: 5rem;
+    align-content: start;
+  }
+
+  /* Floating upload + button anchored bottom-right of the browse panel. */
+  .mobile-home-plus-btn {
+    position: absolute;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    width: 3.5rem;
+    height: 3.5rem;
+    background: var(--forest-green);
+    color: var(--off-white);
+    border: none;
+    font-size: 1.75rem;
+    font-weight: 700;
+    border-radius: 50%;
+    flex: none;
+    z-index: 5;
+    box-shadow: 0 2px 8px rgba(15, 43, 26, 0.5);
+  }
+
+  .mobile-home-plus-btn:hover,
+  .mobile-home-plus-btn:focus-visible {
+    background: var(--dark-forest);
+  }
+
+  /* AI panda placeholder shown bottom-left of the browse panel. */
+  body.browse-open .ai-panda-btn {
+    display: inline-flex;
+  }
+
+  /* Browse Memes + Share fixed at viewport bottom on mobile. */
+  .bottom-actions {
+    position: fixed;
+    left: clamp(1rem, 5vw, 2rem);
+    right: clamp(1rem, 5vw, 2rem);
+    bottom: clamp(1rem, 4vh, 2rem);
+    margin-top: 0;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: clamp(0.75rem, 3vw, 1.25rem);
+    align-items: center;
+    max-width: 90vw;
+    box-sizing: border-box;
+  }
+
+  .bottom-actions > button {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  body:has(.text-box.selected) .bottom-actions {
+    display: none;
+  }
+}
+
+/* ── Desktop (>768 px) ──
+ * Two-column layout: editor panel on the left, meme search panel on the
+ * right, separated by a draggable resizer (LayoutManager.js). */
+@media (min-width: 769px) {
+  html, body {
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  body {
+    align-items: stretch;
+  }
+
+  header {
+    max-width: none;
+    border-bottom: 1px solid var(--soft-gray);
+    flex-shrink: 0;
+  }
+
+  /* Mobile-only affordances stay hidden on desktop. */
+  .meme-search-toggle {
+    display: none;
+  }
+
+  .quick-action-menu.is-open {
+    display: none;
+  }
+
+  .mobile-home-plus-btn,
+  .mobile-back-btn,
+  .mobile-home-back-btn,
+  .search-icon-btn,
+  .bottom-actions,
+  .fonts-row,
+  .settings-btn,
+  .ai-panda-btn,
+  .editor-library-preview {
+    display: none;
+  }
+
+  main {
+    flex: 1;
+    min-height: 0;
+    flex-direction: row !important;
+    align-items: stretch !important;
+    max-width: none !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+
+  /* Left editor panel. */
+  .editor-panel {
+    flex: 1;
+    overflow: auto;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  /* Right meme search panel — display: flex !important overrides mobile
+   * display: none so it stays permanently visible on desktop.
+   * min-width allows the grid to shrink to 1 card; max-width lets the user
+   * drag up to 75 % of the viewport (LayoutManager enforces the same limit). */
+  .meme-search {
+    width: 380px;
+    min-width: 160px;
+    max-width: 75vw;
+    height: 100%;
+    margin-top: 0 !important;
+    border-radius: 0 !important;
+    overflow-y: auto;
+    flex-shrink: 0;
+    display: flex !important;
+  }
+
+  /* Canvas container fills the editor panel on desktop instead of staying
+   * at its inline-block intrinsic size.  align-self: stretch overrides the
+   * parent's align-items: center; min-width: 0 removes the 400 px floor. */
+  .canvas-container {
+    display: block;
+    align-self: stretch;
+    min-width: 0;
+    max-width: 100%;
+    min-height: clamp(18rem, 40vh, 28rem);
+    box-sizing: border-box;
+  }
+
+  /* Once an image is loaded JS sets explicit pixel dimensions; the
+   * minimum height is no longer needed and max-width prevents wide images
+   * from overflowing the panel. */
+  .canvas-container.has-image {
+    min-height: 0;
+    max-width: 100%;
+    width: auto;
+  }
+
+  /* Draggable vertical resizer between the two panels. */
+  .resizer {
+    display: block;
+    width: 8px;
+    background-color: var(--soft-gray);
+    cursor: col-resize;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+    z-index: 99;
+    border-left: 1px solid rgba(0, 0, 0, 0.04);
+    border-right: 1px solid rgba(0, 0, 0, 0.04);
+  }
+
+  .resizer:hover,
+  .resizer:active {
+    background-color: var(--forest-green);
+  }
+
+  .meme-search-results {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
+    gap: 10px !important;
+  }
+}
+
+/* On very narrow screens (<=360 px) fall back to 2 columns. */
+@media (max-width: 360px) {
+  .meme-search-results {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+}
+
+/* On narrow screens, tighten toolbar controls. */
+@media (max-width: 480px) {
+  .text-box-toolbar button,
+  .text-box-toolbar select {
+    font-size: 0.8125rem;
+    padding: 0.375rem 0.5rem;
+  }
+
+  /* On the smallest phones drop the read-only size readout to free space.
+   * A- / A+ still work. */
+  .text-box-toolbar .font-size-display {
+    display: none;
   }
 }

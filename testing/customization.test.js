@@ -423,6 +423,44 @@ describe('Text Box — special character content', () => {
   });
 });
 
+// ── Mobile X Delete Button ───────────────────────────────────────────────────
+
+describe('Mobile X delete button', () => {
+  let container;
+  let textBox;
+
+  beforeEach(() => {
+    container = makeContainer();
+    textBox = new MemeGen.TextBox(10, 10, container);
+  });
+
+  afterEach(() => {
+    if (container.parentNode) document.body.removeChild(container);
+  });
+
+  it('has a .mobile-delete-btn element inside the text box', () => {
+    expect(textBox.el.querySelector('.mobile-delete-btn')).not.toBeNull();
+  });
+
+  it('exposes mobileDeleteBtn on the instance', () => {
+    expect(textBox.mobileDeleteBtn).toBeDefined();
+    expect(textBox.mobileDeleteBtn.classList.contains('mobile-delete-btn')).toBe(true);
+  });
+
+  it('clicking mobile-delete-btn removes the text box from the DOM', () => {
+    expect(container.contains(textBox.el)).toBe(true);
+    textBox.mobileDeleteBtn.click();
+    expect(container.contains(textBox.el)).toBe(false);
+  });
+
+  it('clicking mobile-delete-btn fires the onDelete callback', () => {
+    const onDelete = jest.fn();
+    textBox.onDelete = onDelete;
+    textBox.mobileDeleteBtn.click();
+    expect(onDelete).toHaveBeenCalledWith(textBox);
+  });
+});
+
 // ── Coverage Gap: Color ───────────────────────────────────────────────────────
 
 describe('Coverage Gap — Text Color (not implemented in v1)', () => {

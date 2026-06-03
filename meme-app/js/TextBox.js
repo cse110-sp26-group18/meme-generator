@@ -38,17 +38,18 @@ MemeGen.TextBox = (function () {
     var toolbar = document.createElement('div');
     toolbar.className = 'text-box-toolbar';
 
-    // // ✥ Move — first, easy to grab
-    // var moveBtn = document.createElement('button');
-    // moveBtn.className = 'move-handle';
-    // moveBtn.textContent = '✥ Move';
-    // moveBtn.title = 'Drag to move';
-    // toolbar.appendChild(moveBtn);
+    // ✥ Move — kept in DOM for desktop drag and existing tests; hidden on
+    // mobile via CSS (the whole toolbar is display:none on mobile).
+    var moveBtn = document.createElement('button');
+    moveBtn.className = 'move-handle';
+    moveBtn.textContent = '✥ Move';
+    moveBtn.title = 'Drag to move';
+    toolbar.appendChild(moveBtn);
 
-    // // Separator
-    // var sep = document.createElement('span');
-    // sep.className = 'toolbar-sep';
-    // toolbar.appendChild(sep);
+    // Separator
+    var sep = document.createElement('span');
+    sep.className = 'toolbar-sep';
+    toolbar.appendChild(sep);
 
     // A− / size display / A+
     var fontSizeDecBtn = document.createElement('button');
@@ -77,8 +78,15 @@ MemeGen.TextBox = (function () {
     var fontSelect = document.createElement('select');
     fontSelect.className = 'font-select';
     var fonts = [
-      { label: 'Impact',    value: 'Impact' },
-      { label: 'Arial',     value: 'Arial' },
+      { label: 'Impact',       value: 'Impact' },
+      // ── Meme-style display fonts used by the "fonts" cycle button in app.js.
+      // Loaded via Google Fonts in index.html; browsers without network
+      // access fall back to the system default sans-serif.
+      { label: 'Anton',        value: 'Anton' },
+      { label: 'Bangers',      value: 'Bangers' },
+      { label: 'Luckiest Guy', value: 'Luckiest Guy' },
+      { label: 'Oswald',       value: 'Oswald' },
+      { label: 'Arial',        value: 'Arial' },
       { label: 'Comic Sans', value: "'Comic Sans MS', cursive" },
       { label: 'Helvetica', value: 'Helvetica, Arial, sans-serif' },
       { label: 'Montserrat', value: "'Montserrat', sans-serif" }
@@ -121,16 +129,57 @@ MemeGen.TextBox = (function () {
       el.appendChild(handle);
     });
 
+    // --- Mobile long-press quick-action menu ---
+    // Hidden by default. DragResize.js opens it after a hold-without-drag.
+    // CSS hides this on desktop. Same DOM lives on every text box.
+    var quickMenu = document.createElement('div');
+    quickMenu.className = 'quick-action-menu';
+    quickMenu.setAttribute('role', 'menu');
+
+    var qEditBtn = document.createElement('button');
+    qEditBtn.type = 'button';
+    qEditBtn.className = 'quick-action-btn quick-action-edit';
+    qEditBtn.textContent = 'Edit';
+    quickMenu.appendChild(qEditBtn);
+
+    var qBorderBtn = document.createElement('button');
+    qBorderBtn.type = 'button';
+    qBorderBtn.className = 'quick-action-btn quick-action-border';
+    qBorderBtn.textContent = 'Border';
+    quickMenu.appendChild(qBorderBtn);
+
+    var qDeleteBtn = document.createElement('button');
+    qDeleteBtn.type = 'button';
+    qDeleteBtn.className = 'quick-action-btn quick-action-delete';
+    qDeleteBtn.textContent = 'Delete';
+    quickMenu.appendChild(qDeleteBtn);
+
+    el.appendChild(quickMenu);
+
+    // Mobile-only X delete button — shown on the right of selected text boxes
+    // on mobile. Replaces the need for the bottom toolbar just for deletion.
+    var mobileDeleteBtn = document.createElement('button');
+    mobileDeleteBtn.type = 'button';
+    mobileDeleteBtn.className = 'mobile-delete-btn';
+    mobileDeleteBtn.textContent = '×';
+    mobileDeleteBtn.setAttribute('aria-label', 'Delete text box');
+    el.appendChild(mobileDeleteBtn);
+
     this.el = el;
     this.textarea = textarea;
     this.fontSelect = fontSelect;
     this.borderBtn = borderBtn;
     this.deleteBtn = deleteBtn;
-    // this.moveBtn = moveBtn;
+    this.moveBtn = moveBtn;
     this.fontSizeDecBtn = fontSizeDecBtn;
     this.fontSizeIncBtn = fontSizeIncBtn;
     this.fontSizeDisplay = fontSizeDisplay;
     this.toolbar = toolbar;
+    this.quickMenu = quickMenu;
+    this.qEditBtn = qEditBtn;
+    this.qBorderBtn = qBorderBtn;
+    this.qDeleteBtn = qDeleteBtn;
+    this.mobileDeleteBtn = mobileDeleteBtn;
 
     this.container.appendChild(el);
 
@@ -232,6 +281,68 @@ MemeGen.TextBox = (function () {
     };
 
     document.addEventListener('keydown', this._handleKeyDown);
+
+    // --- Quick-action menu wiring (mobile long-press output) ---
+    // Edit → focus the textarea for typing.
+    // Border → reuse the existing border-toggle handler so the toolbar
+    //          label / state stay in sync; no behaviour duplication.
+    // Delete → only fires after this explicit second tap; the long-press
+    //          itself never destroys.
+    this.qEditBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      self.hideQuickActions();
+      self.focusTextarea();
+    });
+    this.qBorderBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      self.borderBtn.click();
+      self.hideQuickActions();
+    });
+    this.qDeleteBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      self.destroy();
+    });
+
+    this.mobileDeleteBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      self.destroy();
+    });
+
+    // Tap anywhere outside the menu closes it. Stored on the instance so
+    // destroy() can detach it.
+    this._outsideClickHandler = function (e) {
+      if (!self.quickMenu.classList.contains('is-open')) return;
+      if (self.quickMenu.contains(e.target)) return;
+      self.hideQuickActions();
+    };
+    document.addEventListener('click', this._outsideClickHandler);
+
+    // --- Mobile double-tap → focus textarea ---
+    // Two single-finger touchend events within 300 ms call focusTextarea(),
+    // which puts the textarea into :focus and (via the mobile pointer-events
+    // gate in styles.css) makes it interactive for typing. Guards:
+    //   • Pinch suppression — if DragResize.js just set el.dataset.pinchAt,
+    //     skip for 500 ms so a 2-finger lift can't be misread.
+    //   • Menu open — if the quick-action menu is open, taps belong to it.
+    //   • Multi-touch — only single-finger ends count.
+    // Never deletes — Delete remains gated behind the visible × button or
+    // the long-press menu's Delete action.
+    var lastTapAt = 0;
+    this.el.addEventListener('touchend', function (e) {
+      if (self.quickMenu && self.quickMenu.classList.contains('is-open')) return;
+      if (e.touches && e.touches.length > 0) return;
+      if (e.changedTouches && e.changedTouches.length !== 1) return;
+      var pinchAt = parseInt(self.el.dataset.pinchAt || '0', 10);
+      if (pinchAt && Date.now() - pinchAt < 500) return;
+      var now = Date.now();
+      if (now - lastTapAt < 300) {
+        self.focusTextarea();
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+        lastTapAt = 0;
+      } else {
+        lastTapAt = now;
+      }
+    });
   };
 
   // Single source of truth for font size changes.
@@ -305,6 +416,24 @@ MemeGen.TextBox = (function () {
     this.textarea.blur();
 
     this.el.classList.remove('selected');
+    this.hideQuickActions();
+    // On mobile the unfocused textarea has pointer-events: none so taps
+    // pass through to the .text-box parent for hold-to-move. Blurring on
+    // deselect restores that gating once a different box (or no box) is
+    // active. On desktop blur is harmless — focus would have been lost
+    // anyway when the user clicked outside.
+  };
+
+  TextBox.prototype.showQuickActions = function () {
+    if (!this.quickMenu) return;
+    this.quickMenu.classList.add('is-open');
+    this.el.classList.add('menu-open');
+  };
+
+  TextBox.prototype.hideQuickActions = function () {
+    if (!this.quickMenu) return;
+    this.quickMenu.classList.remove('is-open');
+    this.el.classList.remove('menu-open');
   };
 
   // Call this once after the text box is fully created and selected.
@@ -321,6 +450,10 @@ MemeGen.TextBox = (function () {
   TextBox.prototype.destroy = function () {
     if (this._handleKeyDown) {
       document.removeEventListener('keydown', this._handleKeyDown);
+    }
+    if (this._outsideClickHandler) {
+      document.removeEventListener('click', this._outsideClickHandler);
+      this._outsideClickHandler = null;
     }
 
     if (this.onDelete) {

@@ -153,6 +153,15 @@ MemeGen.TextBoxManager = (function () {
     return textBoxes;
   }
 
+  // Public wrapper so the Scan Text button (and any future callers) can
+  // create a text box without simulating a canvas touch event. Honors the
+  // same imageLoaded gate as the tap-on-canvas path.
+  function createTextBoxAt(x, y) {
+    if (!imageLoaded) return null;
+    createTextBox(x, y);
+    return textBoxes[textBoxes.length - 1] || null;
+  }
+
   function getSelectedTextBox() {
     return textBoxes.find(function (tb) {
       return tb.selected;
@@ -183,6 +192,7 @@ MemeGen.TextBoxManager = (function () {
     init: init,
     setImageLoaded: setImageLoaded,
     getAll: getAll,
+    createTextBoxAt: createTextBoxAt,
     reset: reset
   };
 })();

@@ -136,12 +136,13 @@ MemeGen.Exporter = (function () {
     });
   }
 
-  return {
+    return {
     exportMeme: exportMeme,
     getMemeBlob: getMemeBlob,
     shareMeme: shareMeme,
     isMobileOrTablet: isMobileOrTablet,
-    canUseNativeShare: canUseNativeShare
+    canUseNativeShare: canUseNativeShare,
+    wrapText: wrapText
   };
 })();
 

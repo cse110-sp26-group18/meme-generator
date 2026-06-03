@@ -4,6 +4,13 @@ MemeGen.DragResize = (function () {
   var MIN_WIDTH = 80;
   var MIN_HEIGHT = 40;
 
+  /**
+   * Attaches move and resize event listeners to a TextBox instance. Move is
+   *   handled via pointer capture on the move handle; resize is handled via
+   *   mouse events on the corner handles.
+   * @param {MemeGen.TextBox} textBox - the text box instance to make
+   *   draggable and resizable
+   */
   function attach(textBox) {
     var el = textBox.el;
     var container = textBox.container;
@@ -15,6 +22,9 @@ MemeGen.DragResize = (function () {
 
     // --- Move via dedicated handle using pointer capture ---
     moveBtn.addEventListener('pointerdown', function (e) {
+      // setPointerCapture routes all subsequent pointer events for this
+      // pointerId to moveBtn, even when the cursor leaves the element —
+      // this keeps the drag live when the user moves the mouse quickly.
       moveBtn.setPointerCapture(e.pointerId);
       startX = e.clientX;
       startY = e.clientY;
@@ -23,6 +33,8 @@ MemeGen.DragResize = (function () {
     });
 
     moveBtn.addEventListener('pointermove', function (e) {
+      // hasPointerCapture guards against spurious pointermove events that
+      // fire before setPointerCapture takes effect.
       if (!moveBtn.hasPointerCapture(e.pointerId)) return;
       var dx = e.clientX - startX;
       var dy = e.clientY - startY;
@@ -34,11 +46,15 @@ MemeGen.DragResize = (function () {
 
     moveBtn.addEventListener('pointerup', function (e) {
       if (moveBtn.hasPointerCapture(e.pointerId)) {
+        // Release capture so the browser resumes normal pointer event routing.
         moveBtn.releasePointerCapture(e.pointerId);
       }
     });
 
     // --- Resize via corner handles using mouse events ---
+    // Mouse events (rather than pointer events) are used here because resize
+    // handles are small targets that need document-level tracking, and the
+    // simpler mouse API is sufficient for this desktop-focused interaction.
     el.addEventListener('mousedown', function (e) {
       var target = e.target;
       if (!target.classList.contains('resize-handle')) return;
@@ -46,6 +62,8 @@ MemeGen.DragResize = (function () {
       e.preventDefault();
       e.stopPropagation();
       resizing = true;
+      // dataset.corner holds the corner identifier set as a data-corner attribute
+      // on each handle element, used to determine the resize direction below.
       resizeCorner = target.dataset.corner;
       // Manual corner-resize overrides auto-fit so typing won't shrink the box back.
       textBox.manuallyResized = true;
@@ -57,6 +75,8 @@ MemeGen.DragResize = (function () {
       startHeight = el.offsetHeight;
     });
 
+    // mousemove is registered on document so the resize continues even when
+    // the cursor moves outside the element during a fast drag.
     document.addEventListener('mousemove', function (e) {
       if (!resizing) return;
 

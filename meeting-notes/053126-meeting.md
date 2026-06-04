@@ -53,18 +53,22 @@ Mobile:
 - Make the upload + button bigger (2x the size)
 - Remove the templates on the editing mode (Duplicate feature with browse meme currently)
 - Add the AI suggestion feature to the panda emoji on the bottom left (after clicking, should pop up a panel to get user input)
+- Home page should be meme library page
+- Make sure aspect ratio of original image is retained
   
 Desktop:
-- Center the meme on the page
+- Center the meme under the upload and download button
+- Remove 'meme' from 'download meme' button
+- Set a max drag out for the meme library to take up half the horizontal width of screen
 - Add a copy feature (use a sizeable emoji on the top-right corner of the image or create a button on top of the image)
 - Remove textbox border when not editing (but keep it for selecting)
 - Add the AI suggestion feature to the left of the image
 
 Mobile + Desktop:
-- Make the 'enter text...' inside color white instead of grey 
+- Make the 'enter text...' inside color white instead of grey and make it all caps
 - in settings, add light and dark mode (current version can be dark and the lighter mode can be a more pastel green)
 - Hide the name of the meme for UI (users do not want / need to know)
-- Remove textbox border when not editing (should be visible when actively editing or selected)
+- Remove textbox border when not editing (should only be visible when actively editing or selected)
 - Remove toggle bar but allow users to change font and delete with a button on top-left of image
 
 #### Library improvements:
@@ -82,6 +86,7 @@ Meme libary:
 
 - Aaron, Tim, and Howard on UI improvements
 - Brendan and Daniel on Library improvements
-- Anvay on full E2E testing framework and implement paths-ignore (to avoid tests when docs change)
+- Ajay and Anvay on full E2E testing framework and implement paths-ignore (to avoid tests when docs change)
+- Solaiman and Ayat on documenting user feedback and key changes we should think about
 - Olivia and Aila review PRs and merge
 - User testing: everyone gets feedback from 3 friends

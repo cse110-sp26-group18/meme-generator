@@ -1551,7 +1551,7 @@ main {
 
 .ai-caption-list li {
   font-size: 0.8rem;
-  color: #ddd;
+  color: var(--forest-green);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -1363,6 +1363,13 @@ main {
   z-index: 1000;
 }
 
+/* The `display: flex` above wins over the browser's default [hidden] rule, so
+ * the panel would render even with the `hidden` attribute set. Re-assert it
+ * explicitly so toggling .hidden in JS actually hides the panel. */
+.ai-suggestions-panel[hidden] {
+  display: none;
+}
+
 .ai-suggestions-header {
   display: flex;
   align-items: center;

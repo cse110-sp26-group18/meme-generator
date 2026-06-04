@@ -5,37 +5,52 @@ MemeGen.TextBoxManager = (function () {
   var container = null;
   var canvas = null;
   var imageLoaded = false;
-  // Detected-text covers, stored as data so the original image is never mutated.
-  // Each entry is { x, y, width, height } in canvas pixel coordinates.
-  var coverRegions = [];
 
+  /**
+   * @param {HTMLElement} containerEl - the canvas container that receives
+   *   click and touch events for creating text boxes
+   * @param {HTMLCanvasElement} canvasEl - used to calculate click coordinates
+   *   relative to the canvas origin
+   */
   function init(containerEl, canvasEl) {
     container = containerEl;
     canvas = canvasEl;
 
     container.addEventListener('mousedown', function (e) {
       if (e.target === canvas && imageLoaded) {
+        if (getSelectedTextBox()) {
+          deselectOrDeleteSelectedTextBox();
+          return;
+        }
+        // getBoundingClientRect() returns viewport-relative coordinates;
+        // subtracting rect.left/top converts them to canvas-local coordinates.
         var rect = canvas.getBoundingClientRect();
         var x = e.clientX - rect.left;
         var y = e.clientY - rect.top;
+
         createTextBox(x, y);
-      } else if (e.target === canvas) {
-        deselectAll();
       }
     });
 
     // Support tap-to-create on touch devices
     container.addEventListener('touchend', function (e) {
       if (e.target === canvas && imageLoaded) {
+        // preventDefault stops the browser from synthesizing a mouse click
+        // after the touch, which would otherwise trigger a second createTextBox.
         e.preventDefault();
         var rect = canvas.getBoundingClientRect();
+        // changedTouches contains only the touches that changed in this event;
+        // [0] is the first (and typically only) finger involved in the tap.
         var touch = e.changedTouches[0];
+
         var x = touch.clientX - rect.left;
         var y = touch.clientY - rect.top;
+
         createTextBox(x, y);
       }
     });
 
+    // mousedown on document (not container) deselects when clicking outside.
     document.addEventListener('mousedown', function (e) {
       if (!container.contains(e.target)) {
         deselectAll();
@@ -49,6 +64,8 @@ MemeGen.TextBoxManager = (function () {
 
       var activeEl = document.activeElement;
 
+      // isContentEditable catches rich-text editor elements alongside
+      // INPUT/TEXTAREA/SELECT — prevents accidental deletion while typing.
       if (
         activeEl &&
         (
@@ -65,12 +82,22 @@ MemeGen.TextBoxManager = (function () {
     });
   }
 
+  /**
+   * @param {boolean} loaded - true once an image is on the canvas, enabling
+   *   text box creation on canvas clicks
+   */
   function setImageLoaded(loaded) {
     imageLoaded = loaded;
   }
 
+  /**
+   * Creates a new text box at the given position, wires up its callbacks,
+   *   attaches drag/resize, and immediately selects and focuses it.
+   * @param {number} x - x position in px relative to the canvas origin
+   * @param {number} y - y position in px relative to the canvas origin
+   */
   function createTextBox(x, y) {
-    var tb = new MemeGen.TextBox(x, y, container);
+    var tb = new MemeGen.TextBox(0, 0, container);
 
     tb.onDelete = function (box) {
       var idx = textBoxes.indexOf(box);
@@ -83,12 +110,24 @@ MemeGen.TextBoxManager = (function () {
     };
 
     MemeGen.DragResize.attach(tb);
+
     textBoxes.push(tb);
     deselectAll();
+
+    // Keep new textbox fully inside the image/template.
+    var clampedX = Math.max(0, Math.min(x, container.offsetWidth - tb.el.offsetWidth));
+    var clampedY = Math.max(0, Math.min(y, container.offsetHeight - tb.el.offsetHeight));
+
+    tb.el.style.left = clampedX + 'px';
+    tb.el.style.top = clampedY + 'px';
+
     tb.select();
     tb.focusTextarea();
   }
 
+  /**
+   * Destroys the currently selected text box, if any.
+   */
   function deleteSelectedTextBox() {
     var selectedBox = textBoxes.find(function (tb) {
       return tb.selected;
@@ -99,117 +138,71 @@ MemeGen.TextBoxManager = (function () {
     }
   }
 
+  /**
+   * Deselects all active text boxes.
+   */
   function deselectAll() {
     textBoxes.forEach(function (tb) {
       tb.deselect();
     });
   }
 
+  /**
+   * @returns {MemeGen.TextBox[]} all text boxes currently present on the canvas
+   */
   function getAll() {
     return textBoxes;
   }
 
-// Re-render the canvas non-destructively: redraw the pristine image, then
-// re-apply every active cover via a blended inpaint. The original image is
-// never mutated, so removing a cover restores the source pixels exactly.
-function renderCanvas() {
-  if (!canvas) return;
-  var ctx = canvas.getContext('2d');
-  if (!ctx) return;
-  MemeGen.ImageLoader.redraw();
-  coverRegions.forEach(function (r) {
-    MemeGen.Inpaint.coverRegion(ctx, r);
-  });
-}
+  // Public wrapper so the Scan Text button (and any future callers) can
+  // create a text box without simulating a canvas touch event. Honors the
+  // same imageLoaded gate as the tap-on-canvas path.
+  function createTextBoxAt(x, y) {
+    if (!imageLoaded) return null;
+    createTextBox(x, y);
+    return textBoxes[textBoxes.length - 1] || null;
+  }
 
-function loadDetectedBoxes(regions) {
-  var scaleX = canvas.offsetWidth  / canvas.width;
-  var scaleY = canvas.offsetHeight / canvas.height;
+  function getSelectedTextBox() {
+    return textBoxes.find(function (tb) {
+      return tb.selected;
+    });
+  }
 
-  regions.forEach(function (region) {
-    // Skip regions with no real content. Require 3+ alphanumerics for plain
-    // text (filters stray single-letter OCR noise), but keep short numeric
-    // labels like "2%", "55", or "0.1%" — any region containing a digit.
-    var text = region.text || '';
-    var alnum = (text.match(/[a-zA-Z0-9]/g) || []).length;
-    var hasDigit = /[0-9]/.test(text);
-    if (alnum < 3 && !hasDigit) return;
+  function isTextBoxEmpty(tb) {
+    return !tb.textarea.value.trim();
+  }
 
-    // Record the cover as data and re-render — the detected text is hidden by a
-    // background-matched blend, not a destructive solid fill.
-    var cover = {
-      x: region.x,
-      y: region.y,
-      width: region.width,
-      height: region.height
-    };
-    coverRegions.push(cover);
+  function reset() {
+    textBoxes.slice().forEach(function (tb) {
+      tb.destroy();
+    });
+    textBoxes = [];
+    imageLoaded = false;
+  }
 
-    var tb = new MemeGen.TextBox(
-      region.x * scaleX,
-      region.y * scaleY,
-      container
-    );
+  function deselectOrDeleteSelectedTextBox() {
+    var selectedBox = getSelectedTextBox();
 
-    // Detected boxes hug the recognized text. Clear the default min-width/height
-    // (meant to keep manually-created boxes grabbable) so short labels like "2%"
-    // or "55" don't balloon to 80px and extend past the actual text.
-    tb.el.style.minWidth  = '0px';
-    tb.el.style.minHeight = '0px';
-    tb.el.style.width  = Math.round(region.width  * scaleX) + 'px';
-    tb.el.style.height = Math.round(region.height * scaleY) + 'px';
-    tb.textarea.value  = region.text;
-    tb.applyFontSize(Math.round(region.height * scaleY * 0.4));
+    if (!selectedBox) {
+      return;
+    }
 
-    // Erase destroys the box too, which fires onDelete; this flag tells onDelete
-    // to keep the cover (erase the text from the image) rather than restore it.
-    var keepCover = false;
+    // Empty textbox should disappear when user clicks out.
+    if (isTextBoxEmpty(selectedBox)) {
+      selectedBox.destroy();
+      return;
+    }
 
-    tb.onDelete = (function (c) {
-      return function (box) {
-        if (!keepCover) {
-          // Drop the cover so the original pixels are restored on re-render.
-          var ci = coverRegions.indexOf(c);
-          if (ci !== -1) coverRegions.splice(ci, 1);
-        }
-        var idx = textBoxes.indexOf(box);
-        if (idx !== -1) textBoxes.splice(idx, 1);
-        renderCanvas();
-      };
-    }(cover));
-
-    tb.onSelect = function (box) {
-      deselectAll();
-      box.select();
-    };
-
-    tb.onErase = (function (c) {
-      return function () {
-        // Keep the cover in place after the box is destroyed.
-        keepCover = true;
-        if (coverRegions.indexOf(c) === -1) coverRegions.push(c);
-      };
-    }(cover));
-
-    MemeGen.DragResize.attach(tb);
-    textBoxes.push(tb);
-  });
-
-  renderCanvas();
-  deselectAll();
-}
-
-  function getCoverRegions() {
-    return coverRegions;
+    selectedBox.deselect();
   }
 
   return {
     init: init,
     setImageLoaded: setImageLoaded,
     getAll: getAll,
-    loadDetectedBoxes: loadDetectedBoxes,
-    getCoverRegions: getCoverRegions,
-    renderCanvas: renderCanvas
+    createTextBoxAt: createTextBoxAt,
+    reset: reset
   };
 })();
 

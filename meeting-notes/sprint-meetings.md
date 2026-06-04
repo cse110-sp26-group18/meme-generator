@@ -7,6 +7,7 @@
 * [5/19](#5/19)
 * [5/21](#5/21)
 * [5/26](#5/26)
+* [5/28](#5/28)
 
 <a id="5/7"></a>
 ## Sprint Meeting 1: 5/7 (6:20 PM – 6:45 PM)
@@ -260,5 +261,41 @@ Members:
 - Integrate more testing and after UI design, each ask 3-4 friends for in-person feedback
 - Think about what specific features we want to test so we write tests before implementing features 
 
+----
+<a id="5/28"></a>
+
+## Sprint Meeting 6: 5/28 (6:20 PM – 6:40 PM)
+
+### Summary
+- Everyone reviewed the code reviews from different groups.
+- We have just over a week before the code freeze, so we want to schedule one additional in-person meeting outside of the regular sprint meetings.
+- Discussed the UI designs that Daniel and Olivia shared with Professor Powell and evaluated which design decisions make the most sense given our project goals and timeline.
+
+#### Updates
+- Aaron has continued working on the UI and implemented a settings button.
+- Discussed settings functionality:
+  1. Allow users to choose between different UI styles (e.g., upload button vs. blank upload box).
+  2. Make the upload button larger and place it prominently on the home page.
+- We need to create a manual testing template and establish a folder structure to document testing sessions and observations.
+
+#### Blockers
+- No major blockers reported during the meeting.
+
+### Action Items/Individual Responsibility
+- Continue developing the web and mobile UI following Olivia's mockups and team feedback — Aaron
+- Continue working on the text-box feature; this will be the final week allocated to this effort — Soleiman and Ayat
+- Continue working on the template library and implement AI tagging to improve search functionality — Daniel and Brendan
+- Implement an adjustable split-view UI between the template panel and upload image panel (similar to Chrome's split-screen resizing) — Howard
+- Continue working on AI text-detection and investigate fetching clean meme templates rather than removing text from uploaded images — Tim and Anvay
+- Review pull requests and provide feedback — Ajay
+- Create a manual testing checklist and testing subfolder to document manual testing efforts — Aila
+
+#### Tasks to Complete
+- Have a functional web and mobile UI ready by the Sunday meeting.
+- Follow UI patterns commonly used in social media and editing applications (Instagram, TikTok, Snapchat).
+- Implement customizable split-view sizing to allow users to personalize their workspace on web.
+- Begin documenting all manual testing sessions and observations using the new testing template.
+- Complete and submit availability for the next in-person meeting using the When2Meet link.
+- **Fill out this [When2Meet](https://www.when2meet.com/?36809737-F1Ho8)**
 
 

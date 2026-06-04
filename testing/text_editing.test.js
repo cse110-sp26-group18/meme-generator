@@ -59,7 +59,12 @@ describe('Text Placement — click on image creates a TextBox', () => {
   });
 
   afterEach(() => {
-    MemeGen.TextBoxManager.setImageLoaded(false);
+    if (MemeGen.TextBoxManager.reset) {
+      MemeGen.TextBoxManager.reset();
+    } else {
+      MemeGen.TextBoxManager.setImageLoaded(false);
+    }
+
     document.body.removeChild(container);
   });
 
@@ -86,13 +91,14 @@ describe('Text Placement — click on image creates a TextBox', () => {
     expect(box.style.top).toBe('150px');
   });
 
-  it('should allow multiple text boxes to be created by successive clicks', () => {
-    // Verifies "Multiple text elements on one image" edge case
+  it('clicking canvas while an empty textbox is selected deletes it instead of creating another one', () => {
     const before = container.querySelectorAll('.text-box').length;
-    fireMousedown(canvas, 50, 50);
+
+    fireMousedown(canvas, 100, 100);
+    expect(container.querySelectorAll('.text-box').length).toBe(before + 1);
+
     fireMousedown(canvas, 200, 200);
-    fireMousedown(canvas, 400, 300);
-    expect(container.querySelectorAll('.text-box').length).toBe(before + 3);
+    expect(container.querySelectorAll('.text-box').length).toBe(before);
   });
 });
 

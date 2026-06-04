@@ -37,6 +37,7 @@ window.getComputedStyle = function (el, pseudo) {
 HTMLAnchorElement.prototype.click = function () {};
 
 // ── Load MemeGen modules in dependency order ───────────────────────────────
+require('../meme-app/js/LayoutManager.js');
 require('../meme-app/js/ImageLoader.js');
 require('../meme-app/js/Inpaint.js');
 require('../meme-app/js/TextBox.js');

@@ -9,6 +9,8 @@ module.exports = [
       globals: {
         ...globals.browser,
         MemeGen: 'readonly',
+        // Tesseract.js is loaded as a global via CDN in index.html.
+        Tesseract: 'readonly',
       },
     },
     rules: {

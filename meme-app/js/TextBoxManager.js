@@ -114,18 +114,19 @@ MemeGen.TextBoxManager = (function () {
       MemeGen.DragResize.attach(tb);
       textBoxes.push(tb);
 
+      // Set text + run fit-to-text BEFORE clamping so the clamp math uses
+      // the box's post-fit dimensions, not the default 200×60 placeholder.
+      if (typeof item.text === 'string' && item.text.length > 0) {
+        tb.textarea.value = item.text;
+        tb.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+
       var x = typeof item.x === 'number' ? item.x : 0;
       var y = typeof item.y === 'number' ? item.y : 0;
       var clampedX = Math.max(0, Math.min(x, container.offsetWidth  - tb.el.offsetWidth));
       var clampedY = Math.max(0, Math.min(y, container.offsetHeight - tb.el.offsetHeight));
       tb.el.style.left = clampedX + 'px';
       tb.el.style.top  = clampedY + 'px';
-
-      if (typeof item.text === 'string' && item.text.length > 0) {
-        tb.textarea.value = item.text;
-        // Trigger the existing input listener so fit-to-text runs.
-        tb.textarea.dispatchEvent(new Event('input', { bubbles: true }));
-      }
 
       created.push(tb);
     });

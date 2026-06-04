@@ -78,11 +78,13 @@ MemeGen.GeminiClient = (function () {
   function setApiKey(key) {
     var trimmed = (key || '').trim();
     if (!trimmed) return;
-    window.localStorage.setItem(STORAGE_KEY, trimmed);
+    // Private-browsing / cookie-blocked contexts throw on Storage writes.
+    // Match getApiKey's defensive shape — best-effort, no surfacing.
+    try { window.localStorage.setItem(STORAGE_KEY, trimmed); } catch (e) {}
   }
 
   function clearApiKey() {
-    window.localStorage.removeItem(STORAGE_KEY);
+    try { window.localStorage.removeItem(STORAGE_KEY); } catch (e) {}
   }
 
   function hasApiKey() {

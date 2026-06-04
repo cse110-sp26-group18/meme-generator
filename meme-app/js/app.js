@@ -65,9 +65,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // If an AI suggestion is pending its captions, populate text boxes now
     // that the canvas is sized. Deferred one tick so layout fully commits.
-    if (window.__pendingAICaptions && Array.isArray(window.__pendingAICaptions)) {
-      var caps = window.__pendingAICaptions;
-      window.__pendingAICaptions = null;
+    if (MemeGen.pendingAICaptions && Array.isArray(MemeGen.pendingAICaptions)) {
+      var caps = MemeGen.pendingAICaptions;
+      MemeGen.pendingAICaptions = null;
       setTimeout(function () { populatePresetCaptions(container, caps); }, 0);
     }
   });
@@ -466,14 +466,14 @@ document.addEventListener('DOMContentLoaded', function () {
         if (aiStatus) aiStatus.textContent = 'Loading ' + template.name + '…';
         // Stash captions where the ImageLoader.onLoad callback above will
         // pick them up after the image is drawn.
-        window.__pendingAICaptions = captions;
+        MemeGen.pendingAICaptions = captions;
         // Close the AI panel so the user sees the loaded template + captions
         // on the canvas without being blocked by the suggestions UI.
         closeAiPanel();
         MemeGen.MemeSearch.loadFromUrl(template.url, function (err) {
           // Failure path: clear the pending captions so we don't apply them
           // to whatever image is on the canvas next.
-          window.__pendingAICaptions = null;
+          MemeGen.pendingAICaptions = null;
           if (aiStatus) {
             aiStatus.textContent =
               'Could not load that template: ' + (err && err.message ? err.message : 'unknown error');

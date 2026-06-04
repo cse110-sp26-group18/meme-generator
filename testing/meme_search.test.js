@@ -5,26 +5,40 @@
  *
  * Covers:
  *  - Required search UI elements exist in the DOM
- *  - init() wires input and fetches both libraries immediately
+ *  - init() wires input and fetches Imgflip + tag file + internal library
  *  - Focus after init does not start a second fetch
  *  - Imgflip/open-source API memes load as the primary source
  *  - Internal templates from templates.json are merged into the same grid
- *  - Search works across API names, Imgflip aliases, and internal metadata
+ *  - Search works across API names, file-supplied tags, and internal metadata
+ *  - Imgflip tags come from assets/templates/imgflip-tags.json, then localStorage
+ *  - The committed tag file takes priority over the localStorage cache
+ *  - A failed tag file / throwing localStorage still renders memes (name search)
  *  - Internal memes are searchable by name, character, emotion, and tags
  *  - If Imgflip fails, internal templates still render as fallback
  *  - If both sources fail/return empty, the UI shows "Could not load any memes."
  *  - Clicking a card invokes onSelect with the full meme record
  *  - loadFromUrl() fetches the URL as a Blob and pipes it to loadFromFile
+ *  - The migrated imgflip-tags.json covers the required emotion vocabulary
  *
  * jsdom notes:
- *  - jsdom does not implement fetch, so global.fetch is stubbed per test.
+ *  - jsdom does not implement fetch, so global.fetch is stubbed per test with a
+ *    URL-aware router (memes, tag file, and internal library load together).
  *  - MemeSearch.js is an IIFE with private cache state.
  *    jest.resetModules() + re-require keeps every test isolated.
+ *  - Cloud (Worker) tagging stays disabled while MemeSearch.js holds the
+ *    placeholder AI_TAG_ENDPOINT, so these tests never hit the Worker; Worker
+ *    behaviour is exercised separately against workers/tag-meme-worker.js.
+ *  - Cards are image-only (the name lives in img.alt + the button title), so
+ *    rendered names are read from img.alt.
  *
  * Module under test: meme-app/js/MemeSearch.js
  */
 
 const MEME_SEARCH_PATH = '../meme-app/js/MemeSearch.js';
+const IMGFLIP_URL = 'https://api.imgflip.com/get_memes';
+const TAGS_URL = '../assets/templates/imgflip-tags.json';
+const TEMPLATES_URL = '../assets/templates/templates.json';
+const LOCAL_TAG_CACHE_KEY = 'memeSearch.imgflipTags.v1';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -131,52 +145,47 @@ function mockFetchReject(err = new Error('network down')) {
   return jest.fn().mockRejectedValue(err);
 }
 
-function mockFetchByUrl({ imgflip, templates }) {
+// URL-aware fetch stub. init() fetches three sources in parallel: the Imgflip
+// list, the imgflip-tags.json file, and the internal library. Each can be a
+// payload or an Error (to simulate a network failure).
+function mockFetchByUrl({ imgflip, templates, tags = {} }) {
   return jest.fn((url) => {
-    if (url === 'https://api.imgflip.com/get_memes') {
+    if (url === IMGFLIP_URL) {
       if (imgflip instanceof Error) return Promise.reject(imgflip);
-
-      return Promise.resolve({
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve(imgflip)
-      });
+      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(imgflip) });
     }
 
-    if (url === '../assets/templates/templates.json') {
-      if (templates instanceof Error) return Promise.reject(templates);
+    if (url === TAGS_URL) {
+      if (tags instanceof Error) return Promise.reject(tags);
+      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(tags) });
+    }
 
-      return Promise.resolve({
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve(templates)
-      });
+    if (url === TEMPLATES_URL) {
+      if (templates instanceof Error) return Promise.reject(templates);
+      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(templates) });
     }
 
     return Promise.reject(new Error('Unknown URL: ' + url));
   });
 }
 
-function mockFetchByUrlWithStatus({ imgflip, templates }) {
+// Same idea, but lets each source specify its own { ok, status, body }.
+function mockFetchByUrlWithStatus({ imgflip, templates, tags }) {
+  const tagsCfg = tags || { ok: true, status: 200, body: {} };
   return jest.fn((url) => {
-    if (url === 'https://api.imgflip.com/get_memes') {
+    if (url === IMGFLIP_URL) {
       if (imgflip instanceof Error) return Promise.reject(imgflip);
-
-      return Promise.resolve({
-        ok: imgflip.ok,
-        status: imgflip.status,
-        json: () => Promise.resolve(imgflip.body)
-      });
+      return Promise.resolve({ ok: imgflip.ok, status: imgflip.status, json: () => Promise.resolve(imgflip.body) });
     }
 
-    if (url === '../assets/templates/templates.json') {
-      if (templates instanceof Error) return Promise.reject(templates);
+    if (url === TAGS_URL) {
+      if (tagsCfg instanceof Error) return Promise.reject(tagsCfg);
+      return Promise.resolve({ ok: tagsCfg.ok, status: tagsCfg.status, json: () => Promise.resolve(tagsCfg.body) });
+    }
 
-      return Promise.resolve({
-        ok: templates.ok,
-        status: templates.status,
-        json: () => Promise.resolve(templates.body)
-      });
+    if (url === TEMPLATES_URL) {
+      if (templates instanceof Error) return Promise.reject(templates);
+      return Promise.resolve({ ok: templates.ok, status: templates.status, json: () => Promise.resolve(templates.body) });
     }
 
     return Promise.reject(new Error('Unknown URL: ' + url));
@@ -197,10 +206,13 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Cards are image-only; the template name lives in each card image's alt text.
 function getVisibleNames(resultsEl) {
-  return Array.from(resultsEl.querySelectorAll('.meme-search-name')).map(
-    (el) => el.textContent
-  );
+  return Array.from(resultsEl.querySelectorAll('.meme-search-card img')).map((img) => img.alt);
+}
+
+function setLocalTagCache(map) {
+  window.localStorage.setItem(LOCAL_TAG_CACHE_KEY, JSON.stringify(map));
 }
 
 // ── Per-test cleanup ──────────────────────────────────────────────────────────
@@ -211,6 +223,11 @@ afterEach(() => {
   delete global.fetch;
   delete global.MemeGen;
   delete window.MemeGen;
+  try {
+    window.localStorage.clear();
+  } catch (e) {
+    /* ignore */
+  }
 });
 
 // ── DOM structure ─────────────────────────────────────────────────────────────
@@ -250,7 +267,7 @@ describe('Meme Search — DOM structure', () => {
 // ── init() and fetching ───────────────────────────────────────────────────────
 
 describe('Meme Search — init() and fetch', () => {
-  it('starts fetching both libraries during init before the input is focused', () => {
+  it('starts fetching every source during init before the input is focused', () => {
     const dom = mountSearchDom();
 
     global.fetch = mockFetchByUrl({
@@ -266,9 +283,10 @@ describe('Meme Search — init() and fetch', () => {
       status: dom.status
     });
 
-    expect(global.fetch).toHaveBeenCalledTimes(2);
-    expect(global.fetch).toHaveBeenCalledWith('https://api.imgflip.com/get_memes');
-    expect(global.fetch).toHaveBeenCalledWith('../assets/templates/templates.json');
+    expect(global.fetch).toHaveBeenCalledTimes(3);
+    expect(global.fetch).toHaveBeenCalledWith(IMGFLIP_URL);
+    expect(global.fetch).toHaveBeenCalledWith(TAGS_URL);
+    expect(global.fetch).toHaveBeenCalledWith(TEMPLATES_URL);
   });
 
   it('renders the library after init without waiting for focus', async () => {
@@ -314,7 +332,8 @@ describe('Meme Search — init() and fetch', () => {
     dom.input.dispatchEvent(new Event('focus'));
     await waitForAsyncRender();
 
-    expect(global.fetch).toHaveBeenCalledTimes(2);
+    // Init triggers the three fetches; later focus is a no-op (fetched === true).
+    expect(global.fetch).toHaveBeenCalledTimes(3);
   });
 
   it('shows a loading status while the fetch is in flight', () => {
@@ -376,9 +395,7 @@ describe('Meme Search — joint library rendering', () => {
   });
 
   it('renders Imgflip memes before internal library memes', () => {
-    const names = getVisibleNames(dom.results);
-
-    expect(names).toEqual([
+    expect(getVisibleNames(dom.results)).toEqual([
       'Drake Hotline Bling',
       'Distracted Boyfriend',
       'Two Buttons',
@@ -403,8 +420,12 @@ describe('Meme Search — joint library rendering', () => {
     expect(img.alt).toBe('Drake Hotline Bling');
   });
 
-  it('renders the template name as a visible label', () => {
-    expect(getVisibleNames(dom.results)).toEqual([
+  it('exposes the template name on the card button title for accessibility', () => {
+    const titles = Array.from(dom.results.querySelectorAll('.meme-search-card')).map(
+      (card) => card.title
+    );
+
+    expect(titles).toEqual([
       'Drake Hotline Bling',
       'Distracted Boyfriend',
       'Two Buttons',
@@ -527,6 +548,180 @@ describe('Meme Search — filtering', () => {
     dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
 
     expect(dom.results.querySelectorAll('.meme-search-card')).toHaveLength(5);
+  });
+});
+
+// ── Tags from the committed tag file ──────────────────────────────────────────
+
+describe('Meme Search — tags from imgflip-tags.json', () => {
+  let dom;
+
+  beforeEach(async () => {
+    dom = mountSearchDom();
+
+    global.fetch = mockFetchByUrl({
+      imgflip: makeImgflipPayload(),
+      templates: [],
+      tags: {
+        '181913649': { name: 'Drake Hotline Bling', tags: ['reject', 'thoughtful'] },
+        '112126428': { name: 'Distracted Boyfriend', tags: ['cheating', 'betrayal', 'worried'] },
+        '87743020': { name: 'Two Buttons', tags: ['dilemma', 'thoughtful', 'worried'] }
+      }
+    });
+
+    const MemeSearch = loadFreshMemeSearch();
+
+    MemeSearch.init({
+      input: dom.input,
+      results: dom.results,
+      status: dom.status
+    });
+
+    await waitForAsyncRender();
+  });
+
+  function search(term) {
+    dom.input.value = term;
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    return getVisibleNames(dom.results);
+  }
+
+  it('matches a meme by a tag that is not part of its name', () => {
+    expect(search('cheating')).toEqual(['Distracted Boyfriend']);
+  });
+
+  it('matches Drake by the tag "reject"', () => {
+    expect(search('reject')).toEqual(['Drake Hotline Bling']);
+  });
+
+  it('matches Two Buttons by the tag "dilemma"', () => {
+    expect(search('dilemma')).toEqual(['Two Buttons']);
+  });
+
+  it('still matches by the original template name', () => {
+    expect(search('drake')).toEqual(['Drake Hotline Bling']);
+  });
+
+  it('is case-insensitive across tag keywords', () => {
+    expect(search('CHEATING')).toEqual(['Distracted Boyfriend']);
+  });
+
+  it('returns nothing for a tag that no template uses', () => {
+    expect(search('photosynthesis')).toEqual([]);
+  });
+
+  it('matches multiple memes that share a tag', () => {
+    expect(search('thoughtful').sort()).toEqual(
+      ['Drake Hotline Bling', 'Two Buttons'].sort()
+    );
+  });
+
+  it('matches multiple memes for a worry-family tag', () => {
+    expect(search('worried').sort()).toEqual(
+      ['Distracted Boyfriend', 'Two Buttons'].sort()
+    );
+  });
+});
+
+// ── Tags from the localStorage cache ──────────────────────────────────────────
+
+describe('Meme Search — tags from the localStorage cache', () => {
+  it('matches a meme by a tag cached in localStorage', async () => {
+    const dom = mountSearchDom();
+    setLocalTagCache({ '112126428': ['cheating', 'betrayal'] });
+
+    global.fetch = mockFetchByUrl({ imgflip: makeImgflipPayload(), templates: [], tags: {} });
+
+    const MemeSearch = loadFreshMemeSearch();
+    MemeSearch.init({ input: dom.input, results: dom.results, status: dom.status });
+    await waitForAsyncRender();
+
+    dom.input.value = 'betrayal';
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+
+    expect(getVisibleNames(dom.results)).toEqual(['Distracted Boyfriend']);
+  });
+
+  it('prefers the committed tag file over the localStorage cache', async () => {
+    const dom = mountSearchDom();
+    // localStorage holds a tag the file does NOT — the file entry should win.
+    setLocalTagCache({ '181913649': ['localstorageonly'] });
+
+    global.fetch = mockFetchByUrl({
+      imgflip: makeImgflipPayload(),
+      templates: [],
+      tags: { '181913649': { name: 'Drake Hotline Bling', tags: ['approve'] } }
+    });
+
+    const MemeSearch = loadFreshMemeSearch();
+    MemeSearch.init({ input: dom.input, results: dom.results, status: dom.status });
+    await waitForAsyncRender();
+
+    dom.input.value = 'approve';
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(getVisibleNames(dom.results)).toEqual(['Drake Hotline Bling']);
+
+    dom.input.value = 'localstorageonly';
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(getVisibleNames(dom.results)).toEqual([]);
+  });
+});
+
+// ── Tag-source failures degrade gracefully ────────────────────────────────────
+
+describe('Meme Search — tag-source failures degrade gracefully', () => {
+  it('still renders memes (name search) when the tag file 404s', async () => {
+    const dom = mountSearchDom();
+
+    global.fetch = mockFetchByUrlWithStatus({
+      imgflip: { ok: true, status: 200, body: makeImgflipPayload() },
+      templates: { ok: true, status: 200, body: [] },
+      tags: { ok: false, status: 404, body: {} }
+    });
+
+    const MemeSearch = loadFreshMemeSearch();
+    MemeSearch.init({ input: dom.input, results: dom.results, status: dom.status });
+    await waitForAsyncRender();
+
+    expect(dom.results.querySelectorAll('.meme-search-card')).toHaveLength(3);
+
+    dom.input.value = 'two buttons';
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(getVisibleNames(dom.results)).toEqual(['Two Buttons']);
+  });
+
+  it('still renders memes when the tag file network request fails', async () => {
+    const dom = mountSearchDom();
+
+    global.fetch = mockFetchByUrl({
+      imgflip: makeImgflipPayload(),
+      templates: [],
+      tags: new Error('tags down')
+    });
+
+    const MemeSearch = loadFreshMemeSearch();
+    MemeSearch.init({ input: dom.input, results: dom.results, status: dom.status });
+    await waitForAsyncRender();
+
+    expect(dom.results.querySelectorAll('.meme-search-card')).toHaveLength(3);
+  });
+
+  it('still renders memes when localStorage throws', async () => {
+    const dom = mountSearchDom();
+    const getItemSpy = jest
+      .spyOn(window.localStorage.__proto__, 'getItem')
+      .mockImplementation(() => {
+        throw new Error('localStorage blocked');
+      });
+
+    global.fetch = mockFetchByUrl({ imgflip: makeImgflipPayload(), templates: [], tags: {} });
+
+    const MemeSearch = loadFreshMemeSearch();
+    MemeSearch.init({ input: dom.input, results: dom.results, status: dom.status });
+    await waitForAsyncRender();
+
+    expect(dom.results.querySelectorAll('.meme-search-card')).toHaveLength(3);
+    getItemSpy.mockRestore();
   });
 });
 
@@ -684,23 +879,15 @@ describe('Meme Search — internal library fallback', () => {
     await waitForAsyncRender();
 
     expect(getVisibleNames(dom.results)).toEqual(['LeBron Funny', 'TAJ Weird Smile']);
-    expect(dom.status.textContent).not.toMatch(/could not load memes/i);
+    expect(dom.status.textContent).not.toMatch(/could not load any memes/i);
   });
 
   it('falls back to internal templates when Imgflip returns non-2xx', async () => {
     const dom = mountSearchDom();
 
     global.fetch = mockFetchByUrlWithStatus({
-      imgflip: {
-        ok: false,
-        status: 503,
-        body: {}
-      },
-      templates: {
-        ok: true,
-        status: 200,
-        body: makeTemplatesPayload()
-      }
+      imgflip: { ok: false, status: 503, body: {} },
+      templates: { ok: true, status: 200, body: makeTemplatesPayload() }
     });
 
     const MemeSearch = loadFreshMemeSearch();
@@ -714,17 +901,14 @@ describe('Meme Search — internal library fallback', () => {
     await waitForAsyncRender();
 
     expect(getVisibleNames(dom.results)).toEqual(['LeBron Funny', 'TAJ Weird Smile']);
-    expect(dom.status.textContent).not.toMatch(/could not load memes/i);
+    expect(dom.status.textContent).not.toMatch(/could not load any memes/i);
   });
 
   it('falls back to internal templates when Imgflip payload is malformed', async () => {
     const dom = mountSearchDom();
 
     global.fetch = mockFetchByUrl({
-      imgflip: {
-        success: true,
-        data: {}
-      },
+      imgflip: { success: true, data: {} },
       templates: makeTemplatesPayload()
     });
 
@@ -739,7 +923,7 @@ describe('Meme Search — internal library fallback', () => {
     await waitForAsyncRender();
 
     expect(getVisibleNames(dom.results)).toEqual(['LeBron Funny', 'TAJ Weird Smile']);
-    expect(dom.status.textContent).not.toMatch(/could not load memes/i);
+    expect(dom.status.textContent).not.toMatch(/could not load any memes/i);
   });
 
   it('still allows internal fallback memes to be selected', async () => {
@@ -801,11 +985,7 @@ describe('Meme Search — error and empty states', () => {
     const dom = mountSearchDom();
 
     global.fetch = mockFetchByUrlWithStatus({
-      imgflip: {
-        ok: false,
-        status: 503,
-        body: {}
-      },
+      imgflip: { ok: false, status: 503, body: {} },
       templates: new Error('local down')
     });
 
@@ -827,10 +1007,7 @@ describe('Meme Search — error and empty states', () => {
     const dom = mountSearchDom();
 
     global.fetch = mockFetchByUrl({
-      imgflip: {
-        success: true,
-        data: {}
-      },
+      imgflip: { success: true, data: {} },
       templates: new Error('local down')
     });
 
@@ -852,12 +1029,7 @@ describe('Meme Search — error and empty states', () => {
     const dom = mountSearchDom();
 
     global.fetch = mockFetchByUrl({
-      imgflip: {
-        success: true,
-        data: {
-          memes: []
-        }
-      },
+      imgflip: { success: true, data: { memes: [] } },
       templates: []
     });
 
@@ -880,9 +1052,7 @@ describe('Meme Search — error and empty states', () => {
 
     global.fetch = mockFetchByUrl({
       imgflip: makeImgflipPayload(),
-      templates: {
-        templates: 'not an array'
-      }
+      templates: { templates: 'not an array' }
     });
 
     const MemeSearch = loadFreshMemeSearch();
@@ -907,16 +1077,8 @@ describe('Meme Search — error and empty states', () => {
     const dom = mountSearchDom();
 
     global.fetch = mockFetchByUrlWithStatus({
-      imgflip: {
-        ok: true,
-        status: 200,
-        body: makeImgflipPayload()
-      },
-      templates: {
-        ok: false,
-        status: 404,
-        body: {}
-      }
+      imgflip: { ok: true, status: 200, body: makeImgflipPayload() },
+      templates: { ok: false, status: 404, body: {} }
     });
 
     const MemeSearch = loadFreshMemeSearch();
@@ -1008,76 +1170,11 @@ describe('Meme Search — loadFromUrl()', () => {
   });
 });
 
-// ── Imgflip alias tagging ─────────────────────────────────────────────────────
-
-describe('Meme Search — Imgflip alias tagging', () => {
-  let dom;
-  let MemeSearch;
-
-  beforeEach(async () => {
-    dom = mountSearchDom();
-
-    global.fetch = mockFetchByUrl({
-      imgflip: makeImgflipPayload(),
-      templates: []
-    });
-
-    MemeSearch = loadFreshMemeSearch();
-
-    MemeSearch.init({
-      input: dom.input,
-      results: dom.results,
-      status: dom.status
-    });
-
-    await waitForAsyncRender();
-  });
-
-  function search(term) {
-    dom.input.value = term;
-    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
-
-    return getVisibleNames(dom.results);
-  }
-
-  it('matches Distracted Boyfriend by the alias "cheating"', () => {
-    expect(search('cheating')).toContain('Distracted Boyfriend');
-  });
-
-  it('matches Drake Hotline Bling by the alias "reject"', () => {
-    expect(search('reject')).toContain('Drake Hotline Bling');
-  });
-
-  it('matches Two Buttons by the alias "dilemma"', () => {
-    expect(search('dilemma')).toContain('Two Buttons');
-  });
-
-  it('still matches by the original template name', () => {
-    expect(search('drake')).toContain('Drake Hotline Bling');
-  });
-
-  it('is case-insensitive across alias keywords', () => {
-    expect(search('CHEATING')).toContain('Distracted Boyfriend');
-  });
-
-  it('returns nothing for an alias that no template uses', () => {
-    expect(search('photosynthesis')).toEqual([]);
-  });
-
-  it('matches multiple memes that share an emotion tag', () => {
-    expect(search('thoughtful').sort()).toEqual(
-      ['Drake Hotline Bling', 'Two Buttons'].sort()
-    );
-  });
-
-  it('matches multiple memes for a worry-family emotion', () => {
-    expect(search('worried').sort()).toEqual(
-      ['Distracted Boyfriend', 'Two Buttons'].sort()
-    );
-  });
-});
-
-// ── Alias coverage guard ──────────────────────────────────────────────────────
+// ── Tag-file emotion coverage guard ───────────────────────────────────────────
+//
+// The Imgflip tags now live in assets/templates/imgflip-tags.json (migrated out
+// of MemeSearch.js). This guard validates the migrated data still covers the
+// emotion vocabulary the search experience relies on.
 
 describe('Meme Search — emotion-tag coverage', () => {
   const REQUIRED_EMOTIONS = [
@@ -1140,26 +1237,21 @@ describe('Meme Search — emotion-tag coverage', () => {
     'uncomfortable'
   ];
 
-  function loadAliasMap() {
+  function loadTagLists() {
     const fs = require('fs');
     const path = require('path');
 
-    const src = fs.readFileSync(
-      path.join(__dirname, '..', 'meme-app', 'js', 'MemeSearch.js'),
+    const raw = fs.readFileSync(
+      path.join(__dirname, '..', 'assets', 'templates', 'imgflip-tags.json'),
       'utf8'
     );
 
-    const start = src.indexOf('var IMGFLIP_ALIASES =');
-    const open = src.indexOf('{', start);
-    const close = src.indexOf('};', open);
-
-    // eslint-disable-next-line no-new-func
-    return Function('return (' + src.slice(open, close + 1) + ');')();
+    const map = JSON.parse(raw);
+    return Object.values(map).map((entry) => entry.tags);
   }
 
   it('tags each required emotion word on at least 10 templates', () => {
-    const aliases = loadAliasMap();
-    const allEntries = Object.values(aliases);
+    const allEntries = loadTagLists();
 
     expect(allEntries.length).toBeGreaterThanOrEqual(90);
 

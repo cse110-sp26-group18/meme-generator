@@ -2,3 +2,14 @@
 node_modules/
 coverage/
 .history/
+
+# Secrets — never commit. AI/API keys live in Cloudflare Worker secrets, not here.
+.env
+.env.*
+.dev.vars
+.dev.vars.*
+# ...but keep the committed template that documents the expected variables.
+!.dev.vars.example
+
+# Wrangler (Cloudflare Workers) local state
+.wrangler/

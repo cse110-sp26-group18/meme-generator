@@ -12,6 +12,18 @@ var MemeGen = window.MemeGen || {};
  * by name (and, for internal templates, also by character/emotion/tags) — no
  * per-keystroke network calls. Selecting a result invokes the onSelect
  * callback with the chosen template so the host app can load it onto the canvas.
+ *
+ * Imgflip templates carry no tags from the API, so search would otherwise only
+ * match their name. Tags are resolved, in priority order, from:
+ *   a. A committed file of curated tags: assets/templates/imgflip-tags.json
+ *   b. Tags generated on previous visits, cached in localStorage.
+ *   c. A Cloudflare Worker that AI-tags a template on demand. The Worker holds
+ *      the AI provider's secret key — it is never shipped to the browser. Worker
+ *      results are cached in localStorage so a template is only ever tagged once.
+ *
+ * Cloud tagging is cost-capped: only the first few untagged templates are sent,
+ * slowly, one at a time, in the background. If the Worker is unconfigured or
+ * fails, the affected meme still renders and stays searchable by name.
  */
 MemeGen.MemeSearch = (function () {
   var ENDPOINT = 'https://api.imgflip.com/get_memes';
@@ -19,13 +31,38 @@ MemeGen.MemeSearch = (function () {
   // index.html lives in meme-app/, while templates.json + its images live in
   // the sibling assets/ folder, so the repo-root-relative paths in the JSON
   // need a leading "../" when loaded from the page.
+  var IMGFLIP_TAGS_PATH = '../assets/templates/imgflip-tags.json';
   var TEMPLATES_PATH = '../assets/templates/templates.json';
   var ASSET_PREFIX = '../';
+
+  // Public Cloudflare Worker that performs AI tagging. Safe to ship: it holds
+  // no secret. REPLACE the placeholder host below with your deployed Worker URL
+  // (see workers/tag-meme-worker.js). While the placeholder is present, cloud
+  // tagging stays disabled so the app never calls a non-existent endpoint.
+  var AI_TAG_ENDPOINT = 'https://YOUR-WORKER-URL.workers.dev/tag-meme';
+
+  // localStorage key for tags generated on previous visits. Versioned so the
+  // shape can change later without colliding with old cached data.
+  var LOCAL_TAG_CACHE_KEY = 'memeSearch.imgflipTags.v1';
+
+  // Cost protection for cloud tagging: never tag more than this many templates
+  // per session, and space the calls out so we don't hammer the Worker / AI.
+  var MAX_CLOUD_TAGS = 10;
+  var CLOUD_TAG_DELAY_MS = 1500;
+  var MAX_TAGS = 20;
 
   // Cached templates and fetch state.
   var memes = [];
   var fetched = false;
   var fetching = false;
+
+  // Tag cache loaded from localStorage (id -> string[]). Mutated as the Worker
+  // returns new tags, then persisted via saveLocalTagCache().
+  var localTagCache = {};
+
+  // Background cloud-tagging queue state.
+  var tagQueue = [];
+  var queueRunning = false;
 
   // DOM references and callback set during init().
   var inputEl = null;
@@ -67,29 +104,33 @@ MemeGen.MemeSearch = (function () {
     ensureFetched();
   }
 
-  // Fetch the Imgflip list and the internal library once, merge, and cache.
-  // Imgflip is the primary source: if it fails we surface an error. The local
-  // library is best-effort — if it can't be loaded we just omit it.
+  // Fetch every source once, merge, and cache. Imgflip is the primary source
+  // but the internal library is a fallback: if Imgflip fails we still show the
+  // internal templates. The tag file is best-effort and never blocks rendering.
   function ensureFetched() {
     if (fetched || fetching) return;
     fetching = true;
     setStatus('Loading memes…');
 
-    Promise.allSettled([fetchImgflipMemes(), fetchLocalTemplates()])
+    Promise.allSettled([fetchImgflipMemes(), fetchImgflipTags(), fetchLocalTemplates()])
       .then(function (results) {
-        var imgflipMemes = [];
-        var localMemes = [];
+        var raws = results[0].status === 'fulfilled' ? results[0].value : [];
+        var fileTagMap = results[1].status === 'fulfilled' ? results[1].value : {};
+        var localMemes = results[2].status === 'fulfilled' ? results[2].value : [];
 
-        if (results[0].status === 'fulfilled') {
-          imgflipMemes = results[0].value;
-        }
+        localTagCache = loadLocalTagCache();
 
-        if (results[1].status === 'fulfilled') {
-          localMemes = results[1].value;
-        }
+        // Build the Imgflip memes immediately with whatever tags are already
+        // cached; collect any with no cached tags for background cloud tagging.
+        var missing = [];
+        var imgflipMemes = raws.map(function (raw) {
+          var tags = getCachedTags(raw, fileTagMap, localTagCache);
+          if (tags === null) missing.push(raw);
+          return buildImgflipMeme(raw, tags || []);
+        });
 
         // Normal case: API memes first, then internal memes.
-        // Fallback case: if API fails, localMemes still show.
+        // Fallback case: if the API fails, the internal templates still show.
         memes = imgflipMemes.concat(localMemes);
 
         fetched = true;
@@ -107,10 +148,14 @@ MemeGen.MemeSearch = (function () {
         }
 
         runSearch();
+
+        // Background, cost-limited cloud tagging for the untagged memes.
+        enqueueMissing(missing);
       });
   }
 
-  // Imgflip templates: { id, name, url, ... } as returned by the endpoint.
+  // Imgflip templates: returns the raw [{ id, name, url, ... }] array. Rejects
+  // on transport / shape errors so the fallback logic can fall back to internal.
   function fetchImgflipMemes() {
     return fetch(ENDPOINT)
       .then(function (response) {
@@ -121,132 +166,24 @@ MemeGen.MemeSearch = (function () {
         if (!data || !data.success || !data.data || !data.data.memes) {
           throw new Error('Unexpected response shape');
         }
-        return data.data.memes.map(toImgflipMeme);
+        return data.data.memes;
       });
   }
 
-  // Curated keyword tags for Imgflip's popular top-100 templates, keyed by the
-  // numeric `id` Imgflip returns. Each entry holds the emotions / concepts /
-  // common search terms a person might type when looking for that image — the
-  // API itself returns no tags, so search would otherwise only match the name.
-  // Stable list; if Imgflip rotates the popular set, missing ids gracefully
-  // fall back to name-only matching.
-  var IMGFLIP_ALIASES = {
-    '181913649': ['approve', 'reject', 'prefer', 'choice', 'comparison', 'no', 'yes', 'like', 'dislike', 'rap', 'happy', 'disgusted', 'calm', 'confident', 'thoughtful', 'serious', 'hopeful', 'romantic', 'dreamy', 'playful', 'determined', 'relaxed'],
-    '87743020':  ['choice', 'decision', 'dilemma', 'sweating', 'panic', 'hard choice', 'pressure', 'nervous', 'stressed', 'anxious', 'panicked', 'worried', 'overwhelmed', 'scared', 'thoughtful', 'hopeful', 'confused', 'frustrated'],
-    '112126428': ['cheating', 'temptation', 'choice', 'comparison', 'jealousy', 'betrayal', 'interest', 'love', 'jealous', 'angry', 'disappointed', 'shocked', 'surprised', 'guilty', 'romantic', 'awkward', 'insecure', 'heartbroken', 'uncomfortable', 'worried'],
-    '217743513': ['refuse', 'ultimatum', 'choice', 'defiance', 'stubborn', 'cards', 'game', 'angry', 'furious', 'frustrated', 'annoyed', 'disgusted', 'determined', 'serious'],
-    '124822590': ['choice', 'swerve', 'drift', 'decision', 'regret', 'sudden change', 'exit', 'highway', 'panicked', 'surprised', 'frustrated', 'confused', 'scared', 'overwhelmed', 'determined'],
-    '222403160': ['asking', 'plea', 'request', 'begging', 'politics', 'bernie', 'mittens', 'serious', 'determined', 'frustrated', 'hopeful', 'grateful', 'annoyed', 'furious', 'angry', 'screaming'],
-    '131087935': ['escape', 'run away', 'avoid', 'flee', 'abandon', 'ignore', 'balloon', 'scared', 'panicked', 'sad', 'lonely', 'embarrassed', 'guilty', 'awkward'],
-    '252600902': ['astronaut', 'betrayal', 'surprise', 'realization', 'conspiracy', 'shock', 'gun', 'space', 'shocked', 'surprised', 'confused', 'terrified', 'devastated', 'screaming', 'determined', 'suspicious'],
-    '4087833':   ['waiting', 'patience', 'forever', 'slow', 'impatient', 'dead', 'bored', 'exhausted', 'lonely', 'sad', 'miserable', 'frustrated', 'annoyed', 'disappointed'],
-    '131940431': ['plan', 'scheme', 'mistake', 'realization', 'regret', 'oops', 'minions', 'shocked', 'surprised', 'disappointed', 'guilty', 'confused', 'frustrated', 'embarrassed', 'thoughtful'],
-    '135256802': ['agreement', 'alliance', 'teamwork', 'unity', 'friendship', 'common ground', 'predator', 'happy', 'joyful', 'excited', 'grateful', 'proud', 'confident', 'relieved', 'determined'],
-    '97984':     ['evil', 'smirk', 'fire', 'chaos', 'mischief', 'satisfaction', 'kid', 'arson', 'happy', 'proud', 'confident', 'playful', 'calm', 'excited', 'joyful', 'ecstatic', 'determined', 'guilty'],
-    '322841258': ['concern', 'worry', 'miscommunication', 'hopeful', 'dark', 'scary', 'awkward', 'silence', 'star wars', 'worried', 'scared', 'shocked', 'uncomfortable', 'serious', 'thoughtful', 'anxious', 'insecure', 'devastated', 'nervous'],
-    '91538330':  ['everywhere', 'abundance', 'overwhelming', 'lots', 'many', 'surrounded', 'buzz lightyear', 'toy story', 'overwhelmed', 'surprised', 'shocked', 'exhausted', 'stressed', 'confused', 'panicked'],
-    '80707627':  ['sad', 'lonely', 'waiting', 'depressed', 'bored', 'empty', 'pablo', 'heartbroken', 'devastated', 'miserable', 'exhausted', 'emotional', 'crying', 'bittersweet', 'nostalgic', 'shy'],
-    '129242436': ['opinion', 'debate', 'prove', 'challenge', 'controversial', 'statement', 'steven crowder', 'serious', 'confident', 'determined', 'thoughtful', 'calm', 'suspicious'],
-    '188390779': ['angry', 'yelling', 'argument', 'confused', 'fight', 'accusation', 'cat', 'dinner', 'furious', 'screaming', 'frustrated', 'annoyed', 'disgusted', 'awkward', 'uncomfortable'],
-    '102156234': ['mocking', 'mimic', 'sarcasm', 'teasing', 'sarcastic', 'ridicule', 'spongebob', 'annoyed', 'disgusted', 'playful', 'laughing', 'bored'],
-    '247375501': ['strong', 'weak', 'comparison', 'past', 'present', 'then now', 'evolved', 'doge', 'cheems', 'proud', 'confident', 'nostalgic', 'bittersweet', 'ecstatic', 'determined', 'jealous', 'disgusted'],
-    '438680':    ['slap', 'hit', 'shut up', 'correct', 'dismiss', 'scold', 'interrupt', 'batman', 'robin', 'angry', 'annoyed', 'furious', 'frustrated', 'serious'],
-    '93895088':  ['smart', 'evolution', 'levels', 'escalating', 'galaxy brain', 'enlightenment', 'big brain', 'thoughtful', 'confident', 'proud', 'ecstatic', 'excited'],
-    '309868304': ['exchange', 'deal', 'swap', 'negotiate', 'business', 'offer', 'hopeful', 'thoughtful', 'suspicious', 'curious', 'grateful', 'confident'],
-    '101470':    ['aliens', 'conspiracy', 'explanation', 'theory', 'why', 'mystery', 'history channel', 'confused', 'curious', 'suspicious', 'thoughtful', 'excited'],
-    '55311130':  ['denial', 'fire', 'calm', 'disaster', 'ignore', 'accept', 'dog', 'burning', 'coffee', 'relaxed', 'peaceful', 'devastated', 'overwhelmed', 'stressed', 'anxious', 'exhausted', 'miserable', 'panicked', 'terrified', 'worried', 'relieved'],
-    '178591752': ['fancy', 'classy', 'sophisticated', 'prefer', 'upgrade', 'refined', 'pooh', 'bear', 'happy', 'calm', 'peaceful', 'confident', 'proud', 'dreamy', 'romantic', 'grateful', 'relaxed', 'relieved', 'joyful'],
-    '124055727': ['addicted', 'craving', 'want more', 'need more', 'desperate', 'drugs', 'excited', 'surprised', 'ecstatic', 'joyful', 'laughing', 'happy'],
-    '180190441': ['same', 'identical', 'similar', 'no difference', 'oblivious', 'office', 'confused', 'serious', 'thoughtful', 'suspicious'],
-    '505705955': ['cinema', 'masterpiece', 'beautiful', 'perfect', 'awe', 'glasses', 'movie', 'peaceful', 'ecstatic', 'emotional', 'joyful', 'dreamy', 'nostalgic', 'bittersweet', 'proud', 'grateful'],
-    '61579':     ['boromir', 'impossible', 'difficult', 'lotr', 'lord of the rings', 'warning', 'mordor', 'serious', 'thoughtful', 'confident', 'determined'],
-    '148909805': ['awkward', 'looking away', 'side eye', 'suspicious', 'uncomfortable', 'puppet', 'nervous', 'anxious', 'embarrassed', 'guilty', 'insecure', 'shy'],
-    '100777631': ['confusion', 'misidentify', 'butterfly', 'wrong', 'anime', 'mistaken', 'confused', 'curious', 'hopeful', 'thoughtful'],
-    '427308417': ['accident', 'mistake', 'simpsons', 'sign', 'counter', 'days without', 'lenny', 'disappointed', 'frustrated', 'embarrassed', 'annoyed'],
-    '79132341':  ['self sabotage', 'blame', 'bike', 'stick', 'fail', 'accident', 'own fault', 'frustrated', 'awkward', 'guilty', 'embarrassed', 'devastated', 'miserable', 'exhausted', 'panicked', 'stressed', 'annoyed', 'furious'],
-    '252758727': ['neglect', 'ignore', 'distracted', 'priorities', 'drowning', 'phone', 'mom', 'shocked', 'terrified', 'panicked', 'scared', 'worried', 'devastated', 'screaming', 'anxious', 'uncomfortable', 'guilty', 'surprised', 'stressed'],
-    '224015000': ['asking', 'plea', 'begging', 'request', 'politics', 'bernie', 'sanders', 'hopeful', 'serious', 'awkward', 'shy', 'calm', 'grateful', 'relieved', 'uncomfortable', 'insecure'],
-    '3218037':   ['empty', 'missing', 'lacking', 'regret', 'sad', 'would have', 'nothing', 'trophy', 'disappointed', 'jealous', 'bittersweet', 'embarrassed', 'heartbroken', 'miserable', 'awkward', 'devastated', 'dreamy', 'uncomfortable', 'crying', 'bored'],
-    '177682295': ['surprised', 'unpaid', 'work', 'jealous', 'shocked', 'pirate', 'disappointed', 'awkward', 'uncomfortable', 'embarrassed'],
-    '161865971': ['survived', 'avoided', 'escape', 'facebook', 'safe', 'crisis', 'relieved', 'grateful', 'calm', 'peaceful', 'hopeful', 'relaxed'],
-    '195515965': ['fool', 'idiot', 'realization', 'denial', 'foolish', 'clown myself', 'embarrassed', 'guilty', 'insecure', 'awkward', 'disappointed', 'shy', 'disgusted'],
-    '110163934': ['boyfriend', 'thinking', 'distracted', 'distant', 'sad', 'jealous', 'women', 'insecure', 'lonely', 'heartbroken', 'bittersweet', 'romantic', 'emotional', 'worried', 'thoughtful'],
-    '370867422': ['nosy', 'suspicious', 'sneaky', 'peek', 'watching', 'lurk', 'megamind', 'curious', 'awkward', 'uncomfortable', 'playful', 'lonely', 'guilty', 'determined', 'confident', 'bored'],
-    '84341851':  ['evil', 'temptation', 'dark side', 'mischievous', 'intrusive thoughts', 'kermit', 'frog', 'playful', 'confident', 'angry', 'furious', 'guilty'],
-    '28251713':  ['giving', 'everyone', 'generous', 'gift', 'oprah', 'you get a', 'happy', 'ecstatic', 'joyful', 'excited', 'grateful', 'laughing', 'playful'],
-    '67452763':  ['jealous', 'sad', 'watching', 'lonely', 'missing out', 'outside', 'squidward', 'spongebob', 'heartbroken', 'miserable', 'disappointed', 'bored', 'dreamy', 'bittersweet', 'emotional', 'uncomfortable', 'shy', 'crying', 'romantic'],
-    '1035805':   ['meeting', 'suggestion', 'fired', 'thrown', 'business', 'idea', 'boardroom', 'window', 'surprised', 'shocked', 'awkward', 'serious', 'embarrassed', 'thoughtful', 'disappointed', 'overwhelmed', 'stressed'],
-    '27813981':  ['fake smile', 'hiding', 'pain', 'awkward', 'sad inside', 'harold', 'old man', 'sad', 'miserable', 'exhausted', 'lonely', 'disappointed', 'bittersweet', 'emotional', 'insecure', 'uncomfortable', 'embarrassed', 'nostalgic', 'dreamy', 'frustrated', 'annoyed', 'scared', 'terrified', 'stressed', 'anxious', 'shy', 'heartbroken', 'devastated', 'romantic', 'crying', 'calm', 'worried'],
-    '226297822': ['panic', 'calm', 'anxiety', 'stress', 'relief', 'panik', 'kalm', 'panicked', 'anxious', 'stressed', 'relieved', 'peaceful', 'nervous', 'scared', 'worried', 'overwhelmed'],
-    '206151308': ['pointing', 'blame', 'identical', 'accusation', 'all same', 'copies', 'spiderman', 'confused', 'surprised', 'shocked', 'suspicious', 'playful', 'awkward', 'scared', 'nervous'],
-    '155067746': ['surprised', 'shocked', 'predictable', 'obvious', 'astonished', 'pikachu', 'pokemon', 'scared', 'confused', 'ecstatic', 'laughing', 'curious'],
-    '89370399':  ['smart', 'clever', 'thinking', 'logic', 'galaxy brain', 'tap head', 'roll safe', 'thoughtful', 'confident', 'calm', 'playful', 'relieved', 'determined', 'proud', 'relaxed'],
-    '5496396':   ['cheers', 'toast', 'celebration', 'salute', 'gatsby', 'leonardo', 'dicaprio', 'happy', 'joyful', 'ecstatic', 'proud', 'confident', 'grateful', 'relaxed', 'romantic', 'peaceful', 'relieved', 'laughing'],
-    '119139145': ['temptation', 'urge', 'smash', 'push', 'button', 'irresistible', 'nut', 'excited', 'determined', 'playful', 'panicked'],
-    '163573':    ['imagine', 'fantasy', 'rainbow', 'imagination', 'picture this', 'spongebob', 'happy', 'peaceful', 'dreamy', 'playful', 'joyful', 'calm', 'excited', 'hopeful', 'relaxed', 'laughing', 'grateful', 'relieved'],
-    '77045868':  ['negotiation', 'low offer', 'lowball', 'business', 'refuse', 'pawn', 'thoughtful', 'suspicious', 'annoyed', 'frustrated', 'serious', 'awkward', 'disappointed'],
-    '533936279': ['average', 'intelligent', 'idiot', 'midwit', 'statistics', 'agreement', 'iq', 'thoughtful', 'confident', 'suspicious', 'curious', 'overwhelmed', 'determined'],
-    '61520':     ['suspicious', 'unsure', 'confused', 'fry', 'futurama', "can't tell", 'thoughtful', 'curious'],
-    '171305372': ['protect', 'guardian', 'sacrifice', 'dangerous', 'watching over', 'soldier', 'child', 'serious', 'determined', 'scared', 'lonely', 'worried', 'anxious', 'terrified', 'peaceful', 'emotional', 'grateful', 'dreamy', 'relieved'],
-    '99683372':  ['sleeping', 'bored', 'uninterested', 'asleep', 'indifferent', 'shaq', 'basketball', 'exhausted', 'relaxed', 'peaceful', 'lonely', 'miserable', 'dreamy', 'calm', 'relieved'],
-    '354700819': ['happy', 'sad', 'life', 'contrast', 'comparison', 'perspective', 'bus', 'window', 'lonely', 'peaceful', 'dreamy', 'bittersweet', 'hopeful', 'miserable', 'joyful', 'romantic', 'emotional', 'crying', 'nostalgic', 'jealous', 'heartbroken', 'grateful', 'calm', 'relaxed', 'relieved', 'devastated'],
-    '114585149': ['yelling', 'screaming', 'loud', 'angry', 'seagull', 'shouting', 'inhale', 'furious', 'excited', 'ecstatic', 'joyful', 'laughing', 'frustrated', 'panicked', 'annoyed'],
-    '259237855': ['laughing', 'funny', 'hilarious', 'leonardo', 'mocking', 'laugh', 'dicaprio', 'happy', 'joyful', 'ecstatic', 'playful', 'excited'],
-    '166969924': ['repair', 'fix', 'cover up', 'hide problem', 'flex tape', 'phil swift', 'confident', 'determined', 'relieved'],
-    '284929871': ['alone', 'party', 'lonely', 'isolated', 'social', 'awkward', 'secret', 'they dont know', 'jealous', 'shy', 'insecure', 'uncomfortable', 'sad', 'dreamy', 'bittersweet', 'romantic', 'miserable', 'emotional'],
-    '129315248': ['refuse', 'accept', 'opposites', 'contradiction', 'change mind', 'kombucha', 'disgusted', 'surprised', 'confused', 'ecstatic', 'playful'],
-    '101288':    ['confused', 'skeptical', "doesn't understand", 'kid', 'africa', 'suspicious', 'curious', 'awkward', 'uncomfortable', 'shy'],
-    '316466202': ['confused', 'lost', 'searching', 'missing', 'where', 'monkey', 'puppet', 'curious', 'panicked', 'worried', 'lonely', 'surprised', 'awkward'],
-    '119215120': ['pain', 'headache', 'comparison', 'types', 'suffering', 'chart', 'exhausted', 'stressed', 'overwhelmed', 'miserable', 'frustrated', 'uncomfortable', 'anxious'],
-    '208915813': ['shock', 'news', 'surprise', 'disaster', 'history', 'bush', 'classroom', 'shocked', 'devastated', 'overwhelmed', 'terrified', 'serious', 'worried'],
-    '137501417': ['betrayal', 'new friend', 'replaced', 'abandoned', 'end friendship', 'sad', 'angry', 'disappointed', 'heartbroken', 'jealous', 'bittersweet', 'miserable', 'lonely', 'emotional', 'awkward', 'devastated', 'nostalgic', 'confident', 'romantic', 'crying', 'insecure', 'shocked', 'determined'],
-    '234202281': ['shock', 'surprise', 'scared', 'terror', 'wrestling', 'aj styles', 'undertaker', 'shocked', 'terrified', 'panicked', 'screaming', 'awkward', 'nervous'],
-    '187102311': ['multiple', 'same', 'all agree', 'agreement', 'parallel', 'dragon', 'ghidorah', 'confident', 'determined', 'serious', 'suspicious', 'scared'],
-    '221578498': ['defeat', 'loss', 'sad', 'dead', 'mourning', 'beaten', 'grave', 'flash', 'heartbroken', 'devastated', 'miserable', 'emotional', 'lonely', 'bittersweet', 'nostalgic', 'crying', 'disappointed', 'exhausted'],
-    '309668311': ['choice', 'decision', 'fork', 'road', 'divergence', 'paths', 'crossroads', 'thoughtful', 'hopeful', 'confused', 'nervous', 'determined', 'dreamy', 'serious'],
-    '101956210': ['fear', 'scared', 'whisper', 'creepy', 'ear', 'frightened', 'goosebumps', 'terrified', 'nervous', 'anxious', 'awkward', 'uncomfortable', 'worried'],
-    '224514655': ['hiding', 'fear', 'scared', 'avoid', 'anime', 'terminator', 'girl', 'terrified', 'panicked', 'anxious', 'stressed', 'nervous', 'lonely', 'worried', 'shy', 'miserable', 'screaming', 'insecure', 'devastated', 'crying', 'uncomfortable'],
-    '247113703': ['collision', 'surprise', 'attack', 'sudden', 'crash', 'devastate', 'train', 'bus', 'shocked', 'devastated', 'terrified', 'panicked', 'overwhelmed', 'screaming'],
-    '61556':     ['old', 'confused', 'technology', 'granny', 'discovery', 'computer', 'curious', 'excited', 'surprised', 'nostalgic', 'awkward', 'proud'],
-    '14371066':  ['wisdom', 'yoda', 'advice', 'judging', 'jedi', 'star wars', 'thoughtful', 'serious', 'calm', 'peaceful', 'confident', 'determined', 'suspicious', 'curious', 'dreamy', 'relieved', 'relaxed'],
-    '135678846': ['accusation', 'blame', 'killed', 'who did this', 'guilt', 'hannibal', 'eric andre', 'shocked', 'surprised', 'guilty', 'confused', 'awkward', 'panicked'],
-    '61544':     ['success', 'win', 'victory', 'achievement', 'baby', 'fist pump', 'kid', 'happy', 'joyful', 'ecstatic', 'proud', 'confident', 'excited', 'determined', 'grateful', 'relieved'],
-    '216523697': ['friends', 'group', 'hate', 'opinion', 'dislike together', 'homies', 'angry', 'annoyed', 'disgusted', 'frustrated', 'confident', 'furious'],
-    '21735':     ['looking back', 'shocked', 'surprised', 'side eye', 'driving', 'rock', 'dwayne', 'suspicious', 'serious', 'awkward', 'uncomfortable', 'annoyed', 'curious'],
-    '123999232': ['truth', 'denial', 'rejection', 'throw away', 'reject reality', 'scroll', 'angry', 'disgusted', 'frustrated', 'disappointed', 'devastated', 'furious'],
-    '91545132':  ['sign', 'announce', 'decree', 'declaration', 'executive order', 'trump', 'proud', 'confident', 'serious', 'determined', 'playful'],
-    '371619279': ['single', 'lonely', 'alone', 'no friends', 'megamind', 'incel', 'shy', 'insecure', 'miserable', 'bittersweet', 'awkward', 'embarrassed', 'heartbroken', 'romantic', 'emotional', 'dreamy', 'frustrated', 'crying', 'sad', 'jealous'],
-    '29617627':  ['captain', 'in charge', 'control', 'boss', 'power', 'attention', 'look at me', 'serious', 'confident', 'determined', 'shocked', 'surprised'],
-    '110133729': ['accuse', 'blame', 'same', 'identical', 'copy', 'you too', 'spiderman', 'confused', 'suspicious', 'awkward', 'playful', 'surprised', 'annoyed'],
-    '360597639': ['competition', 'opponent', 'rival', 'contest', 'vs', 'match', 'confident', 'proud', 'determined', 'playful', 'excited'],
-    '142009471': ['wrong', 'confused', 'butterfly', 'anime', 'misidentify', 'curious', 'hopeful', 'thoughtful'],
-    '6235864':   ['emotional', 'crying', 'sad', 'moved', 'peter pan', 'depp', 'tears', 'heartbroken', 'devastated', 'bittersweet', 'nostalgic', 'miserable', 'dreamy', 'lonely', 'grateful', 'peaceful', 'romantic', 'overwhelmed'],
-    '145139900': ['reveal', 'expose', 'unmask', 'betrayal', 'scooby', 'identity', 'mask', 'shocked', 'surprised', 'suspicious', 'curious', 'awkward'],
-    '72525473':  ['predictable', 'expected', 'simpsons', 'catchphrase', 'repeat', 'bart', 'annoyed', 'frustrated', 'embarrassed', 'awkward', 'bored'],
-    '50421420':  ['disappointed', 'sad', 'let down', 'walking away', 'unimpressed', 'frustrated', 'annoyed', 'miserable', 'exhausted', 'bored', 'lonely', 'emotional', 'devastated', 'disgusted'],
-    '101716':    ['yo dawg', 'recursive', 'nested', 'inside', 'xzibit', 'pimp my ride', 'playful', 'laughing', 'confident', 'nostalgic', 'proud'],
-    '134797956': ['argument', 'fight', 'debate', 'yelling', 'conflict', 'dispute', 'chopper', 'angry', 'furious', 'screaming', 'frustrated', 'annoyed', 'stressed'],
-    '162372564': ['chain reaction', 'consequence', 'sequence', 'cause and effect', 'domino', 'overwhelmed', 'surprised', 'shocked', 'panicked', 'devastated'],
-    '29562797':  ['takeover', 'replace', 'boss', 'leader', 'captain phillips', 'somali', 'confident', 'determined', 'serious', 'proud', 'scared'],
-    '92084495':  ['conspiracy', 'crazy', 'theory', 'always sunny', 'charlie', 'evidence', 'pepe silvia', 'anxious', 'panicked', 'stressed', 'overwhelmed', 'confused', 'suspicious', 'curious', 'exhausted', 'determined', 'thoughtful', 'nervous', 'terrified', 'frustrated', 'miserable', 'lonely', 'scared', 'screaming', 'crying', 'ecstatic', 'laughing'],
-    '91998305':  ['drake', 'blank', 'template', 'choice', 'comparison', 'thoughtful', 'calm', 'playful', 'relaxed', 'bored'],
-    '249257686': ['communist', 'share', 'ours', 'bugs bunny', 'ownership', 'mine', 'playful', 'confident', 'suspicious']
-  };
-
-  // Normalize an Imgflip API record into the same shape internal templates use,
-  // so the search index treats both sources uniformly. searchText combines the
-  // lowercased name with any curated alias keywords; entries with no aliases
-  // still get name-based matching, matching prior behavior for that subset.
-  function toImgflipMeme(raw) {
-    var aliases = IMGFLIP_ALIASES[raw.id] || [];
-    var text = (raw.name + ' ' + aliases.join(' ')).toLowerCase();
-    return {
-      id: raw.id,
-      name: raw.name,
-      url: raw.url,
-      searchText: text
-    };
+  // Committed curated tags: { "<id>": { name, tags: [...] }, ... }. Best-effort:
+  // any failure resolves to an empty map so search falls back to name + cache.
+  function fetchImgflipTags() {
+    return fetch(IMGFLIP_TAGS_PATH)
+      .then(function (response) {
+        if (!response.ok) return {};
+        return response.json();
+      })
+      .then(function (data) {
+        return data && typeof data === 'object' ? data : {};
+      })
+      .catch(function () {
+        return {};
+      });
   }
 
   // Internal-library templates, normalized to the same shape as Imgflip memes.
@@ -266,6 +203,61 @@ MemeGen.MemeSearch = (function () {
       });
   }
 
+  // Read the localStorage tag cache (id -> string[]). Returns {} if the cache
+  // is empty, malformed, or localStorage is unavailable (e.g. private mode).
+  function loadLocalTagCache() {
+    try {
+      var raw = window.localStorage.getItem(LOCAL_TAG_CACHE_KEY);
+      if (!raw) return {};
+      var parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  // Persist the tag cache. Failures (quota, unavailable storage) are non-fatal —
+  // tags simply won't survive to the next visit.
+  function saveLocalTagCache(cache) {
+    try {
+      window.localStorage.setItem(LOCAL_TAG_CACHE_KEY, JSON.stringify(cache || {}));
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  // Resolve cached tags for one Imgflip template, in priority order:
+  //   1. the committed tag file, 2. tags cached from a previous visit.
+  // Returns the tag array, or null when nothing is cached (→ candidate for the
+  // Worker).
+  function getCachedTags(raw, fileTagMap, tagCache) {
+    var fileEntry = fileTagMap && fileTagMap[raw.id];
+    if (fileEntry && Array.isArray(fileEntry.tags) && fileEntry.tags.length) {
+      return fileEntry.tags;
+    }
+    var cached = tagCache && tagCache[raw.id];
+    if (Array.isArray(cached) && cached.length) {
+      return cached;
+    }
+    return null;
+  }
+
+  // Normalize an Imgflip API record into the same shape internal templates use,
+  // so the search index treats both sources uniformly. searchText combines the
+  // lowercased name with the tag keywords; an empty tag list still yields
+  // name-only matching, matching prior behavior for untagged templates.
+  function buildImgflipMeme(raw, tags) {
+    var list = Array.isArray(tags) ? tags : [];
+    return {
+      id: raw.id,
+      name: raw.name,
+      url: raw.url,
+      source: 'imgflip',
+      tags: list,
+      searchText: (raw.name + ' ' + list.join(' ')).toLowerCase()
+    };
+  }
+
   // Convert an internal template record into the meme shape used for rendering.
   // searchText bundles the extra metadata so internal templates can be matched
   // by character, emotion, or tag — not just by name.
@@ -274,6 +266,8 @@ MemeGen.MemeSearch = (function () {
       id: t.id,
       name: t.name,
       url: resolveImageUrl(t.image),
+      source: 'internal',
+      tags: Array.isArray(t.tags) ? t.tags : [],
       searchText: buildSearchText(t)
     };
   }
@@ -289,6 +283,101 @@ MemeGen.MemeSearch = (function () {
   function resolveImageUrl(image) {
     return encodeURI(ASSET_PREFIX + image);
   }
+
+  // ── Background cloud tagging ────────────────────────────────────────────────
+
+  // Cloud tagging is only attempted once the placeholder Worker URL has been
+  // replaced with a real deployment, so the app never calls a dead endpoint.
+  function cloudTaggingEnabled() {
+    return AI_TAG_ENDPOINT.indexOf('YOUR-WORKER-URL') === -1;
+  }
+
+  // Queue up to MAX_CLOUD_TAGS untagged memes for slow background tagging.
+  function enqueueMissing(missing) {
+    if (!cloudTaggingEnabled() || !missing.length) return;
+    tagQueue = missing.slice(0, MAX_CLOUD_TAGS);
+    processTagQueue();
+  }
+
+  // Process the queue one meme at a time, spacing calls out. A single failure
+  // never stops the others, and never disrupts the UI.
+  function processTagQueue() {
+    if (queueRunning) return;
+    queueRunning = true;
+
+    function next() {
+      if (!tagQueue.length) {
+        queueRunning = false;
+        return;
+      }
+      var raw = tagQueue.shift();
+      tagMemeThroughCloud(raw)
+        .then(function (tags) {
+          if (tags && tags.length) updateMemeTags(raw.id, tags);
+        })
+        .catch(function () {
+          /* this meme stays searchable by name only */
+        })
+        .then(function () {
+          setTimeout(next, CLOUD_TAG_DELAY_MS);
+        });
+    }
+
+    next();
+  }
+
+  // Ask the Cloudflare Worker to AI-tag one template. Resolves with a cleaned
+  // tag array; rejects on transport errors or an invalid response shape.
+  function tagMemeThroughCloud(raw) {
+    return fetch(AI_TAG_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: raw.id, name: raw.name, imageUrl: raw.url })
+    })
+      .then(function (response) {
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.json();
+      })
+      .then(function (data) {
+        if (!data || !Array.isArray(data.tags)) throw new Error('Bad tag response');
+        return sanitizeTags(data.tags);
+      });
+  }
+
+  // Defensive client-side cleanup of any tag list: lowercase, trimmed, short,
+  // de-duplicated, capped. The Worker validates too, but we never trust input.
+  function sanitizeTags(tags) {
+    var seen = {};
+    var out = [];
+    for (var i = 0; i < tags.length && out.length < MAX_TAGS; i++) {
+      if (typeof tags[i] !== 'string') continue;
+      var v = tags[i].toLowerCase().trim();
+      if (v && v.length <= 40 && !seen[v]) {
+        seen[v] = true;
+        out.push(v);
+      }
+    }
+    return out;
+  }
+
+  // Apply freshly fetched tags to a cached meme: update its searchText, persist
+  // to localStorage, and re-run the current search so it appears if it now
+  // matches the query.
+  function updateMemeTags(id, tags) {
+    var clean = sanitizeTags(tags);
+    for (var i = 0; i < memes.length; i++) {
+      if (memes[i].id === id) {
+        memes[i].tags = clean;
+        memes[i].searchText = (memes[i].name + ' ' + clean.join(' ')).toLowerCase();
+        break;
+      }
+    }
+    localTagCache[id] = clean;
+    saveLocalTagCache(localTagCache);
+    runSearch();
+  }
+
+  // ── Search + render ─────────────────────────────────────────────────────────
 
   // Filter cached templates by the current query and render the grid.
   function runSearch() {

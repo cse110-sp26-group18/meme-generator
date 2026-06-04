@@ -6,6 +6,12 @@ MemeGen.TextBox = (function () {
   var FONT_SIZE_MIN  = 8;
   var FONT_SIZE_MAX  = 120;
 
+  /**
+   * @constructor
+   * @param {number} x - initial left offset in px relative to the container
+   * @param {number} y - initial top offset in px relative to the container
+   * @param {HTMLElement} container - element the text box DOM node is appended to
+   */
   function TextBox(x, y, container) {
     this.id = ++idCounter;
     this.container = container;
@@ -21,14 +27,16 @@ MemeGen.TextBox = (function () {
     this._handleKeyDown = null;
     this.onDelete = null;
     this.onSelect = null;
-    // Once the user drags a corner handle, auto-fit is disabled for this box
-    // so their explicit sizing isn't overwritten by subsequent typing.
-    this.manuallyResized = false;
 
     this._buildDOM();
     this._bindEvents();
   }
 
+  /**
+   * Creates and appends all DOM elements for the text box (toolbar, textarea,
+   *   resize handles). Stores references to interactive elements on `this`.
+   * @private
+   */
   TextBox.prototype._buildDOM = function () {
     var el = document.createElement('div');
     el.className = 'text-box';
@@ -36,12 +44,15 @@ MemeGen.TextBox = (function () {
     el.style.top = this.y + 'px';
     el.style.width = this.width + 'px';
     el.style.height = this.height + 'px';
+    // dataset writes a data-textbox-id HTML attribute, usable as a DOM hook
+    // for tests and for disambiguating which box triggered an event.
     el.dataset.textboxId = this.id;
 
     var toolbar = document.createElement('div');
     toolbar.className = 'text-box-toolbar';
 
-    // ✥ Move — first, easy to grab
+    // ✥ Move — kept in DOM for desktop drag and existing tests; hidden on
+    // mobile via CSS (the whole toolbar is display:none on mobile).
     var moveBtn = document.createElement('button');
     moveBtn.className = 'move-handle';
     moveBtn.textContent = '✥ Move';
@@ -190,6 +201,11 @@ MemeGen.TextBox = (function () {
     this.applyFontSize(this.fontSize);
   };
 
+  /**
+   * Wires up all DOM event listeners for the text box (font controls, border
+   *   toggle, delete, selection, and keyboard delete).
+   * @private
+   */
   TextBox.prototype._bindEvents = function () {
     var self = this;
 
@@ -214,9 +230,10 @@ MemeGen.TextBox = (function () {
     });
 
     this.textarea.addEventListener('input', function () {
-      if (!self.manuallyResized) {
-        self.fitToText();
-      }
+      // The box is the fixed boundary; keep the text fitting inside it by
+      // shrinking the font when it would overflow and growing it back when
+      // there is spare room.
+      self.fitToText();
     });
 
     // A− decreases font size and shrinks the box to match
@@ -247,12 +264,14 @@ MemeGen.TextBox = (function () {
         // First click: select this textbox, but do not edit yet.
         self.editing = false;
 
-        // Remove typing cursor from any previous textbox.
+        // Blur the currently focused element so the previous text box loses its
+        // caret — document.activeElement is the element that currently has focus.
         if (document.activeElement && document.activeElement.blur) {
           document.activeElement.blur();
         }
 
-        // Stop this first click from placing the cursor in this textarea.
+        // preventDefault stops the mousedown from placing the browser's text
+        // cursor inside the textarea on this first click.
         e.preventDefault();
         self.textarea.blur();
       } else {
@@ -267,6 +286,7 @@ MemeGen.TextBox = (function () {
     });
 
     // Delete key removes selected textbox only when not editing text.
+    // Registered on document so it fires regardless of which element has focus.
     this._handleKeyDown = function (e) {
       if (e.key !== 'Delete' || !self.selected || self.editing) {
         return;
@@ -346,9 +366,13 @@ MemeGen.TextBox = (function () {
     });
   };
 
-  // Single source of truth for font size changes.
-  // Updates this.fontSize, the textarea inline style, and the toolbar display.
-  // Call this from DragResize during resize AND from A+/A− click handlers.
+  /**
+   * Single source of truth for font size changes. Updates this.fontSize,
+   *   the textarea inline style, and the toolbar display. Called from
+   *   DragResize during resize and from the A+/A− click handlers.
+   * @param {number} size - desired font size in px, clamped to
+   *   FONT_SIZE_MIN–FONT_SIZE_MAX
+   */
   TextBox.prototype.applyFontSize = function (size) {
     this.fontSize = Math.max(FONT_SIZE_MIN, Math.min(FONT_SIZE_MAX, Math.round(size)));
     this.textarea.style.fontSize = this.fontSize + 'px';
@@ -358,49 +382,68 @@ MemeGen.TextBox = (function () {
     }
   };
 
-  // Resize the box height to the natural proportion for the current font size.
-  // Inverse of the resize formula: height = fontSize / 0.4 = fontSize * 2.5
+  /**
+   * Resizes box height to a natural proportion for the current font size.
+   *   Inverse of the resize formula: height = fontSize / 0.4 = fontSize * 2.5.
+   * @private
+   */
   TextBox.prototype._fitBoxToFontSize = function () {
     var newHeight = Math.max(40, Math.round(this.fontSize * 2.5));
     this.el.style.height = newHeight + 'px';
   };
 
-  // Shrink/grow the box so it hugs the textarea content with no extra slack.
-  // Measures each line's width using a canvas 2d context (consistent with
-  // Exporter), then sets el width/height to match. Horizontal chrome = 16px
-  // (textarea padding 6px*2 + border 2px*2); vertical chrome = 12px
-  // (padding 4px*2 + border 2px*2). Floored at the CSS min sizes (80x40).
+  /**
+   * Shrinks or grows the box to hug the textarea content with no extra slack.
+   *   Measures each line's width using a canvas 2D context (consistent with
+   *   Exporter). Horizontal chrome = 16px; vertical chrome = 12px.
+   *   Floored at the CSS min sizes (80×40 px).
+   */
   TextBox.prototype.fitToText = function () {
     var text = this.textarea.value;
-    var lines = text.length ? text.split('\n') : [''];
+    var boxWidth  = parseInt(this.el.style.width, 10)  || this.el.offsetWidth  || this.width;
+    var boxHeight = parseInt(this.el.style.height, 10) || this.el.offsetHeight || this.height;
 
+    var innerWidth  = Math.max(1, boxWidth  - 16);
+    var innerHeight = Math.max(1, boxHeight - 12);
+
+    // A single off-screen canvas is reused across all TextBox instances for
+    // text measurement — canvas ctx measurement matches what Exporter draws,
+    // and reusing it avoids allocating a new canvas element on every keystroke.
     var ctx = (TextBox._measureCanvas || (TextBox._measureCanvas = document.createElement('canvas'))).getContext('2d');
-    ctx.font = this.fontSize + 'px ' + this.fontFamily;
 
-    var maxWidth = 0;
-    for (var i = 0; i < lines.length; i++) {
-      var w = ctx.measureText(lines[i]).width;
-      if (w > maxWidth) maxWidth = w;
+    var best = FONT_SIZE_MIN;
+    for (var size = FONT_SIZE_MIN; size <= FONT_SIZE_MAX; size++) {
+      ctx.font = size + 'px ' + this.fontFamily;
+
+      var lines = MemeGen.Exporter.wrapText(ctx, text, innerWidth);
+      var totalHeight = lines.length * size * 1.2;
+
+      var widest = 0;
+      for (var i = 0; i < lines.length; i++) {
+        var w = ctx.measureText(lines[i]).width;
+        if (w > widest) widest = w;
+      }
+
+      if (totalHeight <= innerHeight && widest <= innerWidth) {
+        best = size;
+      }
     }
 
-    var lineHeight = this.fontSize * 1.2;
-    var textHeight = lines.length * lineHeight;
-
-    var HORIZ_CHROME = 16;
-    var VERT_CHROME = 12;
-
-    var newWidth = Math.max(80, Math.ceil(maxWidth + HORIZ_CHROME));
-    var newHeight = Math.max(40, Math.ceil(textHeight + VERT_CHROME));
-
-    this.el.style.width = newWidth + 'px';
-    this.el.style.height = newHeight + 'px';
+    this.applyFontSize(best);
   };
 
+  /**
+   * Marks the text box as selected and adds the selected CSS class.
+   */
   TextBox.prototype.select = function () {
     this.selected = true;
     this.el.classList.add('selected');
   };
 
+  /**
+   * Marks the text box as deselected, blurs the textarea, and removes
+   *   the selected CSS class.
+   */
   TextBox.prototype.deselect = function () {
     this.selected = false;
     this.editing = false;
@@ -415,9 +458,6 @@ MemeGen.TextBox = (function () {
     // deselect restores that gating once a different box (or no box) is
     // active. On desktop blur is harmless — focus would have been lost
     // anyway when the user clicked outside.
-    if (document.activeElement === this.textarea) {
-      this.textarea.blur();
-    }
   };
 
   TextBox.prototype.showQuickActions = function () {
@@ -432,17 +472,24 @@ MemeGen.TextBox = (function () {
     this.el.classList.remove('menu-open');
   };
 
-  // Call this once after the text box is fully created and selected.
-  // Fires focus both synchronously (needed for mobile touch gesture) and
-  // deferred (needed on desktop where the originating mousedown can steal
-  // focus back after the event finishes).
+  /**
+   * Focuses the textarea both synchronously and deferred to handle both
+   *   mobile touch gestures and desktop mousedown focus-stealing.
+   */
   TextBox.prototype.focusTextarea = function () {
     var self = this;
     self.editing = true;
     self.textarea.focus();
+    // setTimeout 0 defers the second focus call to after the current event
+    // finishes — needed on desktop where the originating mousedown can
+    // steal focus back before the synchronous focus() takes effect.
     setTimeout(function () { self.textarea.focus(); }, 0);
   };
 
+  /**
+   * Removes the text box from the DOM, cleans up the keydown listener,
+   *   and fires the onDelete callback if set.
+   */
   TextBox.prototype.destroy = function () {
     if (this._handleKeyDown) {
       document.removeEventListener('keydown', this._handleKeyDown);
@@ -459,6 +506,11 @@ MemeGen.TextBox = (function () {
     this.el.remove();
   };
 
+  /**
+   * @returns {Object} snapshot of the text box's current position, size, and
+   *   styling for use by the Exporter — contains x, y, width, height, text,
+   *   fontFamily, fontSize, and borderEnabled
+   */
   TextBox.prototype.getState = function () {
     return {
       x: this.el.offsetLeft,
@@ -470,6 +522,17 @@ MemeGen.TextBox = (function () {
       fontSize: this.fontSize,       // explicit state — read by Exporter directly
       borderEnabled: this.borderEnabled
     };
+  };
+
+  TextBox.prototype.keepInsideContainer = function () {
+    var maxLeft = Math.max(0, this.container.offsetWidth - this.el.offsetWidth);
+    var maxTop = Math.max(0, this.container.offsetHeight - this.el.offsetHeight);
+
+    var newLeft = Math.max(0, Math.min(this.el.offsetLeft, maxLeft));
+    var newTop = Math.max(0, Math.min(this.el.offsetTop, maxTop));
+
+    this.el.style.left = newLeft + 'px';
+    this.el.style.top = newTop + 'px';
   };
 
   return TextBox;

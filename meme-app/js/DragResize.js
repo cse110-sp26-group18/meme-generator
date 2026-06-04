@@ -4,6 +4,13 @@ MemeGen.DragResize = (function () {
   var MIN_WIDTH = 80;
   var MIN_HEIGHT = 40;
 
+  /**
+   * Attaches move and resize event listeners to a TextBox instance. Move is
+   *   handled via pointer capture on the move handle; resize is handled via
+   *   mouse events on the corner handles.
+   * @param {MemeGen.TextBox} textBox - the text box instance to make
+   *   draggable and resizable
+   */
   function attach(textBox) {
     var el = textBox.el;
     var container = textBox.container;
@@ -15,6 +22,9 @@ MemeGen.DragResize = (function () {
 
     // --- Move via dedicated handle using pointer capture ---
     moveBtn.addEventListener('pointerdown', function (e) {
+      // setPointerCapture routes all subsequent pointer events for this
+      // pointerId to moveBtn, even when the cursor leaves the element —
+      // this keeps the drag live when the user moves the mouse quickly.
       moveBtn.setPointerCapture(e.pointerId);
       startX = e.clientX;
       startY = e.clientY;
@@ -23,22 +33,64 @@ MemeGen.DragResize = (function () {
     });
 
     moveBtn.addEventListener('pointermove', function (e) {
+      // hasPointerCapture guards against spurious pointermove events that
+      // fire before setPointerCapture takes effect.
       if (!moveBtn.hasPointerCapture(e.pointerId)) return;
       var dx = e.clientX - startX;
       var dy = e.clientY - startY;
-      var newLeft = Math.max(0, Math.min(startLeft + dx, container.offsetWidth - el.offsetWidth));
-      var newTop  = Math.max(0, Math.min(startTop  + dy, container.offsetHeight - el.offsetHeight));
+
+      var maxLeft = Math.max(0, container.offsetWidth - el.offsetWidth);
+      var maxTop = Math.max(0, container.offsetHeight - el.offsetHeight);
+
+      var newLeft = Math.max(0, Math.min(startLeft + dx, maxLeft));
+      var newTop = Math.max(0, Math.min(startTop + dy, maxTop));
+
       el.style.left = newLeft + 'px';
-      el.style.top  = newTop  + 'px';
+      el.style.top = newTop + 'px';
     });
 
     moveBtn.addEventListener('pointerup', function (e) {
       if (moveBtn.hasPointerCapture(e.pointerId)) {
+        // Release capture so the browser resumes normal pointer event routing.
         moveBtn.releasePointerCapture(e.pointerId);
       }
     });
 
+    el.addEventListener('pointercancel', function (e) {
+      if (el.hasPointerCapture(e.pointerId)) {
+        el.releasePointerCapture(e.pointerId);
+      }
+    });
+
+    // --- Move via dedicated handle using pointer capture ---
+    // moveBtn.addEventListener('pointerdown', function (e) {
+    //   moveBtn.setPointerCapture(e.pointerId);
+    //   startX = e.clientX;
+    //   startY = e.clientY;
+    //   startLeft = el.offsetLeft;
+    //   startTop = el.offsetTop;
+    // });
+
+    // moveBtn.addEventListener('pointermove', function (e) {
+    //   if (!moveBtn.hasPointerCapture(e.pointerId)) return;
+    //   var dx = e.clientX - startX;
+    //   var dy = e.clientY - startY;
+    //   var newLeft = Math.max(0, Math.min(startLeft + dx, container.offsetWidth - el.offsetWidth));
+    //   var newTop  = Math.max(0, Math.min(startTop  + dy, container.offsetHeight - el.offsetHeight));
+    //   el.style.left = newLeft + 'px';
+    //   el.style.top  = newTop  + 'px';
+    // });
+
+    // moveBtn.addEventListener('pointerup', function (e) {
+    //   if (moveBtn.hasPointerCapture(e.pointerId)) {
+    //     moveBtn.releasePointerCapture(e.pointerId);
+    //   }
+    // });
+
     // --- Resize via corner handles using mouse events ---
+    // Mouse events (rather than pointer events) are used here because resize
+    // handles are small targets that need document-level tracking, and the
+    // simpler mouse API is sufficient for this desktop-focused interaction.
     el.addEventListener('mousedown', function (e) {
       var target = e.target;
       if (!target.classList.contains('resize-handle')) return;
@@ -46,9 +98,9 @@ MemeGen.DragResize = (function () {
       e.preventDefault();
       e.stopPropagation();
       resizing = true;
+      // dataset.corner holds the corner identifier set as a data-corner attribute
+      // on each handle element, used to determine the resize direction below.
       resizeCorner = target.dataset.corner;
-      // Manual corner-resize overrides auto-fit so typing won't shrink the box back.
-      textBox.manuallyResized = true;
       startX = e.clientX;
       startY = e.clientY;
       startLeft   = el.offsetLeft;
@@ -57,53 +109,89 @@ MemeGen.DragResize = (function () {
       startHeight = el.offsetHeight;
     });
 
+    // mousemove is registered on document so the resize continues even when
+    // the cursor moves outside the element during a fast drag.
     document.addEventListener('mousemove', function (e) {
       if (!resizing) return;
 
       var dx = e.clientX - startX;
       var dy = e.clientY - startY;
-      var newWidth, newHeight, newLeft, newTop;
+
+      var newWidth = startWidth;
+      var newHeight = startHeight;
+      var newLeft = startLeft;
+      var newTop = startTop;
+
+      var rightEdge = startLeft + startWidth;
+      var bottomEdge = startTop + startHeight;
 
       switch (resizeCorner) {
         case 'bottom-right':
-          newWidth  = Math.max(MIN_WIDTH,  startWidth  + dx);
-          newHeight = Math.max(MIN_HEIGHT, startHeight + dy);
-          el.style.width  = newWidth  + 'px';
-          el.style.height = newHeight + 'px';
+          newWidth = startWidth + dx;
+          newHeight = startHeight + dy;
           break;
 
         case 'bottom-left':
-          newWidth  = Math.max(MIN_WIDTH,  startWidth  - dx);
-          newHeight = Math.max(MIN_HEIGHT, startHeight + dy);
-          newLeft   = startLeft + (startWidth - newWidth);
-          el.style.width  = newWidth  + 'px';
-          el.style.height = newHeight + 'px';
-          el.style.left   = newLeft   + 'px';
+          newLeft = startLeft + dx;
+
+          // Do not let the left edge pass the right edge minus MIN_WIDTH
+          newLeft = Math.min(newLeft, rightEdge - MIN_WIDTH);
+          newLeft = Math.max(0, newLeft);
+
+          newWidth = rightEdge - newLeft;
+          newHeight = startHeight + dy;
           break;
 
         case 'top-right':
-          newWidth  = Math.max(MIN_WIDTH,  startWidth  + dx);
-          newHeight = Math.max(MIN_HEIGHT, startHeight - dy);
-          newTop    = startTop + (startHeight - newHeight);
-          el.style.width  = newWidth  + 'px';
-          el.style.height = newHeight + 'px';
-          el.style.top    = newTop    + 'px';
+          newTop = startTop + dy;
+
+          // Do not let the top edge pass the bottom edge minus MIN_HEIGHT
+          newTop = Math.min(newTop, bottomEdge - MIN_HEIGHT);
+          newTop = Math.max(0, newTop);
+
+          newWidth = startWidth + dx;
+          newHeight = bottomEdge - newTop;
           break;
 
         case 'top-left':
-          newWidth  = Math.max(MIN_WIDTH,  startWidth  - dx);
-          newHeight = Math.max(MIN_HEIGHT, startHeight - dy);
-          newLeft   = startLeft + (startWidth  - newWidth);
-          newTop    = startTop  + (startHeight - newHeight);
-          el.style.width  = newWidth  + 'px';
-          el.style.height = newHeight + 'px';
-          el.style.left   = newLeft   + 'px';
-          el.style.top    = newTop    + 'px';
+          newLeft = startLeft + dx;
+          newTop = startTop + dy;
+
+          // Do not let the left edge pass the right edge minus MIN_WIDTH
+          newLeft = Math.min(newLeft, rightEdge - MIN_WIDTH);
+          newLeft = Math.max(0, newLeft);
+
+          // Do not let the top edge pass the bottom edge minus MIN_HEIGHT
+          newTop = Math.min(newTop, bottomEdge - MIN_HEIGHT);
+          newTop = Math.max(0, newTop);
+
+          newWidth = rightEdge - newLeft;
+          newHeight = bottomEdge - newTop;
           break;
       }
 
-      // Keep font size in sync with box height so live editor and exporter always match.
-      textBox.applyFontSize(newHeight * 0.4);
+      // Keep right edge inside container
+      if (newLeft + newWidth > container.offsetWidth) {
+        newWidth = container.offsetWidth - newLeft;
+      }
+
+      // Keep bottom edge inside container
+      if (newTop + newHeight > container.offsetHeight) {
+        newHeight = container.offsetHeight - newTop;
+      }
+
+      // Final safety clamp
+      newWidth = Math.max(MIN_WIDTH, newWidth);
+      newHeight = Math.max(MIN_HEIGHT, newHeight);
+
+      el.style.left = newLeft + 'px';
+      el.style.top = newTop + 'px';
+      el.style.width = newWidth + 'px';
+      el.style.height = newHeight + 'px';
+
+      // Rescale the font to the largest size that fits the new box dimensions,
+      // so the text fills the box without overflowing (and the exporter matches).
+      textBox.fitToText();
     });
 
     document.addEventListener('mouseup', function () {
@@ -281,6 +369,13 @@ MemeGen.DragResize = (function () {
         }
       }
       resetHold();
+    });
+
+    // In order to handle an interrupted touch gesture (i.e. incoming call, scrolling out of bounds, or system alert), the pinch state can get stuck, leaving the text box in a .hold-active state, preventing futher interactions. This resets the hold and pinch states to make gesture handling more robust.
+    el.addEventListener('touchcancel', function (e) {
+      resetHold();
+      pinchActive = false;
+      pinchStartDist = 0;
     });
   }
 

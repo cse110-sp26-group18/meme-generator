@@ -6,33 +6,51 @@ MemeGen.TextBoxManager = (function () {
   var canvas = null;
   var imageLoaded = false;
 
+  /**
+   * @param {HTMLElement} containerEl - the canvas container that receives
+   *   click and touch events for creating text boxes
+   * @param {HTMLCanvasElement} canvasEl - used to calculate click coordinates
+   *   relative to the canvas origin
+   */
   function init(containerEl, canvasEl) {
     container = containerEl;
     canvas = canvasEl;
 
     container.addEventListener('mousedown', function (e) {
       if (e.target === canvas && imageLoaded) {
+        if (getSelectedTextBox()) {
+          deselectOrDeleteSelectedTextBox();
+          return;
+        }
+        // getBoundingClientRect() returns viewport-relative coordinates;
+        // subtracting rect.left/top converts them to canvas-local coordinates.
         var rect = canvas.getBoundingClientRect();
         var x = e.clientX - rect.left;
         var y = e.clientY - rect.top;
+
         createTextBox(x, y);
-      } else if (e.target === canvas) {
-        deselectAll();
       }
     });
 
     // Support tap-to-create on touch devices
     container.addEventListener('touchend', function (e) {
       if (e.target === canvas && imageLoaded) {
+        // preventDefault stops the browser from synthesizing a mouse click
+        // after the touch, which would otherwise trigger a second createTextBox.
         e.preventDefault();
         var rect = canvas.getBoundingClientRect();
+        // changedTouches contains only the touches that changed in this event;
+        // [0] is the first (and typically only) finger involved in the tap.
         var touch = e.changedTouches[0];
+
         var x = touch.clientX - rect.left;
         var y = touch.clientY - rect.top;
+
         createTextBox(x, y);
       }
     });
 
+    // mousedown on document (not container) deselects when clicking outside.
     document.addEventListener('mousedown', function (e) {
       if (!container.contains(e.target)) {
         deselectAll();
@@ -46,6 +64,8 @@ MemeGen.TextBoxManager = (function () {
 
       var activeEl = document.activeElement;
 
+      // isContentEditable catches rich-text editor elements alongside
+      // INPUT/TEXTAREA/SELECT — prevents accidental deletion while typing.
       if (
         activeEl &&
         (
@@ -62,12 +82,22 @@ MemeGen.TextBoxManager = (function () {
     });
   }
 
+  /**
+   * @param {boolean} loaded - true once an image is on the canvas, enabling
+   *   text box creation on canvas clicks
+   */
   function setImageLoaded(loaded) {
     imageLoaded = loaded;
   }
 
+  /**
+   * Creates a new text box at the given position, wires up its callbacks,
+   *   attaches drag/resize, and immediately selects and focuses it.
+   * @param {number} x - x position in px relative to the canvas origin
+   * @param {number} y - y position in px relative to the canvas origin
+   */
   function createTextBox(x, y) {
-    var tb = new MemeGen.TextBox(x, y, container);
+    var tb = new MemeGen.TextBox(0, 0, container);
 
     tb.onDelete = function (box) {
       var idx = textBoxes.indexOf(box);
@@ -80,8 +110,17 @@ MemeGen.TextBoxManager = (function () {
     };
 
     MemeGen.DragResize.attach(tb);
+
     textBoxes.push(tb);
     deselectAll();
+
+    // Keep new textbox fully inside the image/template.
+    var clampedX = Math.max(0, Math.min(x, container.offsetWidth - tb.el.offsetWidth));
+    var clampedY = Math.max(0, Math.min(y, container.offsetHeight - tb.el.offsetHeight));
+
+    tb.el.style.left = clampedX + 'px';
+    tb.el.style.top = clampedY + 'px';
+
     tb.select();
     tb.focusTextarea();
   }
@@ -136,6 +175,9 @@ MemeGen.TextBoxManager = (function () {
     return created;
   }
 
+  /**
+   * Destroys the currently selected text box, if any.
+   */
   function deleteSelectedTextBox() {
     var selectedBox = textBoxes.find(function (tb) {
       return tb.selected;
@@ -146,12 +188,18 @@ MemeGen.TextBoxManager = (function () {
     }
   }
 
+  /**
+   * Deselects all active text boxes.
+   */
   function deselectAll() {
     textBoxes.forEach(function (tb) {
       tb.deselect();
     });
   }
 
+  /**
+   * @returns {MemeGen.TextBox[]} all text boxes currently present on the canvas
+   */
   function getAll() {
     return textBoxes;
   }
@@ -165,12 +213,47 @@ MemeGen.TextBoxManager = (function () {
     return textBoxes[textBoxes.length - 1] || null;
   }
 
+  function getSelectedTextBox() {
+    return textBoxes.find(function (tb) {
+      return tb.selected;
+    });
+  }
+
+  function isTextBoxEmpty(tb) {
+    return !tb.textarea.value.trim();
+  }
+
+  function reset() {
+    textBoxes.slice().forEach(function (tb) {
+      tb.destroy();
+    });
+    textBoxes = [];
+    imageLoaded = false;
+  }
+
+  function deselectOrDeleteSelectedTextBox() {
+    var selectedBox = getSelectedTextBox();
+
+    if (!selectedBox) {
+      return;
+    }
+
+    // Empty textbox should disappear when user clicks out.
+    if (isTextBoxEmpty(selectedBox)) {
+      selectedBox.destroy();
+      return;
+    }
+
+    selectedBox.deselect();
+  }
+
   return {
     init: init,
     setImageLoaded: setImageLoaded,
     getAll: getAll,
     createTextBoxAt: createTextBoxAt,
-    createBatch: createBatch
+    createBatch: createBatch,
+    reset: reset
   };
 })();
 

@@ -21,6 +21,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
       - name: Add ESLint problem matcher
         run: echo "::add-matcher::.github/eslint-problem-matcher.json"
 
@@ -38,3 +41,6 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Run end-to-end tests
+        run: npm run test:e2e

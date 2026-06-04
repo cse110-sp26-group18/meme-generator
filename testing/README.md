@@ -1,6 +1,6 @@
 # Meme Generator — Test Suite
 
-**Framework:** Jest 29 + jsdom + jest-canvas-mock
+**Frameworks:** Jest 29 + jsdom + jest-canvas-mock, plus Playwright for browser E2E tests
 
 ## 1. What Each Test File Covers
 
@@ -14,6 +14,7 @@
 | `drag_drop.test.js` | Drag-and-drop image upload onto the canvas region | `app.js` |
 | `click_upload.test.js` | Click the empty canvas region to open the file picker | `app.js` |
 | `meme_search.test.js` | Search and load meme templates from an external library | `MemeSearch.js` |
+| `e2e/meme-app.spec.js` | Browser-level upload, text editing, download, and meme-template search flows | Full `meme-app/` UI |
 
 ### Detailed breakdown of each test file
 
@@ -100,7 +101,29 @@ Or pass the filename directly:
 npx jest testing/upload.test.js
 ```
 
-## 6. Result Interpretation
+## 6. Run End-to-End Tests
+
+Install Playwright's Chromium browser once per machine:
+
+```bash
+npx playwright install chromium
+```
+
+Playwright serves `meme-app/` locally and opens it in Chromium:
+
+```bash
+npm run test:e2e
+```
+
+For interactive debugging:
+
+```bash
+npm run test:e2e:ui
+```
+
+The E2E suite mocks external font and Imgflip requests so it can run without relying on third-party network availability.
+
+## 7. Result Interpretation
 
 ### Coverage Gaps — features not yet implemented
 

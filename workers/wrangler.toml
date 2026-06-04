@@ -1,7 +1,7 @@
 # Cloudflare Worker config for the AI meme-tagging endpoint.
 #
 # Deploy from the workers/ directory:
-#   wrangler secret put OPENAI_API_KEY    # stores the key in Cloudflare (encrypted)
+#   wrangler secret put GEMINI_API_KEY    # stores the key in Cloudflare (encrypted)
 #   wrangler deploy                       # publishes the Worker
 #
 # The deployed URL prints as: https://tag-meme-worker.<your-subdomain>.workers.dev
@@ -14,3 +14,6 @@
 name = "tag-meme-worker"
 main = "tag-meme-worker.js"
 compatibility_date = "2024-09-01"
+
+[secrets]
+required = ["GEMINI_API_KEY"]

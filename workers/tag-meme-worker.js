@@ -4,7 +4,7 @@
  * Why this exists:
  *   The GitHub Pages frontend must never contain the AI provider's API key.
  *   This Worker sits between the browser and the AI provider. The key lives in
- *   Cloudflare as an encrypted Worker secret (env.OPENAI_API_KEY) — it is not in
+ *   Cloudflare as an encrypted Worker secret (env.GEMINI_API_KEY) — it is not in
  *   GitHub, not in the frontend bundle, and never sent to the browser.
  *
  * Endpoint:
@@ -14,7 +14,7 @@
  *
  * Deploy (from the workers/ directory):
  *   1. Install Wrangler:        npm i -g wrangler   (or use: npx wrangler ...)
- *   2. Store the secret:        wrangler secret put OPENAI_API_KEY
+ *   2. Store the secret:        wrangler secret put GEMINI_API_KEY
  *        - You'll be prompted to paste the key. It is encrypted and stored in
  *          Cloudflare. It is NOT written to any file and NOT visible in GitHub
  *          or the browser. (Never commit .env / .dev.vars — see .gitignore.)
@@ -25,7 +25,7 @@
  *
  * Local dev:
  *   wrangler dev      → serves on http://localhost:8787
- *   For local runs, put the key in a .dev.vars file (OPENAI_API_KEY="sk-..."),
+ *   For local runs, put the key in a .dev.vars file (GEMINI_API_KEY="..."),
  *   which is gitignored. Do not commit it.
  */
 
@@ -38,9 +38,10 @@
 // is NOT part of the origin. Using an exact origin (not '*') means only your
 // site can call the Worker.
 // ───────────────────────────────────────────────────────────────────────────
-const ALLOWED_ORIGIN = 'https://YOUR-GITHUB-USERNAME.github.io';
+const ALLOWED_ORIGIN = 'https://cse110-sp26-group18.github.io';
 
-const AI_MODEL = 'gpt-4o-mini';
+const AI_MODEL = 'gemini-2.5-flash-lite';
+const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models/';
 const MAX_TAGS = 20;
 
 function corsHeaders() {
@@ -119,24 +120,36 @@ function buildPrompt(name) {
   ].join('\n');
 }
 
+function extractJsonObject(text) {
+  if (typeof text !== 'string') throw new Error('No content in AI response');
+  var trimmed = text.trim();
+  var match = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return match ? match[1].trim() : trimmed;
+}
+
 // Call the AI provider and extract a tag array. Defensive throughout: any
 // missing field or unparseable content throws, and the handler returns a safe
 // fallback so the frontend degrades to name-only search.
 function requestTagsFromAI(env, meme) {
-  return fetch('https://api.openai.com/v1/chat/completions', {
+  var endpoint = GEMINI_API_BASE_URL + encodeURIComponent(AI_MODEL) + ':generateContent?key=' +
+    encodeURIComponent(env.GEMINI_API_KEY);
+
+  return fetch(endpoint, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer ' + env.OPENAI_API_KEY
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: AI_MODEL,
-      temperature: 0.3,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: 'You output only valid JSON.' },
-        { role: 'user', content: buildPrompt(meme.name) }
-      ]
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: buildPrompt(meme.name) }]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.3,
+        responseMimeType: 'application/json'
+      }
     })
   })
     .then(function (resp) {
@@ -146,15 +159,17 @@ function requestTagsFromAI(env, meme) {
     .then(function (data) {
       var content =
         data &&
-        data.choices &&
-        data.choices[0] &&
-        data.choices[0].message &&
-        data.choices[0].message.content;
+        data.candidates &&
+        data.candidates[0] &&
+        data.candidates[0].content &&
+        data.candidates[0].content.parts &&
+        data.candidates[0].content.parts[0] &&
+        data.candidates[0].content.parts[0].text;
       if (typeof content !== 'string') throw new Error('No content in AI response');
 
       var parsed;
       try {
-        parsed = JSON.parse(content);
+        parsed = JSON.parse(extractJsonObject(content));
       } catch (e) {
         throw new Error('AI response was not valid JSON');
       }
@@ -178,7 +193,7 @@ export default {
       return jsonResponse({ error: 'Not found' }, 404);
     }
 
-    if (!env || !env.OPENAI_API_KEY) {
+    if (!env || !env.GEMINI_API_KEY) {
       return jsonResponse({ error: 'Server is not configured' }, 500);
     }
 

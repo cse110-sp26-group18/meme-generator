@@ -2,6 +2,6 @@
 #
 # Copy this file to `.dev.vars` (which is gitignored) and paste your real key.
 # NEVER commit `.dev.vars`. In production the key is set with:
-#   wrangler secret put OPENAI_API_KEY
+#   wrangler secret put GEMINI_API_KEY
 #
-OPENAI_API_KEY="sk-your-openai-key-here"
+GEMINI_API_KEY="your-gemini-api-key-here"

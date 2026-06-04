@@ -12,6 +12,9 @@
  *   Body: { "id": "<imgflip id>", "name": "<template name>", "imageUrl": "<url>" }
  *   200:  { "tags": ["choice", "comparison", "happy", "reaction", ...] }
  *
+ * Generated tags are cached in Workers KV by Imgflip id so Gemini only needs
+ * to tag each template once. Later users get the shared cached tags.
+ *
  * Deploy (from the workers/ directory):
  *   1. Install Wrangler:        npm i -g wrangler   (or use: npx wrangler ...)
  *   2. Store the secret:        wrangler secret put GEMINI_API_KEY
@@ -32,31 +35,40 @@
 // ───────────────────────────────────────────────────────────────────────────
 // CORS
 //
-// REPLACE this with YOUR GitHub Pages origin, e.g. 'https://your-username.github.io'.
 // Note: for a project site (https://your-username.github.io/repo-name/) the
 // ORIGIN is still just 'https://your-username.github.io' — the /repo-name/ path
-// is NOT part of the origin. Using an exact origin (not '*') means only your
-// site can call the Worker.
+// is NOT part of the origin. Localhost entries support local development.
 // ───────────────────────────────────────────────────────────────────────────
-const ALLOWED_ORIGIN = 'https://cse110-sp26-group18.github.io';
+const ALLOWED_ORIGINS = [
+  'https://cse110-sp26-group18.github.io',
+  'http://localhost:5500',
+  'http://127.0.0.1:5500',
+  'http://localhost:8080',
+  'http://127.0.0.1:8080'
+];
 
 const AI_MODEL = 'gemini-2.5-flash-lite';
 const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models/';
-const MAX_TAGS = 20;
+const MAX_TAGS = 25;
 
-function corsHeaders() {
+function getAllowedOrigin(request) {
+  var origin = request.headers.get('Origin');
+  return ALLOWED_ORIGINS.indexOf(origin) !== -1 ? origin : ALLOWED_ORIGINS[0];
+}
+
+function corsHeaders(request) {
   return {
-    'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+    'Access-Control-Allow-Origin': getAllowedOrigin(request),
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Max-Age': '86400'
   };
 }
 
-function jsonResponse(body, status) {
+function jsonResponse(request, body, status) {
   return new Response(JSON.stringify(body), {
     status: status || 200,
-    headers: Object.assign({ 'Content-Type': 'application/json' }, corsHeaders())
+    headers: Object.assign({ 'Content-Type': 'application/json' }, corsHeaders(request))
   });
 }
 
@@ -101,20 +113,30 @@ function parseBody(data) {
 
 function buildPrompt(name) {
   return [
-    'You generate concise search tags for a meme template.',
+    'You generate exhaustive search tags for a meme template.',
     'Template name: "' + name + '".',
     '',
-    'Return 10-20 short, lowercase search tags describing this meme template.',
-    'Include: emotions, visible objects, the meme concept/format, well-known',
-    'characters (only if obvious from the name), and common search terms people',
-    'would type to find it.',
+    'Return 15-25 short, lowercase tags focused primarily on emotion and reaction search.',
+    '',
+    'Prioritize these tag types:',
+    '- emotions: happy, sad, angry, confused, shocked, scared, embarrassed, disappointed, excited, smug, annoyed, frustrated',
+    '- reaction intent: approval, disapproval, rejection, acceptance, disbelief, agreement, disagreement, judgment',
+    '- facial expression or body language if implied by the template name',
+    '- social situation: argument, awkward, cringe, celebration, failure, success, waiting, betrayal',
+    '- meme format or concept: comparison, choice, dilemma, reaction, two panel, four panel',
+    '- well-known character/person names only if obvious from the template name',
+    '',
+    'Add useful synonyms so users can find templates by emotion.',
+    'For example, for sad also include disappointed, upset, crying, depressed when appropriate.',
+    'For angry also include mad, annoyed, frustrated, rage when appropriate.',
     '',
     'Rules:',
     '- lowercase only',
-    '- short tags (1-3 words), never full sentences',
+    '- short tags, 1-3 words',
+    '- never full sentences',
     '- no duplicates',
     '- no offensive, sexual, hateful, or unsafe tags',
-    '- at most 20 tags',
+    '- at most 25 tags',
     '',
     'Respond with ONLY a JSON object of the form {"tags": ["tag1","tag2",...]}.'
   ].join('\n');
@@ -125,6 +147,43 @@ function extractJsonObject(text) {
   var trimmed = text.trim();
   var match = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
   return match ? match[1].trim() : trimmed;
+}
+
+function tagCacheKey(id) {
+  return 'imgflip:' + id;
+}
+
+function readTagsFromCache(env, meme) {
+  if (!env || !env.MEME_TAGS_KV) return Promise.resolve(null);
+
+  return env.MEME_TAGS_KV
+    .get(tagCacheKey(meme.id), { type: 'json' })
+    .then(function (record) {
+      if (!record || !Array.isArray(record.tags) || !record.tags.length) return null;
+      return sanitizeTags(record.tags);
+    })
+    .catch(function () {
+      return null;
+    });
+}
+
+function writeTagsToCache(env, meme, tags) {
+  if (!env || !env.MEME_TAGS_KV || !tags.length) return Promise.resolve();
+
+  var record = {
+    id: meme.id,
+    name: meme.name,
+    imageUrl: meme.imageUrl,
+    tags: tags,
+    source: 'gemini',
+    updatedAt: new Date().toISOString()
+  };
+
+  return env.MEME_TAGS_KV
+    .put(tagCacheKey(meme.id), JSON.stringify(record))
+    .catch(function () {
+      /* Cache writes are helpful but non-fatal. */
+    });
 }
 
 // Call the AI provider and extract a tag array. Defensive throughout: any
@@ -181,20 +240,20 @@ export default {
   fetch: function (request, env) {
     // CORS preflight.
     if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: corsHeaders() });
+      return new Response(null, { status: 204, headers: corsHeaders(request) });
     }
 
     if (request.method !== 'POST') {
-      return jsonResponse({ error: 'Use POST /tag-meme' }, 405);
+      return jsonResponse(request, { error: 'Use POST /tag-meme' }, 405);
     }
 
     var url = new URL(request.url);
     if (url.pathname !== '/tag-meme') {
-      return jsonResponse({ error: 'Not found' }, 404);
+      return jsonResponse(request, { error: 'Not found' }, 404);
     }
 
     if (!env || !env.GEMINI_API_KEY) {
-      return jsonResponse({ error: 'Server is not configured' }, 500);
+      return jsonResponse(request, { error: 'Server is not configured' }, 500);
     }
 
     return request
@@ -205,16 +264,25 @@ export default {
       .then(function (data) {
         var parsed = parseBody(data);
         if (!parsed.ok) {
-          return jsonResponse({ error: parsed.error }, 400);
+          return jsonResponse(request, { error: parsed.error }, 400);
         }
-        return requestTagsFromAI(env, parsed.value)
-          .then(function (tags) {
-            return jsonResponse({ tags: tags });
+        return readTagsFromCache(env, parsed.value)
+          .then(function (cachedTags) {
+            if (cachedTags) {
+              return jsonResponse(request, { tags: cachedTags, cached: true });
+            }
+
+            return requestTagsFromAI(env, parsed.value)
+              .then(function (tags) {
+                return writeTagsToCache(env, parsed.value, tags).then(function () {
+                  return jsonResponse(request, { tags: tags, cached: false });
+                });
+              });
           })
           .catch(function (err) {
             // Never leak provider internals; the frontend treats this as a
             // soft failure and keeps the meme searchable by name.
-            return jsonResponse({ tags: [], error: 'Tagging failed: ' + err.message }, 502);
+            return jsonResponse(request, { tags: [], error: 'Tagging failed: ' + err.message }, 502);
           });
       });
   }

@@ -9,9 +9,9 @@
  *  - Focus after init does not start a second fetch
  *  - Imgflip/open-source API memes load as the primary source
  *  - Internal templates from templates.json are merged into the same grid
- *  - Search works across API names, file-supplied tags, and internal metadata
- *  - Imgflip tags come from assets/templates/imgflip-tags.json, then localStorage
- *  - The committed tag file takes priority over the localStorage cache
+ *  - Search works across API names, legacy file-supplied tags, and internal metadata
+ *  - Imgflip tags come from localStorage, then the Worker, with imgflip-tags.json
+ *    as a fallback when cloud tagging is disabled
  *  - A failed tag file / throwing localStorage still renders memes (name search)
  *  - Internal memes are searchable by name, character, emotion, and tags
  *  - If Imgflip fails, internal templates still render as fallback
@@ -642,9 +642,8 @@ describe('Meme Search — tags from the localStorage cache', () => {
     expect(getVisibleNames(dom.results)).toEqual(['Distracted Boyfriend']);
   });
 
-  it('prefers the committed tag file over the localStorage cache', async () => {
+  it('prefers the localStorage cache over the legacy committed tag file', async () => {
     const dom = mountSearchDom();
-    // localStorage holds a tag the file does NOT — the file entry should win.
     setLocalTagCache({ '181913649': ['localstorageonly'] });
 
     global.fetch = mockFetchByUrl({
@@ -659,11 +658,11 @@ describe('Meme Search — tags from the localStorage cache', () => {
 
     dom.input.value = 'approve';
     dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
-    expect(getVisibleNames(dom.results)).toEqual(['Drake Hotline Bling']);
+    expect(getVisibleNames(dom.results)).toEqual([]);
 
     dom.input.value = 'localstorageonly';
     dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
-    expect(getVisibleNames(dom.results)).toEqual([]);
+    expect(getVisibleNames(dom.results)).toEqual(['Drake Hotline Bling']);
   });
 });
 
@@ -759,6 +758,30 @@ describe('Meme Search — tags from the cloud Worker', () => {
     expect(JSON.parse(window.localStorage.getItem(LOCAL_TAG_CACHE_KEY))).toEqual(
       expect.objectContaining({
         '181913649': ['approve', 'reaction']
+      })
+    );
+  });
+
+  it('ignores legacy committed tags when a Worker endpoint is configured', async () => {
+    const dom = mountSearchDom();
+
+    global.fetch = mockFetchWithWorkerTags({
+      '181913649': ['worker-only']
+    });
+
+    const MemeSearch = loadFreshMemeSearch();
+    MemeSearch.init({
+      input: dom.input,
+      results: dom.results,
+      status: dom.status,
+      aiTagEndpoint: WORKER_URL
+    });
+    await waitForAsyncRender();
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      WORKER_URL,
+      expect.objectContaining({
+        method: 'POST'
       })
     );
   });

@@ -14,16 +14,15 @@ var MemeGen = window.MemeGen || {};
  * callback with the chosen template so the host app can load it onto the canvas.
  *
  * Imgflip templates carry no tags from the API, so search would otherwise only
- * match their name. Tags are resolved, in priority order, from:
- *   a. A committed file of curated tags: assets/templates/imgflip-tags.json
- *   b. Tags generated on previous visits, cached in localStorage.
- *   c. A Cloudflare Worker that AI-tags a template on demand. The Worker holds
- *      the AI provider's secret key — it is never shipped to the browser. Worker
- *      results are cached in localStorage so a template is only ever tagged once.
+ * match their name. Tags are resolved from localStorage first, then from the
+ * Cloudflare Worker. The Worker keeps a shared KV cache and calls Gemini only
+ * for memes that do not already have shared tags.
  *
- * Cloud tagging is cost-capped: only the first few untagged templates are sent,
- * slowly, one at a time, in the background. If the Worker is unconfigured or
- * fails, the affected meme still renders and stays searchable by name.
+ * If the Worker is unconfigured, the legacy committed tag file is used as a
+ * fallback for local/static development. Cloud tagging is cost-capped: only the
+ * first few untagged templates are sent, slowly, one at a time, in the
+ * background. If the Worker fails, the affected meme still renders and stays
+ * searchable by name.
  */
 MemeGen.MemeSearch = (function () {
   var ENDPOINT = 'https://api.imgflip.com/get_memes';
@@ -36,7 +35,7 @@ MemeGen.MemeSearch = (function () {
   var ASSET_PREFIX = '../';
 
   // Public Cloudflare Worker URL that performs AI tagging. Safe to ship: it
-  // holds no secret, only the Worker endpoint. The OpenAI key lives inside
+  // holds no secret, only the Worker endpoint. The Gemini key lives inside
   // Cloudflare. Leave blank to disable cloud tagging.
   var aiTagEndpoint = '';
 
@@ -116,7 +115,9 @@ MemeGen.MemeSearch = (function () {
     Promise.allSettled([fetchImgflipMemes(), fetchImgflipTags(), fetchLocalTemplates()])
       .then(function (results) {
         var raws = results[0].status === 'fulfilled' ? results[0].value : [];
-        var fileTagMap = results[1].status === 'fulfilled' ? results[1].value : {};
+        var fileTagMap = !cloudTaggingEnabled() && results[1].status === 'fulfilled'
+          ? results[1].value
+          : {};
         var localMemes = results[2].status === 'fulfilled' ? results[2].value : [];
 
         localTagCache = loadLocalTagCache();
@@ -228,17 +229,17 @@ MemeGen.MemeSearch = (function () {
   }
 
   // Resolve cached tags for one Imgflip template, in priority order:
-  //   1. the committed tag file, 2. tags cached from a previous visit.
+  //   1. localStorage cache, 2. committed tag file when cloud tagging is disabled.
   // Returns the tag array, or null when nothing is cached (→ candidate for the
   // Worker).
   function getCachedTags(raw, fileTagMap, tagCache) {
-    var fileEntry = fileTagMap && fileTagMap[raw.id];
-    if (fileEntry && Array.isArray(fileEntry.tags) && fileEntry.tags.length) {
-      return fileEntry.tags;
-    }
     var cached = tagCache && tagCache[raw.id];
     if (Array.isArray(cached) && cached.length) {
       return cached;
+    }
+    var fileEntry = fileTagMap && fileTagMap[raw.id];
+    if (fileEntry && Array.isArray(fileEntry.tags) && fileEntry.tags.length) {
+      return fileEntry.tags;
     }
     return null;
   }

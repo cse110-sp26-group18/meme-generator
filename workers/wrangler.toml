@@ -17,3 +17,7 @@ compatibility_date = "2024-09-01"
 
 [secrets]
 required = ["GEMINI_API_KEY"]
+
+[[kv_namespaces]]
+binding = "MEME_TAGS_KV"
+id = "bacc2c7e9c1145fbbc8509eb0a3e5ca3"

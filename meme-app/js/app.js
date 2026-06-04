@@ -395,6 +395,14 @@ document.addEventListener('DOMContentLoaded', function () {
   // returned captions (top + bottom).
   function populatePresetCaptions(containerEl, captions) {
     if (!Array.isArray(captions) || captions.length === 0) return;
+
+    // Picking a new AI suggestion replaces the meme — drop any existing text
+    // boxes so the new captions don't stack on top of the old ones.
+    // slice() because destroy() splices the live array via onDelete.
+    MemeGen.TextBoxManager.getAll().slice().forEach(function (tb) {
+      tb.destroy();
+    });
+
     var w = containerEl.offsetWidth  || 600;
     var h = containerEl.offsetHeight || 400;
     // 200×60 is the TextBox default size; center horizontally, top/bottom pad.

@@ -55,9 +55,18 @@ function flushPromises() {
   return new Promise(function (resolve) { setTimeout(resolve, 0); });
 }
 
+/** Sample ImgFlip-shaped memes used by the controller after the refactor. */
+const SAMPLE_MEMES = [
+  { id: '181913649', name: 'Drake Hotline Bling',  url: 'https://i.imgflip.com/30b1gx.jpg' },
+  { id: '112126428', name: 'Distracted Boyfriend', url: 'https://i.imgflip.com/1ur9b0.jpg' },
+  { id: '87743020',  name: 'Two Buttons',          url: 'https://i.imgflip.com/1g8my4.jpg' }
+];
+
 function initWithDom(onSelect) {
   const refs = mountAiSuggestionsDom();
   MemeGen.AISuggestions.init({ ...refs, onSelect: onSelect || null });
+  // Skip the real ImgFlip fetch in tests — feed the controller a fixed pool.
+  MemeGen.AISuggestions._setMemesForTest(SAMPLE_MEMES);
   return refs;
 }
 
@@ -139,7 +148,7 @@ describe('AISuggestions — missing-key flow', () => {
     const refs = initWithDom();
     const spy = jest.spyOn(MemeGen.GeminiClient, 'generateSuggestions')
       .mockResolvedValue([
-        { template_id: 'lebron-sad', captions: ['top', 'bottom'] }
+        { template_id: '181913649', captions: ['top', 'bottom'] }
       ]);
     refs.getBtn.click();
     refs.identity.value = 'a student';
@@ -155,6 +164,10 @@ describe('AISuggestions — missing-key flow', () => {
     expect(MemeGen.GeminiClient.getApiKey()).toBe('AIzaTESTKEY');
     expect(refs.keyForm.hidden).toBe(true);
     expect(refs.changeKeyLink.hidden).toBe(false);
+
+    // fetchMemes runs before the Gemini call now, so we need to flush the
+    // memes promise before generateSuggestions is invoked.
+    await flushPromises();
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith('a student', 'finals', expect.any(Array));
 
@@ -186,9 +199,9 @@ describe('AISuggestions — happy path', () => {
   it('renders one card per returned suggestion with name + captions', async () => {
     const refs = initWithDom();
     const suggestions = [
-      { template_id: 'lebron-sad',     captions: ['When you fail', 'The whole semester'] },
-      { template_id: 'spongebob-dead', captions: ['Me at 3am',     'Studying for finals'] },
-      { template_id: 'taj-sorry',      captions: ['Sorry brain',   'No more space'] }
+      { template_id: '181913649', captions: ['Studying',          'Doomscrolling'] },
+      { template_id: '112126428', captions: ['Me, my GPA',        'A new TikTok'] },
+      { template_id: '87743020',  captions: ['Study for finals',  'Watch one more'] }
     ];
     jest.spyOn(MemeGen.GeminiClient, 'generateSuggestions').mockResolvedValue(suggestions);
 
@@ -200,19 +213,18 @@ describe('AISuggestions — happy path', () => {
 
     const cards = refs.results.querySelectorAll('.ai-result-card');
     expect(cards.length).toBe(3);
-    // Each card has the template name + 2 caption list items
-    expect(cards[0].querySelector('.ai-result-name').textContent).toBe('LeBron Sad');
+    expect(cards[0].querySelector('.ai-result-name').textContent).toBe('Drake Hotline Bling');
     const captionItems = cards[0].querySelectorAll('.ai-caption-list li');
     expect(captionItems.length).toBe(2);
-    expect(captionItems[0].textContent).toBe('When you fail');
-    expect(captionItems[1].textContent).toBe('The whole semester');
+    expect(captionItems[0].textContent).toBe('Studying');
+    expect(captionItems[1].textContent).toBe('Doomscrolling');
   });
 
   it('clicking a card invokes onSelect(template, captions)', async () => {
     const onSelect = jest.fn();
     const refs = initWithDom(onSelect);
     jest.spyOn(MemeGen.GeminiClient, 'generateSuggestions').mockResolvedValue([
-      { template_id: 'taj-sorry', captions: ['cap a', 'cap b'] }
+      { template_id: '87743020', captions: ['cap a', 'cap b'] }
     ]);
 
     refs.getBtn.click();
@@ -226,15 +238,16 @@ describe('AISuggestions — happy path', () => {
 
     expect(onSelect).toHaveBeenCalledTimes(1);
     const [template, captions] = onSelect.mock.calls[0];
-    expect(template.id).toBe('taj-sorry');
-    expect(template.url).toContain('TAJ-sorry.webp');
+    expect(template.id).toBe('87743020');
+    expect(template.name).toBe('Two Buttons');
+    expect(template.url).toBe('https://i.imgflip.com/1g8my4.jpg');
     expect(captions).toEqual(['cap a', 'cap b']);
   });
 
-  it('drops cards whose template_id does not exist in TEMPLATES', async () => {
+  it('drops cards whose template_id is not in the fetched ImgFlip pool', async () => {
     const refs = initWithDom();
     jest.spyOn(MemeGen.GeminiClient, 'generateSuggestions').mockResolvedValue([
-      { template_id: 'lebron-sad',  captions: ['a', 'b'] },
+      { template_id: '181913649', captions: ['a', 'b'] },
       { template_id: 'made-up-xyz', captions: ['c', 'd'] }
     ]);
 
@@ -246,7 +259,7 @@ describe('AISuggestions — happy path', () => {
 
     const cards = refs.results.querySelectorAll('.ai-result-card');
     expect(cards.length).toBe(1);
-    expect(cards[0].getAttribute('data-template-id')).toBe('lebron-sad');
+    expect(cards[0].getAttribute('data-template-id')).toBe('181913649');
   });
 });
 

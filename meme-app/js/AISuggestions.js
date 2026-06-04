@@ -9,12 +9,10 @@
  *
  * Mirrors the MemeSearch.js module shape (init opts + onSelect callback).
  *
- * Note on templates: templates.json does NOT exist on v4 yet (PR #35 not
- * merged), so we ship the manifest inline. URLs point to existing files
- * under ../assets/templates/ — three filenames carry typos preserved from
- * the originals (sponebob-, supprise, teasewebp, "weird smile") so the urls
- * exactly match the on-disk files; ids are kebab-case and decoupled from
- * the filenames so they read cleanly in the prompt.
+ * Template source: the ImgFlip public meme library (same endpoint as
+ * MemeSearch). ImgFlip's ~100 popular templates are well-known to Gemini
+ * culturally, so their `name` alone is enough for the model to make good
+ * picks — no character/emotion/tags metadata required.
  *
  * Public API:
  *   init(opts) — wires up DOM listeners. Required opts:
@@ -22,41 +20,38 @@
  *     keyForm, keyInput, keySaveBtn, changeKeyLink,
  *     status, results, onSelect(template, captions)
  *
- * Exposes window.MemeGen.AISuggestions = { init, TEMPLATES }.
+ * Exposes window.MemeGen.AISuggestions = { init }.
  */
 var MemeGen = window.MemeGen || {};
 
 MemeGen.AISuggestions = (function () {
-  var ASSET_PREFIX = '../assets/templates/';
+  var IMGFLIP_ENDPOINT = 'https://api.imgflip.com/get_memes';
 
-  // Inline templates manifest. Each entry: id (stable, kebab-case, sent to
-  // Gemini), name (human label), character, emotion, tags, url (literal path).
-  var TEMPLATES = [
-    // SpongeBob
-    { id: 'spongebob-excited',  name: 'SpongeBob Excited',  character: 'SpongeBob', emotion: 'excited',  tags: ['cartoon', 'happy', 'enthusiastic'], url: ASSET_PREFIX + 'spongebob-meme-templates/sponebob-excited.jpg' },
-    { id: 'spongebob-dead',     name: 'SpongeBob Dead',     character: 'SpongeBob', emotion: 'dead',     tags: ['cartoon', 'tired', 'exhausted'],    url: ASSET_PREFIX + 'spongebob-meme-templates/spongebob-dead.jpg' },
-    { id: 'spongebob-mocking',  name: 'SpongeBob Mocking',  character: 'SpongeBob', emotion: 'mocking',  tags: ['cartoon', 'sarcastic', 'mocking'],  url: ASSET_PREFIX + 'spongebob-meme-templates/spongebob-mocking.jpg' },
-    { id: 'spongebob-relieved', name: 'SpongeBob Relieved', character: 'SpongeBob', emotion: 'relieved', tags: ['cartoon', 'happy', 'relieved'],     url: ASSET_PREFIX + 'spongebob-meme-templates/spongebob-relieved.jpg' },
-    { id: 'spongebob-sad',      name: 'SpongeBob Sad',      character: 'SpongeBob', emotion: 'sad',      tags: ['cartoon', 'sad', 'crying'],         url: ASSET_PREFIX + 'spongebob-meme-templates/spongebob-sad.jpg' },
+  // Cached meme list from ImgFlip; fetched on first Generate click.
+  var memes = [];
+  var memesPromise = null;
 
-    // LeBron
-    { id: 'lebron-funny',    name: 'LeBron Funny',     character: 'LeBron', emotion: 'funny',    tags: ['sports', 'basketball', 'funny'],     url: ASSET_PREFIX + 'lebron-meme-templates/lebron-funny.jpg' },
-    { id: 'lebron-happy',    name: 'LeBron Happy',     character: 'LeBron', emotion: 'happy',    tags: ['sports', 'basketball', 'happy'],     url: ASSET_PREFIX + 'lebron-meme-templates/lebron-happy.jpg' },
-    { id: 'lebron-locked',   name: 'LeBron Locked In', character: 'LeBron', emotion: 'locked-in', tags: ['sports', 'basketball', 'focused'], url: ASSET_PREFIX + 'lebron-meme-templates/lebron-locked.jpg' },
-    { id: 'lebron-sad',      name: 'LeBron Sad',       character: 'LeBron', emotion: 'sad',      tags: ['sports', 'basketball', 'sad'],       url: ASSET_PREFIX + 'lebron-meme-templates/lebron-sad.jpg' },
-    { id: 'lebron-shocked',  name: 'LeBron Shocked',   character: 'LeBron', emotion: 'shocked',  tags: ['sports', 'basketball', 'shocked'],   url: ASSET_PREFIX + 'lebron-meme-templates/lebron-shocked.jpg' },
-    { id: 'lebron-sunshine', name: 'LeBron Sunshine',  character: 'LeBron', emotion: 'cheerful', tags: ['sports', 'basketball', 'cheerful'],  url: ASSET_PREFIX + 'lebron-meme-templates/lebron-sunshine.jpg' },
-
-    // TAJ (typos in filenames preserved)
-    { id: 'taj-crazy',       name: 'TAJ Crazy',       character: 'TAJ', emotion: 'crazy',       tags: ['pop-culture', 'crazy', 'wild'],      url: ASSET_PREFIX + 'TAJ-meme-templates/TAJ-crazy.png' },
-    { id: 'taj-easy',        name: 'TAJ Easy',        character: 'TAJ', emotion: 'easy',        tags: ['pop-culture', 'chill', 'relaxed'],   url: ASSET_PREFIX + 'TAJ-meme-templates/TAJ-easy.png' },
-    { id: 'taj-mad',         name: 'TAJ Mad',         character: 'TAJ', emotion: 'mad',         tags: ['pop-culture', 'angry', 'mad'],       url: ASSET_PREFIX + 'TAJ-meme-templates/TAJ-mad.webp' },
-    { id: 'taj-serious',     name: 'TAJ Serious',     character: 'TAJ', emotion: 'serious',     tags: ['pop-culture', 'serious'],            url: ASSET_PREFIX + 'TAJ-meme-templates/TAJ-serious.png' },
-    { id: 'taj-sorry',       name: 'TAJ Sorry',       character: 'TAJ', emotion: 'sorry',       tags: ['pop-culture', 'apologetic'],         url: ASSET_PREFIX + 'TAJ-meme-templates/TAJ-sorry.webp' },
-    { id: 'taj-surprise',    name: 'TAJ Surprised',   character: 'TAJ', emotion: 'surprised',   tags: ['pop-culture', 'surprised'],          url: ASSET_PREFIX + 'TAJ-meme-templates/TAJ-supprise.png' },
-    { id: 'taj-tease',       name: 'TAJ Tease',       character: 'TAJ', emotion: 'teasing',     tags: ['pop-culture', 'playful', 'teasing'], url: ASSET_PREFIX + 'TAJ-meme-templates/TAJ-teasewebp.webp' },
-    { id: 'taj-weird-smile', name: 'TAJ Weird Smile', character: 'TAJ', emotion: 'awkward',     tags: ['pop-culture', 'awkward'],            url: encodeURI(ASSET_PREFIX + 'TAJ-meme-templates/TAJ-weird smile.webp') }
-  ];
+  function fetchMemes() {
+    if (memesPromise) return memesPromise;
+    memesPromise = fetch(IMGFLIP_ENDPOINT)
+      .then(function (res) {
+        if (!res.ok) throw new Error('ImgFlip HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        if (!data || !data.success || !data.data || !Array.isArray(data.data.memes)) {
+          throw new Error('Unexpected ImgFlip response shape');
+        }
+        memes = data.data.memes;
+        return memes;
+      })
+      .catch(function (err) {
+        // Reset so a later retry can try again.
+        memesPromise = null;
+        throw err;
+      });
+    return memesPromise;
+  }
 
   // DOM refs (from init opts)
   var rootEl, getBtn, formEl, identityEl, situationEl, generateBtn,
@@ -143,11 +138,21 @@ MemeGen.AISuggestions = (function () {
   }
 
   function runGenerate(identity, situation) {
-    setStatus('Thinking…');
+    setStatus('Loading templates…');
     if (resultsEl) resultsEl.innerHTML = '';
     if (generateBtn) generateBtn.disabled = true;
 
-    MemeGen.GeminiClient.generateSuggestions(identity, situation, TEMPLATES)
+    fetchMemes()
+      .then(function (memeList) {
+        setStatus('Thinking…');
+        // ImgFlip returns ~100 templates; Gemini only needs the name to
+        // recognize each one culturally. Trim to a reasonable size so the
+        // prompt stays small (~100 lines is fine for gemini-2.5-flash).
+        var templates = memeList.map(function (m) {
+          return { id: m.id, name: m.name };
+        });
+        return MemeGen.GeminiClient.generateSuggestions(identity, situation, templates);
+      })
       .then(renderSuggestions)
       .catch(handleError)
       .then(function () {
@@ -194,9 +199,9 @@ MemeGen.AISuggestions = (function () {
 
   // ── Rendering ─────────────────────────────────────────────────────────────
 
-  function findTemplateById(id) {
-    for (var i = 0; i < TEMPLATES.length; i++) {
-      if (TEMPLATES[i].id === id) return TEMPLATES[i];
+  function findMemeById(id) {
+    for (var i = 0; i < memes.length; i++) {
+      if (memes[i].id === id) return memes[i];
     }
     return null;
   }
@@ -207,8 +212,10 @@ MemeGen.AISuggestions = (function () {
     setStatus(suggestions.length + ' suggestion' + (suggestions.length === 1 ? '' : 's') + ' — click one to load.');
 
     suggestions.forEach(function (s) {
-      var template = findTemplateById(s.template_id);
-      if (!template) return;
+      var meme = findMemeById(s.template_id);
+      if (!meme) return;
+      // Normalize to the {id, name, url} shape the rest of the code expects.
+      var template = { id: meme.id, name: meme.name, url: meme.url };
       resultsEl.appendChild(buildCard(template, s.captions));
     });
   }
@@ -228,6 +235,9 @@ MemeGen.AISuggestions = (function () {
     img.src = template.url;
     img.alt = template.name;
     img.loading = 'lazy';
+    // Anonymous CORS so the same image can be drawn to canvas later
+    // without tainting it (mirrors the MemeSearch card pattern).
+    img.crossOrigin = 'anonymous';
     card.appendChild(img);
 
     var name = document.createElement('span');
@@ -288,7 +298,9 @@ MemeGen.AISuggestions = (function () {
 
   return {
     init: init,
-    TEMPLATES: TEMPLATES
+    // Exposed for tests.
+    _fetchMemes: fetchMemes,
+    _setMemesForTest: function (list) { memes = list; memesPromise = Promise.resolve(list); }
   };
 })();
 

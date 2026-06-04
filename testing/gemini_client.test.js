@@ -213,7 +213,7 @@ describe('GeminiClient.generateSuggestions — happy path', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const url = fetchMock.mock.calls[0][0];
-    expect(url).toMatch(/^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/models\/gemini-2\.0-flash:generateContent\?key=/);
+    expect(url).toMatch(/^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/models\/gemini-2\.5-flash:generateContent\?key=/);
     expect(url).toContain('key=AIzaTESTKEY');
   });
 

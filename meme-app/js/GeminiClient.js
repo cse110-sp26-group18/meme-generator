@@ -25,7 +25,9 @@ var MemeGen = window.MemeGen || {};
 
 MemeGen.GeminiClient = (function () {
   var STORAGE_KEY = 'mg.geminiApiKey';
-  var MODEL = 'gemini-2.0-flash';
+  // gemini-2.5-flash is the current generally-available free-tier model.
+  // gemini-2.0-flash is currently quota-locked to 0 on new keys.
+  var MODEL = 'gemini-2.5-flash';
   var ENDPOINT_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/';
 
   // ── Error classes ───────────────────────────────────────────────────────────
@@ -121,8 +123,15 @@ MemeGen.GeminiClient = (function () {
   };
 
   function templateLine(t) {
-    var tags = Array.isArray(t.tags) ? t.tags.join(', ') : '';
-    return '- ' + t.id + ' — ' + t.character + ' — ' + t.emotion + ' — ' + tags;
+    // Templates may carry rich metadata (character/emotion/tags) OR just a
+    // name (e.g. ImgFlip memes whose entire identity is their cultural
+    // reference). Build the line from whichever fields are present.
+    var parts = [t.id];
+    if (t.name && t.name !== t.id) parts.push('"' + t.name + '"');
+    if (t.character) parts.push(t.character);
+    if (t.emotion) parts.push(t.emotion);
+    if (Array.isArray(t.tags) && t.tags.length) parts.push(t.tags.join(', '));
+    return '- ' + parts.join(' — ');
   }
 
   function buildUserPrompt(identity, situation, templates) {

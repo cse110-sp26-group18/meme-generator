@@ -13,8 +13,8 @@
  *     "Loading…") AND still routes through MemeSearch.loadFromUrl.
  *  5. ImageLoader success callback removes .browse-open (covers upload).
  *  6. The circular + button in the overlay forwards to #image-input.
- *  7. Scan Text remains inert: starts disabled with aria-disabled + a
- *     "coming soon" title and is not auto-enabled by an image load.
+ *  7. Scan Text (OCR): starts disabled and becomes enabled once an image
+ *     is loaded (the ImageLoader callback fires).
  *  8. Fonts button cycles ALL text boxes through the meme-font list
  *     (Impact → Anton → Bangers → Luckiest Guy → Oswald → Impact) and
  *     dispatches a bubbling `change` event on each so TextBox's existing
@@ -46,7 +46,7 @@ function buildDom() {
       <div id="canvas-container"><canvas id="meme-canvas"></canvas><div class="placeholder" id="placeholder">Click</div></div>
       <div class="fonts-row"><button id="fonts-btn">fonts</button></div>
       <div class="scan-text-row">
-        <button id="scan-text-btn" disabled aria-disabled="true" title="Scan Text coming soon">Scan Text</button>
+        <button id="scan-text-btn" disabled title="Detect text in the image">Scan Text</button>
       </div>
       <p class="hint" id="hint" hidden></p>
       <div class="bottom-actions">
@@ -272,7 +272,7 @@ describe('Browse overlay + upload button', () => {
   });
 });
 
-describe('Scan Text is inert (future OCR feature)', () => {
+describe('Scan Text button (OCR feature)', () => {
   beforeEach(() => {
     buildDom();
     jest.spyOn(window.MemeGen.TextBoxManager, 'init').mockImplementation(() => {});
@@ -285,31 +285,18 @@ describe('Scan Text is inert (future OCR feature)', () => {
     document.body.innerHTML = '';
   });
 
-  it('starts disabled with aria-disabled="true" and a "coming soon" title', () => {
+  it('starts disabled before an image is loaded', () => {
     const btn = document.getElementById('scan-text-btn');
     expect(btn.disabled).toBe(true);
-    expect(btn.getAttribute('aria-disabled')).toBe('true');
-    expect(btn.getAttribute('title')).toMatch(/coming soon/i);
   });
 
-  it('stays disabled after the ImageLoader callback fires (no longer auto-enabled)', () => {
+  it('becomes enabled once the ImageLoader callback fires', () => {
     let imageLoaderCb = null;
     jest.spyOn(window.MemeGen.ImageLoader, 'init').mockImplementation((_c, cb) => { imageLoaderCb = cb; });
     const handler = loadAppAndGetHandler();
     handler();
     imageLoaderCb(400, 300);
-    expect(document.getElementById('scan-text-btn').disabled).toBe(true);
-  });
-
-  it('does NOT call TextBoxManager.createTextBoxAt when clicked', () => {
-    jest.spyOn(window.MemeGen.ImageLoader, 'init').mockImplementation(() => {});
-    const createSpy = window.MemeGen.TextBoxManager.createTextBoxAt
-      ? jest.spyOn(window.MemeGen.TextBoxManager, 'createTextBoxAt').mockImplementation(() => {})
-      : null;
-    const handler = loadAppAndGetHandler();
-    handler();
-    document.getElementById('scan-text-btn').dispatchEvent(new Event('click', { bubbles: true }));
-    if (createSpy) expect(createSpy).not.toHaveBeenCalled();
+    expect(document.getElementById('scan-text-btn').disabled).toBe(false);
   });
 });
 

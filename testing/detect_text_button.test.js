@@ -16,7 +16,7 @@ function buildDom() {
       Upload Image
       <input type="file" id="image-input" accept="image/*" hidden>
     </label>
-    <button id="detect-text-btn">Detect Text</button>
+    <button id="scan-text-btn">Scan Text</button>
     <button id="download-btn" disabled>Download Meme</button>
     <div id="canvas-container" class="canvas-container">
       <canvas id="meme-canvas"></canvas>
@@ -43,7 +43,7 @@ describe('Detect Text button — disabled during OCR', () => {
       }));
     require('../meme-app/js/app.js');
     document.dispatchEvent(new Event('DOMContentLoaded'));
-    detectBtn = document.getElementById('detect-text-btn');
+    detectBtn = document.getElementById('scan-text-btn');
   });
 
   afterAll(() => {
@@ -54,7 +54,7 @@ describe('Detect Text button — disabled during OCR', () => {
   beforeEach(() => {
     detectSpy.mockClear();
     detectBtn.disabled = false;
-    detectBtn.textContent = 'Detect Text';
+    detectBtn.textContent = 'Scan Text';
   });
 
   it('disables the button and shows progress text while OCR is in flight', () => {
@@ -69,7 +69,7 @@ describe('Detect Text button — disabled during OCR', () => {
     await Promise.resolve(); // flush the .then microtask
 
     expect(detectBtn.disabled).toBe(false);
-    expect(detectBtn.textContent).toBe('Detect Text');
+    expect(detectBtn.textContent).toBe('Scan Text');
   });
 
   it('re-enables and restores the label after OCR rejects', async () => {
@@ -79,6 +79,6 @@ describe('Detect Text button — disabled during OCR', () => {
     await Promise.resolve().then(() => {}); // flush the .catch microtask
 
     expect(detectBtn.disabled).toBe(false);
-    expect(detectBtn.textContent).toBe('Detect Text');
+    expect(detectBtn.textContent).toBe('Scan Text');
   });
 });

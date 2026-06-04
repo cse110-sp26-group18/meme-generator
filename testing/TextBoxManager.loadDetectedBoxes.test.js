@@ -1,7 +1,7 @@
 /**
  * TextBoxManager.loadDetectedBoxes.test.js
  * Verifies that loadDetectedBoxes maps OCR regions to DOM text boxes
- * with correct scaling, content, and erase behaviour.
+ * with correct scaling, content, and cover behaviour.
  *
  * Module under test: meme-app/js/TextBoxManager.js
  * Loaded globally via testing/setup.js
@@ -151,16 +151,5 @@ describe('TextBoxManager.loadDetectedBoxes', () => {
     const covers = MemeGen.TextBoxManager.getCoverRegions();
     expect(covers).toHaveLength(1);
     expect(covers[0]).toMatchObject({ x: 50, y: 80 });
-  });
-
-  test('erasing a box keeps its cover even after the box is destroyed', () => {
-    MemeGen.TextBoxManager.loadDetectedBoxes(mockRegions);
-    const boxes = MemeGen.TextBoxManager.getAll();
-
-    boxes[0].eraseBtn.click();
-
-    // Box gone, but its cover remains so the text stays erased from the image.
-    expect(MemeGen.TextBoxManager.getAll()).toHaveLength(1);
-    expect(MemeGen.TextBoxManager.getCoverRegions()).toHaveLength(2);
   });
 });

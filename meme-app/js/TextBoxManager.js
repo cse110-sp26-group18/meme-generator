@@ -2,6 +2,10 @@ var MemeGen = window.MemeGen || {};
 
 MemeGen.TextBoxManager = (function () {
   var textBoxes = [];
+  // Rectangles (in canvas-pixel space) where OCR-detected text has been hidden
+  // behind a background-matched inpaint blend. Re-applied on every render and at
+  // export so the original text stays covered beneath the editable boxes.
+  var coverRegions = [];
   var container = null;
   var canvas = null;
   var imageLoaded = false;
@@ -88,6 +92,104 @@ MemeGen.TextBoxManager = (function () {
    */
   function setImageLoaded(loaded) {
     imageLoaded = loaded;
+    // A freshly loaded image has no detected text yet — drop covers left over
+    // from a previous image so they don't bleed onto the new one.
+    if (loaded) coverRegions = [];
+  }
+
+  /**
+   * Redraws the base image and re-applies every active cover region on top.
+   *   This is the editor-side equivalent of the export composite: the visible
+   *   canvas always shows OCR-detected text hidden behind its inpaint blend.
+   *   Falls back to a plain image redraw when no covers or Inpaint are present.
+   */
+  function renderCanvas() {
+    MemeGen.ImageLoader.redraw();
+    if (!canvas || !MemeGen.Inpaint) return;
+    var ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    coverRegions.forEach(function (r) {
+      MemeGen.Inpaint.coverRegion(ctx, r);
+    });
+  }
+
+  /**
+   * Turns OCR regions into editable text boxes. Each region's original pixels
+   *   are hidden behind an inpaint cover and replaced by a text box pre-filled
+   *   with the recognized text. Deleting a box restores the covered pixels.
+   * @param {Array<{text:string,x:number,y:number,width:number,height:number}>}
+   *   regions - detected regions in canvas-pixel space (see TextRecognizer)
+   */
+  function loadDetectedBoxes(regions) {
+    // canvas.width tracks the displayed size in this app, so the source→display
+    // scale is ~1, but compute it explicitly so the boxes still line up if that
+    // ever changes.
+    var scaleX = canvas.offsetWidth  / canvas.width;
+    var scaleY = canvas.offsetHeight / canvas.height;
+
+    regions.forEach(function (region) {
+      // Skip regions with no real content. Require 3+ alphanumerics for plain
+      // text (filters stray single-letter OCR noise), but keep short numeric
+      // labels like "2%", "55", or "0.1%" — any region containing a digit.
+      var text = region.text || '';
+      var alnum = (text.match(/[a-zA-Z0-9]/g) || []).length;
+      var hasDigit = /[0-9]/.test(text);
+      if (alnum < 3 && !hasDigit) return;
+
+      var cover = {
+        x: region.x,
+        y: region.y,
+        width: region.width,
+        height: region.height
+      };
+      coverRegions.push(cover);
+
+      var tb = new MemeGen.TextBox(
+        region.x * scaleX,
+        region.y * scaleY,
+        container
+      );
+
+      // Detected boxes hug the recognized text. Clear the default min-width/
+      // height (meant to keep manually-created boxes grabbable) so short labels
+      // like "2%" don't balloon past the actual text.
+      tb.el.style.minWidth  = '0px';
+      tb.el.style.minHeight = '0px';
+      tb.el.style.width  = Math.round(region.width  * scaleX) + 'px';
+      tb.el.style.height = Math.round(region.height * scaleY) + 'px';
+      tb.textarea.value  = region.text;
+      tb.applyFontSize(Math.round(region.height * scaleY * 0.4));
+
+      tb.onDelete = (function (c) {
+        return function (box) {
+          // Drop the cover so the original pixels are restored on re-render.
+          var ci = coverRegions.indexOf(c);
+          if (ci !== -1) coverRegions.splice(ci, 1);
+          var idx = textBoxes.indexOf(box);
+          if (idx !== -1) textBoxes.splice(idx, 1);
+          renderCanvas();
+        };
+      }(cover));
+
+      tb.onSelect = function (box) {
+        deselectAll();
+        box.select();
+      };
+
+      MemeGen.DragResize.attach(tb);
+      textBoxes.push(tb);
+    });
+
+    renderCanvas();
+    deselectAll();
+  }
+
+  /**
+   * @returns {Array} the active inpaint cover regions, read by the Exporter so
+   *   downloaded/shared memes hide the OCR-detected text the same as the editor.
+   */
+  function getCoverRegions() {
+    return coverRegions;
   }
 
   /**
@@ -178,6 +280,7 @@ MemeGen.TextBoxManager = (function () {
       tb.destroy();
     });
     textBoxes = [];
+    coverRegions = [];
     imageLoaded = false;
   }
 
@@ -202,6 +305,9 @@ MemeGen.TextBoxManager = (function () {
     setImageLoaded: setImageLoaded,
     getAll: getAll,
     createTextBoxAt: createTextBoxAt,
+    loadDetectedBoxes: loadDetectedBoxes,
+    renderCanvas: renderCanvas,
+    getCoverRegions: getCoverRegions,
     reset: reset
   };
 })();

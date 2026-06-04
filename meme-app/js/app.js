@@ -40,6 +40,16 @@ document.addEventListener('DOMContentLoaded', function () {
   MemeGen.ImageLoader.init(canvas, function (width, height) {
     container.style.width = width + 'px';
     container.style.height = height + 'px';
+    // Expose the loaded image's aspect ratio to CSS so the desktop layout
+    // (see @media (min-width: 769px) in styles.css) can drive a responsive
+    // size that scales the container, the canvas-frame, and #meme-canvas
+    // together when the user resizes the library panel.
+    //   --canvas-aspect-ratio : "W / H" for the CSS aspect-ratio property.
+    //   --canvas-ratio-num    : unitless decimal for the min()/calc() math
+    //                           that prevents width × ratio from exceeding
+    //                           the max-height clamp (and vice versa).
+    container.style.setProperty('--canvas-aspect-ratio', width + ' / ' + height);
+    container.style.setProperty('--canvas-ratio-num', (width / height).toFixed(4));
     container.classList.add('has-image');
     placeholder.hidden = true;
     hint.hidden = false;

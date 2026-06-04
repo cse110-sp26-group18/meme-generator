@@ -166,6 +166,88 @@ describe('Textbox deselect/delete behavior', () => {
   });
 });
 
+// ── Touch parity (mirrors mouse contract on touch devices) ──
+// jsdom does not provide TouchEvent so we dispatch a plain Event with
+// changedTouches populated — TextBoxManager's handler reads
+// e.changedTouches[0].clientX/clientY directly so this is faithful to the
+// production touch contract.
+
+function fireTouchend(target, x = 100, y = 100) {
+  const ev = new Event('touchend', { bubbles: true, cancelable: true });
+  ev.changedTouches = [{ clientX: x, clientY: y }];
+  ev.touches = [];
+  target.dispatchEvent(ev);
+}
+
+describe('Textbox deselect/delete behavior — touch parity', () => {
+  let container;
+  let canvas;
+  let restoreLayout;
+
+  beforeEach(() => {
+    restoreLayout = mockLayoutDimensions();
+
+    // The TextBoxManager singleton keeps its `textBoxes` array across the
+    // mouse-block tests above. Clear it via the public reset() method so
+    // a stale selected box from a prior test cannot trip our deselect
+    // guard before the first tap creates anything.
+    if (typeof MemeGen.TextBoxManager.reset === 'function') {
+      MemeGen.TextBoxManager.reset();
+    }
+
+    container = makeContainer();
+    canvas = makeCanvas();
+    container.appendChild(canvas);
+
+    MemeGen.TextBoxManager.init(container, canvas);
+    MemeGen.TextBoxManager.setImageLoaded(true);
+  });
+
+  afterEach(() => {
+    MemeGen.TextBoxManager.setImageLoaded(false);
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    document.body.removeChild(container);
+    restoreLayout();
+  });
+
+  test('tapping canvas while an empty textbox is selected deletes it instead of creating another one', () => {
+    fireTouchend(canvas, 100, 100);
+    expect(container.querySelectorAll('.text-box').length).toBe(1);
+
+    fireTouchend(canvas, 200, 200);
+    expect(container.querySelectorAll('.text-box').length).toBe(0);
+  });
+
+  test('tapping canvas while a non-empty textbox is selected deselects it and keeps it', () => {
+    fireTouchend(canvas, 100, 100);
+
+    const box = container.querySelector('.text-box');
+    const textarea = box.querySelector('textarea');
+    textarea.value = 'Hello';
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(box.classList.contains('selected')).toBe(true);
+
+    fireTouchend(canvas, 200, 200);
+
+    expect(container.querySelectorAll('.text-box').length).toBe(1);
+    expect(box.classList.contains('selected')).toBe(false);
+  });
+
+  test('after deselecting a non-empty textbox via tap, another tap creates a new textbox', () => {
+    fireTouchend(canvas, 100, 100);
+    const firstTextarea = container.querySelector('.text-box textarea');
+    firstTextarea.value = 'First';
+    firstTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+
+    // Tap to deselect
+    fireTouchend(canvas, 200, 200);
+    // Tap again to create second
+    fireTouchend(canvas, 300, 300);
+
+    expect(container.querySelectorAll('.text-box').length).toBe(2);
+  });
+});
+
 describe('Textbox canvas/template boundary restrictions', () => {
   let container;
   let canvas;

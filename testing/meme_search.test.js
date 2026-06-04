@@ -25,9 +25,8 @@
  *    URL-aware router (memes, tag file, and internal library load together).
  *  - MemeSearch.js is an IIFE with private cache state.
  *    jest.resetModules() + re-require keeps every test isolated.
- *  - Cloud (Worker) tagging stays disabled while MemeSearch.js holds the
- *    placeholder AI_TAG_ENDPOINT, so these tests never hit the Worker; Worker
- *    behaviour is exercised separately against workers/tag-meme-worker.js.
+ *  - Cloud (Worker) tagging stays disabled unless init() receives an
+ *    aiTagEndpoint or window.MemeGenConfig.aiTagEndpoint is set.
  *  - Cards are image-only (the name lives in img.alt + the button title), so
  *    rendered names are read from img.alt.
  *
@@ -223,6 +222,7 @@ afterEach(() => {
   delete global.fetch;
   delete global.MemeGen;
   delete window.MemeGen;
+  delete window.MemeGenConfig;
   try {
     window.localStorage.clear();
   } catch (e) {
@@ -664,6 +664,121 @@ describe('Meme Search — tags from the localStorage cache', () => {
     dom.input.value = 'localstorageonly';
     dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
     expect(getVisibleNames(dom.results)).toEqual([]);
+  });
+});
+
+// ── Tags from the cloud Worker ────────────────────────────────────────────────
+
+describe('Meme Search — tags from the cloud Worker', () => {
+  const WORKER_URL = 'https://tag-meme-worker.example.workers.dev/tag-meme';
+
+  function mockFetchWithWorkerTags(tagsById) {
+    return jest.fn((url, options = {}) => {
+      if (url === IMGFLIP_URL) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({
+            success: true,
+            data: {
+              memes: [makeImgflipPayload().data.memes[0]]
+            }
+          })
+        });
+      }
+
+      if (url === TAGS_URL) {
+        return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) });
+      }
+
+      if (url === TEMPLATES_URL) {
+        return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve([]) });
+      }
+
+      if (url === WORKER_URL) {
+        const body = JSON.parse(options.body);
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ tags: tagsById[body.id] || [] })
+        });
+      }
+
+      return Promise.reject(new Error('Unknown URL: ' + url));
+    });
+  }
+
+  it('does not call the Worker when no endpoint is configured', async () => {
+    const dom = mountSearchDom();
+
+    global.fetch = mockFetchWithWorkerTags({
+      '181913649': ['approve']
+    });
+
+    const MemeSearch = loadFreshMemeSearch();
+    MemeSearch.init({ input: dom.input, results: dom.results, status: dom.status });
+    await waitForAsyncRender();
+
+    expect(global.fetch).not.toHaveBeenCalledWith(
+      WORKER_URL,
+      expect.any(Object)
+    );
+  });
+
+  it('calls the configured Worker for untagged Imgflip memes and updates search results', async () => {
+    const dom = mountSearchDom();
+
+    global.fetch = mockFetchWithWorkerTags({
+      '181913649': ['approve', 'reaction']
+    });
+
+    const MemeSearch = loadFreshMemeSearch();
+    MemeSearch.init({
+      input: dom.input,
+      results: dom.results,
+      status: dom.status,
+      aiTagEndpoint: WORKER_URL
+    });
+    await waitForAsyncRender();
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      WORKER_URL,
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: expect.stringContaining('"id":"181913649"')
+      })
+    );
+
+    await waitForAsyncRender();
+
+    dom.input.value = 'approve';
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+
+    expect(getVisibleNames(dom.results)).toEqual(['Drake Hotline Bling']);
+    expect(JSON.parse(window.localStorage.getItem(LOCAL_TAG_CACHE_KEY))).toEqual(
+      expect.objectContaining({
+        '181913649': ['approve', 'reaction']
+      })
+    );
+  });
+
+  it('can read the Worker endpoint from window.MemeGenConfig', async () => {
+    const dom = mountSearchDom();
+    window.MemeGenConfig = { aiTagEndpoint: WORKER_URL };
+
+    global.fetch = mockFetchWithWorkerTags({
+      '181913649': ['approve']
+    });
+
+    const MemeSearch = loadFreshMemeSearch();
+    MemeSearch.init({ input: dom.input, results: dom.results, status: dom.status });
+    await waitForAsyncRender();
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      WORKER_URL,
+      expect.any(Object)
+    );
   });
 });
 

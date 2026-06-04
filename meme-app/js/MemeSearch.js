@@ -35,11 +35,10 @@ MemeGen.MemeSearch = (function () {
   var TEMPLATES_PATH = '../assets/templates/templates.json';
   var ASSET_PREFIX = '../';
 
-  // Public Cloudflare Worker that performs AI tagging. Safe to ship: it holds
-  // no secret. REPLACE the placeholder host below with your deployed Worker URL
-  // (see workers/tag-meme-worker.js). While the placeholder is present, cloud
-  // tagging stays disabled so the app never calls a non-existent endpoint.
-  var AI_TAG_ENDPOINT = 'https://YOUR-WORKER-URL.workers.dev/tag-meme';
+  // Public Cloudflare Worker URL that performs AI tagging. Safe to ship: it
+  // holds no secret, only the Worker endpoint. The OpenAI key lives inside
+  // Cloudflare. Leave blank to disable cloud tagging.
+  var aiTagEndpoint = '';
 
   // localStorage key for tags generated on previous visits. Versioned so the
   // shape can change later without colliding with old cached data.
@@ -76,12 +75,14 @@ MemeGen.MemeSearch = (function () {
    *  opts.results  — container element that will hold the result cards
    *  opts.status   — element used for loading / empty / error messages
    *  opts.onSelect — function(meme) called when a result card is clicked
+   *  opts.aiTagEndpoint — optional Worker URL for background AI tagging
    */
   function init(opts) {
     inputEl = opts.input;
     resultsEl = opts.results;
     statusEl = opts.status;
     onSelectCallback = opts.onSelect || null;
+    aiTagEndpoint = resolveAiTagEndpoint(opts);
 
     // Simple debounce so we don't re-render on every keystroke.
     var debounceTimer = null;
@@ -286,10 +287,18 @@ MemeGen.MemeSearch = (function () {
 
   // ── Background cloud tagging ────────────────────────────────────────────────
 
-  // Cloud tagging is only attempted once the placeholder Worker URL has been
-  // replaced with a real deployment, so the app never calls a dead endpoint.
+  // Cloud tagging is only attempted once a real Worker URL is configured, so
+  // local/static runs never call a dead endpoint.
+  function resolveAiTagEndpoint(opts) {
+    var configured = opts && opts.aiTagEndpoint;
+    if (!configured && window.MemeGenConfig) {
+      configured = window.MemeGenConfig.aiTagEndpoint;
+    }
+    return typeof configured === 'string' ? configured.trim() : '';
+  }
+
   function cloudTaggingEnabled() {
-    return AI_TAG_ENDPOINT.indexOf('YOUR-WORKER-URL') === -1;
+    return /^https?:\/\//i.test(aiTagEndpoint);
   }
 
   // Queue up to MAX_CLOUD_TAGS untagged memes for slow background tagging.
@@ -329,7 +338,7 @@ MemeGen.MemeSearch = (function () {
   // Ask the Cloudflare Worker to AI-tag one template. Resolves with a cleaned
   // tag array; rejects on transport errors or an invalid response shape.
   function tagMemeThroughCloud(raw) {
-    return fetch(AI_TAG_ENDPOINT, {
+    return fetch(aiTagEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: raw.id, name: raw.name, imageUrl: raw.url })

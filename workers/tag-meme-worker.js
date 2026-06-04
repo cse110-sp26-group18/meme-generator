@@ -20,7 +20,8 @@
  *          or the browser. (Never commit .env / .dev.vars — see .gitignore.)
  *   3. Publish:                 wrangler deploy
  *   4. Copy the printed URL (https://<name>.<subdomain>.workers.dev) and set
- *        AI_TAG_ENDPOINT in meme-app/js/MemeSearch.js to that URL + "/tag-meme".
+ *        window.MemeGenConfig.aiTagEndpoint to that URL + "/tag-meme" before
+ *        MemeSearch.init() runs, or pass it as init({ aiTagEndpoint }).
  *
  * Local dev:
  *   wrangler dev      → serves on http://localhost:8787

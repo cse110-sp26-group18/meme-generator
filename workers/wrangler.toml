@@ -5,7 +5,8 @@
 #   wrangler deploy                       # publishes the Worker
 #
 # The deployed URL prints as: https://tag-meme-worker.<your-subdomain>.workers.dev
-# Paste that URL + "/tag-meme" into AI_TAG_ENDPOINT in meme-app/js/MemeSearch.js.
+# Use that URL + "/tag-meme" as window.MemeGenConfig.aiTagEndpoint before
+# MemeSearch.init() runs, or pass it as init({ aiTagEndpoint }).
 #
 # Do NOT put the API key here. Secrets are set with `wrangler secret put`, never
 # committed. For local `wrangler dev`, use a gitignored .dev.vars file instead.

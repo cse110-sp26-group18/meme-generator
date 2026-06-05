@@ -87,6 +87,6 @@ Meme libary:
 - Aaron, Tim, and Howard on UI improvements
 - Brendan and Daniel on Library improvements
 - Ajay and Anvay on full E2E testing framework and implement paths-ignore (to avoid tests when docs change)
-- Solaiman and Ayat on documenting user feedback and key changes we should think about
-- Olivia and Aila review PRs and merge
+- Solaiman and Ayat on finalizing textbox changes
+- Olivia and Aila review PRs and merge, documenting user feedback and key changes we should think about
 - User testing: everyone gets feedback from 3 friends

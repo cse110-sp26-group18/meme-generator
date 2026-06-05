@@ -41,7 +41,7 @@ MemeGen.MemeSearch = (function () {
 
   // localStorage key for tags generated on previous visits. Versioned so the
   // shape can change later without colliding with old cached data.
-  var LOCAL_TAG_CACHE_KEY = 'memeSearch.imgflipTags.v1';
+  var LOCAL_TAG_CACHE_KEY = 'memeSearch.imgflipTags.v2';
 
   // Cost protection for cloud tagging: never tag more than this many templates
   // per session, and space the calls out so we don't hammer the Worker / AI.
@@ -545,7 +545,7 @@ MemeGen.MemeSearch = (function () {
       ? memes.filter(function (m) {
           var haystack = m.searchText || (m.name || '').toLowerCase();
           return queryTerms.some(function (term) {
-            return haystack.indexOf(term) !== -1;
+            return matchesSearchTerm(haystack, term);
           });
         })
       : memes;
@@ -591,6 +591,20 @@ MemeGen.MemeSearch = (function () {
       .replace(/[^a-z0-9]+/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
+  }
+
+  function matchesSearchTerm(haystack, term) {
+    var normalizedHaystack = normalizeQuery(haystack);
+    var normalizedTerm = normalizeQuery(term);
+    if (!normalizedHaystack || !normalizedTerm) return false;
+
+    if (normalizedTerm.indexOf(' ') !== -1) {
+      return (' ' + normalizedHaystack + ' ').indexOf(' ' + normalizedTerm + ' ') !== -1;
+    }
+
+    return normalizedHaystack.split(' ').some(function (word) {
+      return word.indexOf(normalizedTerm) === 0;
+    });
   }
 
   // Build the result cards. Each card is a button so it's keyboard accessible.

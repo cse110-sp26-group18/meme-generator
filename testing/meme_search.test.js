@@ -37,7 +37,7 @@ const MEME_SEARCH_PATH = '../meme-app/js/MemeSearch.js';
 const IMGFLIP_URL = 'https://api.imgflip.com/get_memes';
 const TAGS_URL = '../assets/templates/imgflip-tags.json';
 const TEMPLATES_URL = '../assets/templates/templates.json';
-const LOCAL_TAG_CACHE_KEY = 'memeSearch.imgflipTags.v1';
+const LOCAL_TAG_CACHE_KEY = 'memeSearch.imgflipTags.v2';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -275,7 +275,7 @@ describe('Meme Search — init() and fetch', () => {
       templates: makeTemplatesPayload(),
       tags: {
         '181913649': { name: 'Drake Hotline Bling', tags: ['relaxed', 'choice', 'excited'] },
-        '112126428': { name: 'Distracted Boyfriend', tags: ['sad', 'disappointed'] },
+        '112126428': { name: 'Distracted Boyfriend', tags: ['sad', 'disappointed', 'unhappy'] },
         '4087833': { name: 'Waiting Skeleton', tags: ['waiting', 'tired', 'sad'] },
         '87743020': { name: 'Two Buttons', tags: ['worried', 'dilemma', 'tired'] }
       }
@@ -580,6 +580,13 @@ describe('Meme Search — filtering', () => {
     dom.input.value = 'I am stressed';
     dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
     expect(getVisibleNames(dom.results)).toEqual(['Two Buttons']);
+  });
+
+  it('does not match emotion terms inside opposite words', () => {
+    dom.input.value = 'happy';
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+
+    expect(getVisibleNames(dom.results)).toEqual(['Drake Hotline Bling']);
   });
 
   it('filters as the user types after the debounce delay', async () => {

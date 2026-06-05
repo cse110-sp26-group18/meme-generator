@@ -202,6 +202,7 @@ MemeGen.MemeSearch = (function () {
   var resultsEl = null;
   var statusEl = null;
   var onSelectCallback = null;
+  var onFetchedCallback = null;
 
   /**
    * Wire up the search UI.
@@ -209,6 +210,7 @@ MemeGen.MemeSearch = (function () {
    *  opts.results  — container element that will hold the result cards
    *  opts.status   — element used for loading / empty / error messages
    *  opts.onSelect — function(meme) called when a result card is clicked
+   *  opts.onFetched — function(memes) called after the merged library loads
    *  opts.aiTagEndpoint — optional Worker URL for background AI tagging
    */
   function init(opts) {
@@ -216,7 +218,12 @@ MemeGen.MemeSearch = (function () {
     resultsEl = opts.results;
     statusEl = opts.status;
     onSelectCallback = opts.onSelect || null;
+    onFetchedCallback = opts.onFetched || null;
     aiTagEndpoint = resolveAiTagEndpoint(opts);
+
+    if (fetched && onFetchedCallback) {
+      onFetchedCallback(memes.slice());
+    }
 
     // Simple debounce so we don't re-render on every keystroke.
     var debounceTimer = null;
@@ -286,6 +293,7 @@ MemeGen.MemeSearch = (function () {
         }
 
         runSearch();
+        if (onFetchedCallback) onFetchedCallback(memes.slice());
 
         // Background, cost-limited cloud tagging for the untagged memes.
         enqueueMissing(missing);
@@ -655,7 +663,8 @@ MemeGen.MemeSearch = (function () {
 
   return {
     init: init,
-    loadFromUrl: loadFromUrl
+    loadFromUrl: loadFromUrl,
+    getAll: function () { return memes.slice(); }
   };
 })();
 

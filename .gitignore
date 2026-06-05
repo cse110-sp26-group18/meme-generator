@@ -2,8 +2,10 @@
 node_modules/
 coverage/
 .history/
+reference
+.vscode
 
-# Secrets — never commit. AI/API keys live in Cloudflare Worker secrets, not here.
+# Secrets - never commit. AI/API keys live in Cloudflare Worker secrets, not here.
 .env
 .env.*
 .dev.vars

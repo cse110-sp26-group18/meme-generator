@@ -38,8 +38,11 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   MemeGen.ImageLoader.init(canvas, function (width, height) {
-    container.style.width = width + 'px';
-    container.style.height = height + 'px';
+    // Clear any stale inline display dimensions from a previous load. The
+    // arguments here are the numeric W/H from ImageLoader; removeProperty
+    // expects the CSS property NAME as a STRING — pass the literals.
+    container.style.removeProperty('width');
+    container.style.removeProperty('height');
     // Expose the loaded image's aspect ratio to CSS so the desktop layout
     // (see @media (min-width: 769px) in styles.css) can drive a responsive
     // size that scales the container, the canvas-frame, and #meme-canvas
@@ -54,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function () {
     placeholder.hidden = true;
     hint.hidden = false;
     downloadBtn.disabled = false;
-    if (shareBtn && MemeGen.Exporter.isMobileOrTablet()) shareBtn.disabled = false;
+    shareBtn.disabled = false;
     // Scan Text stays disabled in this version — see the inert button
     // contract below. Do NOT enable it when an image loads.
     MemeGen.TextBoxManager.setImageLoaded(true);
@@ -86,14 +89,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
   MemeGen.TextBoxManager.init(container, canvas);
 
+  // ── Responsive text-box anchoring ──
+  // CSS controls the canvas-container display size (mobile 60vh / desktop
+  // 72vh / library-resize-driven width). When that size changes, the
+  // ResizeObserver below asks TextBoxManager to re-apply each text box's
+  // stored image-relative ratios, so the boxes stay anchored to the same
+  // visual point on the meme instead of drifting with the pixel grid.
+  // Guarded on ResizeObserver existence — older browsers degrade to the
+  // pre-existing pixel-positioning behavior.
+  if (typeof ResizeObserver === 'function' && container &&
+      typeof MemeGen.TextBoxManager.syncTextBoxesToCanvas === 'function') {
+    const ro = new ResizeObserver(function () {
+      MemeGen.TextBoxManager.syncTextBoxesToCanvas();
+    });
+    ro.observe(container);
+  }
+
   MemeGen.LayoutManager.init('panel-resizer', 'meme-search');
 
   // Show share button on mobile/tablet only; keep it hidden on desktop.
   // Mirror: hide #download-btn on mobile so the top action row is just
   // Upload + Share, matching the polished mobile mockup (Screen 1).
   if (MemeGen.Exporter.isMobileOrTablet()) {
-    if (shareBtn) shareBtn.style.display = 'inline-block';
-    if (downloadBtn) downloadBtn.style.display = 'none';
+   
     // Mobile boots into the Browse Memes overlay so the first thing a user
     // sees on reload is the meme template grid (per the flow correction).
     // Desktop stays on the editor — its inline layout shows everything.

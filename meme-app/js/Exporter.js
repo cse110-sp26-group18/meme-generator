@@ -64,12 +64,24 @@ MemeGen.Exporter = (function () {
       // from one box don't bleed into the next.
       ctx.save();
 
-      const padding = 6;
-      const boxInnerWidth = state.width - padding * 2;
-      // Use the font size the user sees in the editor, not a re-derived formula.
-      // state.fontSize is kept in sync by TextBox.applyFontSize(), so the
-      // exported PNG always matches what was visible on screen.
-      const fontSize = state.fontSize;
+      // Responsive scaling: when CSS shrinks the canvas display size below
+      // the bitmap size (canvas.width × canvas.height set by ImageLoader),
+      // state.x / state.width / state.fontSize are in DISPLAY pixels — we
+      // scale them up to BITMAP pixels here so the exported PNG matches the
+      // on-screen position. Falls back to scale=1 when the state was built
+      // without containerWidth (legacy tests, jsdom stubs).
+      const scaleX = state.containerWidth  > 0 ? canvas.width  / state.containerWidth  : 1;
+      const scaleY = state.containerHeight > 0 ? canvas.height / state.containerHeight : 1;
+      // Aspect ratio is preserved by CSS (aspect-ratio + min() width) so
+      // scaleX ≈ scaleY. Use the average for fontSize / padding so both
+      // axes stay consistent under rounding mismatches.
+      const scale = (scaleX + scaleY) / 2;
+
+      const padding = 6 * scale;
+      const boxInnerWidth = (state.width * scaleX) - padding * 2;
+      // Use the font size the user sees in the editor, scaled to bitmap
+      // space so character height tracks the box height proportionally.
+      const fontSize = state.fontSize * scale;
       const fontFamily = state.fontFamily || 'Impact';
 
       ctx.font = fontSize + 'px ' + fontFamily;
@@ -84,8 +96,8 @@ MemeGen.Exporter = (function () {
       const lineHeight = fontSize * 1.2;
 
       lines.forEach(function (line, i) {
-        const textX = state.x + padding;
-        const textY = state.y + padding + i * lineHeight;
+        const textX = state.x * scaleX + padding;
+        const textY = state.y * scaleY + padding + i * lineHeight;
 
         if (state.borderEnabled) {
           ctx.strokeStyle = 'black';

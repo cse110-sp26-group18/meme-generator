@@ -40,8 +40,11 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   MemeGen.ImageLoader.init(canvas, function (width, height) {
-    container.style.width = width + 'px';
-    container.style.height = height + 'px';
+    container.style.removeProperty('width');
+    container.style.removeProperty('height');
+
+    container.style.setProperty('--canvas-aspect-ratio', width + ' / ' + height);
+    container.style.setProperty('--canvas-ratio-num', (width / height).toFixed(4));
     container.classList.add('has-image');
     placeholder.hidden = true;
     hint.hidden = false;

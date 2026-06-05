@@ -1176,17 +1176,16 @@ main {
     align-self: center;
   }
 
-  .canvas-container.has-image .canvas-frame {
+    .canvas-container.has-image .canvas-frame {
     width: 100%;
-    height: auto;
+    height: 100%;
   }
 
   .canvas-container.has-image #meme-canvas {
     width: 100% !important;
-    height: auto !important;
+    height: 100% !important;
     display: block;
   }
-
   .placeholder {
     font-size: 1rem;
     text-align: center;
@@ -1387,10 +1386,26 @@ main {
   /* Once an image is loaded JS sets explicit pixel dimensions; the
    * minimum height is no longer needed and max-width prevents wide images
    * from overflowing the panel. */
-  .canvas-container.has-image {
+    .canvas-container.has-image {
+    --canvas-max-h: min(72vh, 70rem);
+    aspect-ratio: var(--canvas-aspect-ratio, 1 / 1);
+    width: min(100%, 70rem, calc(var(--canvas-max-h) * var(--canvas-ratio-num, 1))) !important;
+    max-width: calc(100% - 4rem);
+    max-height: var(--canvas-max-h);
+    height: auto !important;
     min-height: 0;
-    max-width: 100%;
-    width: auto;
+    align-self: center;
+  }
+
+  .canvas-frame {
+    width: 100%;
+    height: 100%;
+  }
+
+  #meme-canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
   }
 
   /* Draggable vertical resizer between the two panels. */
@@ -1411,9 +1426,31 @@ main {
     background-color: var(--forest-green);
   }
 
+    .meme-search {
+    container-type: inline-size;
+  }
+
   .meme-search-results {
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
     gap: 10px !important;
+  }
+
+  @container (min-width: 16rem) {
+    .meme-search-results {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+  }
+
+  @container (min-width: 24rem) {
+    .meme-search-results {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+  }
+
+  @container (min-width: 32rem) {
+    .meme-search-results {
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    }
   }
 }
 

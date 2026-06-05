@@ -564,19 +564,26 @@ MemeGen.MemeSearch = (function () {
 
   function getQueryTerms(query) {
     var normalizedQuery = normalizeQuery(query);
-    var baseTerms = [query];
-    if (normalizedQuery && normalizedQuery !== query) baseTerms.push(normalizedQuery);
+    var baseTerms = [];
+
+    function addBaseTerm(term) {
+      var normalized = normalizeQuery(term);
+      if (normalized) baseTerms.push(normalized);
+    }
+
+    addBaseTerm(query);
+    addBaseTerm(normalizedQuery);
     if (PHRASE_QUERY_EXPANSIONS[normalizedQuery]) {
-      baseTerms = baseTerms.concat(PHRASE_QUERY_EXPANSIONS[normalizedQuery]);
+      PHRASE_QUERY_EXPANSIONS[normalizedQuery].forEach(addBaseTerm);
     }
     if (EMOTION_QUERY_EXPANSIONS[normalizedQuery]) {
-      baseTerms = baseTerms.concat(EMOTION_QUERY_EXPANSIONS[normalizedQuery]);
+      EMOTION_QUERY_EXPANSIONS[normalizedQuery].forEach(addBaseTerm);
     }
     normalizedQuery.split(' ').forEach(function (word) {
       if (!word || QUERY_FILLER_WORDS[word]) return;
-      baseTerms.push(word);
+      addBaseTerm(word);
       if (EMOTION_QUERY_EXPANSIONS[word]) {
-        baseTerms = baseTerms.concat(EMOTION_QUERY_EXPANSIONS[word]);
+        EMOTION_QUERY_EXPANSIONS[word].forEach(addBaseTerm);
       }
     });
 
@@ -585,7 +592,16 @@ MemeGen.MemeSearch = (function () {
       terms.push(term);
       var inflections = EMOTION_INFLECTIONS[term];
       if (inflections) terms = terms.concat(inflections);
+      var related = EMOTION_QUERY_EXPANSIONS[term];
+      if (related) {
+        terms = terms.concat(related);
+        related.forEach(function (relatedTerm) {
+          var relatedInflections = EMOTION_INFLECTIONS[relatedTerm];
+          if (relatedInflections) terms = terms.concat(relatedInflections);
+        });
+      }
     });
+
     var seen = {};
     return terms.filter(function (term) {
       if (!term || seen[term]) return false;

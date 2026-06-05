@@ -475,7 +475,7 @@ describe('Meme Search — filtering', () => {
       imgflip: makeImgflipPayload(),
       templates: makeTemplatesPayload(),
       tags: {
-        '181913649': { name: 'Drake Hotline Bling', tags: ['relaxed', 'choice', 'excited', 'sadistic', 'made'] },
+        '181913649': { name: 'Drake Hotline Bling', tags: ['relaxed', 'choice', 'happiness', 'sadistic', 'made'] },
         '112126428': { name: 'Distracted Boyfriend', tags: ['sad', 'disappointed', 'unhappy'] },
         '4087833': { name: 'Waiting Skeleton', tags: ['waiting', 'tired', 'sad'] },
         '87743020': { name: 'Two Buttons', tags: ['worried', 'dilemma', 'tired', 'mad', 'shocked'] }

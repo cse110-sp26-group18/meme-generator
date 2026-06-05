@@ -1,8 +1,8 @@
 var MemeGen = window.MemeGen || {};
 
 MemeGen.DragResize = (function () {
-  const MIN_WIDTH = 80;
-  const MIN_HEIGHT = 40;
+  var MIN_WIDTH = 80;
+  var MIN_HEIGHT = 40;
 
   /**
    * Attaches move and resize event listeners to a TextBox instance. Move is
@@ -12,13 +12,13 @@ MemeGen.DragResize = (function () {
    *   draggable and resizable
    */
   function attach(textBox) {
-    const el = textBox.el;
-    const container = textBox.container;
-    const moveBtn = textBox.moveBtn;
+    var el = textBox.el;
+    var container = textBox.container;
+    var moveBtn = textBox.moveBtn;
 
-    let resizing = false;
-    let resizeCorner = null;
-    let startX, startY, startLeft, startTop, startWidth, startHeight;
+    var resizing = false;
+    var resizeCorner = null;
+    var startX, startY, startLeft, startTop, startWidth, startHeight;
 
     // --- Move via dedicated handle using pointer capture ---
     moveBtn.addEventListener('pointerdown', function (e) {
@@ -36,14 +36,14 @@ MemeGen.DragResize = (function () {
       // hasPointerCapture guards against spurious pointermove events that
       // fire before setPointerCapture takes effect.
       if (!moveBtn.hasPointerCapture(e.pointerId)) return;
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
+      var dx = e.clientX - startX;
+      var dy = e.clientY - startY;
 
-      const maxLeft = Math.max(0, container.offsetWidth - el.offsetWidth);
-      const maxTop = Math.max(0, container.offsetHeight - el.offsetHeight);
+      var maxLeft = Math.max(0, container.offsetWidth - el.offsetWidth);
+      var maxTop = Math.max(0, container.offsetHeight - el.offsetHeight);
 
-      const newLeft = Math.max(0, Math.min(startLeft + dx, maxLeft));
-      const newTop = Math.max(0, Math.min(startTop + dy, maxTop));
+      var newLeft = Math.max(0, Math.min(startLeft + dx, maxLeft));
+      var newTop = Math.max(0, Math.min(startTop + dy, maxTop));
 
       el.style.left = newLeft + 'px';
       el.style.top = newTop + 'px';
@@ -76,10 +76,10 @@ MemeGen.DragResize = (function () {
 
     // moveBtn.addEventListener('pointermove', function (e) {
     //   if (!moveBtn.hasPointerCapture(e.pointerId)) return;
-    //   const dx = e.clientX - startX;
-    //   const dy = e.clientY - startY;
-    //   const newLeft = Math.max(0, Math.min(startLeft + dx, container.offsetWidth - el.offsetWidth));
-    //   const newTop  = Math.max(0, Math.min(startTop  + dy, container.offsetHeight - el.offsetHeight));
+    //   var dx = e.clientX - startX;
+    //   var dy = e.clientY - startY;
+    //   var newLeft = Math.max(0, Math.min(startLeft + dx, container.offsetWidth - el.offsetWidth));
+    //   var newTop  = Math.max(0, Math.min(startTop  + dy, container.offsetHeight - el.offsetHeight));
     //   el.style.left = newLeft + 'px';
     //   el.style.top  = newTop  + 'px';
     // });
@@ -95,7 +95,7 @@ MemeGen.DragResize = (function () {
     // handles are small targets that need document-level tracking, and the
     // simpler mouse API is sufficient for this desktop-focused interaction.
     el.addEventListener('mousedown', function (e) {
-      const target = e.target;
+      var target = e.target;
       if (!target.classList.contains('resize-handle')) return;
 
       e.preventDefault();
@@ -117,16 +117,16 @@ MemeGen.DragResize = (function () {
     document.addEventListener('mousemove', function (e) {
       if (!resizing) return;
 
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
+      var dx = e.clientX - startX;
+      var dy = e.clientY - startY;
 
-      let newWidth = startWidth;
-      let newHeight = startHeight;
-      let newLeft = startLeft;
-      let newTop = startTop;
+      var newWidth = startWidth;
+      var newHeight = startHeight;
+      var newLeft = startLeft;
+      var newTop = startTop;
 
-      const rightEdge = startLeft + startWidth;
-      const bottomEdge = startTop + startHeight;
+      var rightEdge = startLeft + startWidth;
+      var bottomEdge = startTop + startHeight;
 
       switch (resizeCorner) {
         case 'bottom-right':
@@ -212,13 +212,13 @@ MemeGen.DragResize = (function () {
     // drag — so export, the live editor, and the toolbar size display all
     // stay in sync automatically. Single-finger touches inside the textarea
     // are untouched so typing still works.
-    let pinchActive = false;
-    let pinchStartDist = 0;
-    let pinchStartFontSize = 0;
+    var pinchActive = false;
+    var pinchStartDist = 0;
+    var pinchStartFontSize = 0;
 
     function touchDistance(t1, t2) {
-      const dx = t1.clientX - t2.clientX;
-      const dy = t1.clientY - t2.clientY;
+      var dx = t1.clientX - t2.clientX;
+      var dy = t1.clientY - t2.clientY;
       return Math.sqrt(dx * dx + dy * dy);
     }
 
@@ -243,8 +243,8 @@ MemeGen.DragResize = (function () {
       if (!e.touches || e.touches.length < 2) return;
       if (pinchStartDist <= 0) return;
       if (typeof e.preventDefault === 'function') e.preventDefault();
-      const newDist = touchDistance(e.touches[0], e.touches[1]);
-      const scale = newDist / pinchStartDist;
+      var newDist = touchDistance(e.touches[0], e.touches[1]);
+      var scale = newDist / pinchStartDist;
       textBox.applyFontSize(pinchStartFontSize * scale);
       textBox._fitBoxToFontSize();
     }, { passive: false });
@@ -269,16 +269,16 @@ MemeGen.DragResize = (function () {
     //      canvas, identical math to the existing move-handle handler.
     //   5. Release without movement opens the quick-action menu.
     // Pinch (2nd finger) wins outright: resetHold() clears all state.
-    const HOLD_MS = 300;
-    const DRAG_THRESHOLD_PX = 8;
-    let holdTimer = null;
-    let holdComplete = false;
-    let holdMoved = false;
-    let holdDragging = false;
-    let holdStartX = 0;
-    let holdStartY = 0;
-    let holdElStartLeft = 0;
-    let holdElStartTop = 0;
+    var HOLD_MS = 300;
+    var DRAG_THRESHOLD_PX = 8;
+    var holdTimer = null;
+    var holdComplete = false;
+    var holdMoved = false;
+    var holdDragging = false;
+    var holdStartX = 0;
+    var holdStartY = 0;
+    var holdElStartLeft = 0;
+    var holdElStartTop = 0;
 
     function resetHold() {
       if (holdTimer) {
@@ -312,7 +312,7 @@ MemeGen.DragResize = (function () {
       if (!e.touches || e.touches.length !== 1) return;
       if (isInteractiveTarget(e.target)) return;
 
-      const t = e.touches[0];
+      var t = e.touches[0];
       holdStartX = t.clientX;
       holdStartY = t.clientY;
       holdElStartLeft = el.offsetLeft;
@@ -336,10 +336,10 @@ MemeGen.DragResize = (function () {
       }
       if (!e.touches || e.touches.length !== 1) return;
 
-      const t = e.touches[0];
-      const dx = t.clientX - holdStartX;
-      const dy = t.clientY - holdStartY;
-      const distSq = dx * dx + dy * dy;
+      var t = e.touches[0];
+      var dx = t.clientX - holdStartX;
+      var dy = t.clientY - holdStartY;
+      var distSq = dx * dx + dy * dy;
 
       if (!holdComplete) {
         if (distSq > DRAG_THRESHOLD_PX * DRAG_THRESHOLD_PX) {
@@ -353,8 +353,8 @@ MemeGen.DragResize = (function () {
         holdDragging = true;
         holdMoved = true;
         if (typeof e.preventDefault === 'function') e.preventDefault();
-        const newLeft = Math.max(0, Math.min(holdElStartLeft + dx, container.offsetWidth - el.offsetWidth));
-        const newTop  = Math.max(0, Math.min(holdElStartTop  + dy, container.offsetHeight - el.offsetHeight));
+        var newLeft = Math.max(0, Math.min(holdElStartLeft + dx, container.offsetWidth - el.offsetWidth));
+        var newTop  = Math.max(0, Math.min(holdElStartTop  + dy, container.offsetHeight - el.offsetHeight));
         el.style.left = newLeft + 'px';
         el.style.top  = newTop  + 'px';
       }

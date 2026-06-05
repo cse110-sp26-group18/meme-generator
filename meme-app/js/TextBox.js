@@ -1,10 +1,28 @@
 var MemeGen = window.MemeGen || {};
 
 MemeGen.TextBox = (function () {
-  let idCounter = 0;
-  const FONT_SIZE_STEP = 4;
-  const FONT_SIZE_MIN  = 8;
-  const FONT_SIZE_MAX  = 120;
+  var idCounter = 0;
+  var FONT_SIZE_STEP = 4;
+  var FONT_SIZE_MIN  = 8;
+  var FONT_SIZE_MAX  = 120;
+
+  // Single source of truth for the font list — shared by each text box's own
+  // dropdown (below) and the global font-settings menu in app.js, so the two
+  // never drift out of sync. Exposed as MemeGen.TextBox.FONTS.
+  var FONTS = [
+    { label: 'Impact',       value: 'Impact' },
+    // ── Meme-style display fonts used by the "fonts" cycle button in app.js.
+    // Loaded via Google Fonts in index.html; browsers without network
+    // access fall back to the system default sans-serif.
+    { label: 'Anton',        value: 'Anton' },
+    { label: 'Bangers',      value: 'Bangers' },
+    { label: 'Luckiest Guy', value: 'Luckiest Guy' },
+    { label: 'Oswald',       value: 'Oswald' },
+    { label: 'Arial',        value: 'Arial' },
+    { label: 'Comic Sans', value: "'Comic Sans MS', cursive" },
+    { label: 'Helvetica', value: 'Helvetica, Arial, sans-serif' },
+    { label: 'Montserrat', value: "'Montserrat', sans-serif" }
+  ];
 
   /**
    * @constructor
@@ -44,7 +62,7 @@ MemeGen.TextBox = (function () {
    * @private
    */
   TextBox.prototype._buildDOM = function () {
-    const el = document.createElement('div');
+    var el = document.createElement('div');
     el.className = 'text-box';
     el.style.left = this.x + 'px';
     el.style.top = this.y + 'px';
@@ -54,65 +72,51 @@ MemeGen.TextBox = (function () {
     // for tests and for disambiguating which box triggered an event.
     el.dataset.textboxId = this.id;
 
-    const toolbar = document.createElement('div');
+    var toolbar = document.createElement('div');
     toolbar.className = 'text-box-toolbar';
 
     // ✥ Move — kept in DOM for desktop drag and existing tests; hidden on
     // mobile via CSS (the whole toolbar is display:none on mobile).
-    const moveBtn = document.createElement('button');
+    var moveBtn = document.createElement('button');
     moveBtn.className = 'move-handle';
     moveBtn.textContent = '✥ Move';
     moveBtn.title = 'Drag to move';
     toolbar.appendChild(moveBtn);
 
     // Separator
-    const sep = document.createElement('span');
+    var sep = document.createElement('span');
     sep.className = 'toolbar-sep';
     toolbar.appendChild(sep);
 
     // A− / size display / A+
-    const fontSizeDecBtn = document.createElement('button');
+    var fontSizeDecBtn = document.createElement('button');
     fontSizeDecBtn.className = 'font-size-btn';
     fontSizeDecBtn.textContent = 'A−';
     fontSizeDecBtn.title = 'Decrease text size';
     toolbar.appendChild(fontSizeDecBtn);
 
-    const fontSizeDisplay = document.createElement('span');
+    var fontSizeDisplay = document.createElement('span');
     fontSizeDisplay.className = 'font-size-display';
     fontSizeDisplay.textContent = this.fontSize + 'px';
     toolbar.appendChild(fontSizeDisplay);
 
-    const fontSizeIncBtn = document.createElement('button');
+    var fontSizeIncBtn = document.createElement('button');
     fontSizeIncBtn.className = 'font-size-btn';
     fontSizeIncBtn.textContent = 'A+';
     fontSizeIncBtn.title = 'Increase text size';
     toolbar.appendChild(fontSizeIncBtn);
 
     // Separator
-    const sep2 = document.createElement('span');
+    var sep2 = document.createElement('span');
     sep2.className = 'toolbar-sep';
     toolbar.appendChild(sep2);
 
     // Font family dropdown
-    const fontSelect = document.createElement('select');
+    var fontSelect = document.createElement('select');
     fontSelect.className = 'font-select';
-    const fonts = [
-      { label: 'Impact',       value: 'Impact' },
-      // ── Meme-style display fonts used by the "fonts" cycle button in app.js.
-      // Loaded via Google Fonts in index.html; browsers without network
-      // access fall back to the system default sans-serif.
-      { label: 'Anton',        value: 'Anton' },
-      { label: 'Bangers',      value: 'Bangers' },
-      { label: 'Luckiest Guy', value: 'Luckiest Guy' },
-      { label: 'Oswald',       value: 'Oswald' },
-      { label: 'Arial',        value: 'Arial' },
-      { label: 'Comic Sans', value: "'Comic Sans MS', cursive" },
-      { label: 'Helvetica', value: 'Helvetica, Arial, sans-serif' },
-      { label: 'Montserrat', value: "'Montserrat', sans-serif" }
-    ];
 
-    fonts.forEach(function (f) {
-      const opt = document.createElement('option');
+    FONTS.forEach(function (f) {
+      var opt = document.createElement('option');
       opt.value = f.value;
       opt.textContent = f.label;
       fontSelect.appendChild(opt);
@@ -121,13 +125,13 @@ MemeGen.TextBox = (function () {
     toolbar.appendChild(fontSelect);
 
     // Border toggle
-    const borderBtn = document.createElement('button');
+    var borderBtn = document.createElement('button');
     borderBtn.className = 'border-toggle';
     borderBtn.textContent = 'Border: ON';
     toolbar.appendChild(borderBtn);
 
     // Delete
-    const deleteBtn = document.createElement('button');
+    var deleteBtn = document.createElement('button');
     deleteBtn.className = 'delete-btn';
     deleteBtn.textContent = '×';
     deleteBtn.title = 'Delete text box';
@@ -135,14 +139,14 @@ MemeGen.TextBox = (function () {
 
     el.appendChild(toolbar);
 
-    const textarea = document.createElement('textarea');
+    var textarea = document.createElement('textarea');
     textarea.className = 'text-content';
     textarea.placeholder = 'Enter text...';
     el.appendChild(textarea);
 
-    const corners = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+    var corners = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
     corners.forEach(function (corner) {
-      const handle = document.createElement('div');
+      var handle = document.createElement('div');
       handle.className = 'resize-handle ' + corner;
       handle.dataset.corner = corner;
       el.appendChild(handle);
@@ -151,23 +155,23 @@ MemeGen.TextBox = (function () {
     // --- Mobile long-press quick-action menu ---
     // Hidden by default. DragResize.js opens it after a hold-without-drag.
     // CSS hides this on desktop. Same DOM lives on every text box.
-    const quickMenu = document.createElement('div');
+    var quickMenu = document.createElement('div');
     quickMenu.className = 'quick-action-menu';
     quickMenu.setAttribute('role', 'menu');
 
-    const qEditBtn = document.createElement('button');
+    var qEditBtn = document.createElement('button');
     qEditBtn.type = 'button';
     qEditBtn.className = 'quick-action-btn quick-action-edit';
     qEditBtn.textContent = 'Edit';
     quickMenu.appendChild(qEditBtn);
 
-    const qBorderBtn = document.createElement('button');
+    var qBorderBtn = document.createElement('button');
     qBorderBtn.type = 'button';
     qBorderBtn.className = 'quick-action-btn quick-action-border';
     qBorderBtn.textContent = 'Border';
     quickMenu.appendChild(qBorderBtn);
 
-    const qDeleteBtn = document.createElement('button');
+    var qDeleteBtn = document.createElement('button');
     qDeleteBtn.type = 'button';
     qDeleteBtn.className = 'quick-action-btn quick-action-delete';
     qDeleteBtn.textContent = 'Delete';
@@ -177,7 +181,7 @@ MemeGen.TextBox = (function () {
 
     // Mobile-only X delete button — shown on the right of selected text boxes
     // on mobile. Replaces the need for the bottom toolbar just for deletion.
-    const mobileDeleteBtn = document.createElement('button');
+    var mobileDeleteBtn = document.createElement('button');
     mobileDeleteBtn.type = 'button';
     mobileDeleteBtn.className = 'mobile-delete-btn';
     mobileDeleteBtn.textContent = '×';
@@ -213,7 +217,7 @@ MemeGen.TextBox = (function () {
    * @private
    */
   TextBox.prototype._bindEvents = function () {
-    const self = this;
+    var self = this;
 
     this.fontSelect.addEventListener('change', function () {
       self.fontFamily = this.value;
@@ -244,14 +248,14 @@ MemeGen.TextBox = (function () {
 
     // A− decreases font size and shrinks the box to match
     this.fontSizeDecBtn.addEventListener('click', function () {
-      const newSize = self.fontSize - FONT_SIZE_STEP;
+      var newSize = self.fontSize - FONT_SIZE_STEP;
       self.applyFontSize(newSize);
       self._fitBoxToFontSize();
     });
 
     // A+ increases font size and grows the box to match
     this.fontSizeIncBtn.addEventListener('click', function () {
-      const newSize = self.fontSize + FONT_SIZE_STEP;
+      var newSize = self.fontSize + FONT_SIZE_STEP;
       self.applyFontSize(newSize);
       self._fitBoxToFontSize();
     });
@@ -260,7 +264,7 @@ MemeGen.TextBox = (function () {
     // First click on an unselected textbox = select only.
     // Second click on the already-selected textbox = normal textarea edit.
     this.el.addEventListener('mousedown', function (e) {
-      const wasSelected = self.selected;
+      var wasSelected = self.selected;
 
       if (self.onSelect) {
         self.onSelect(self);
@@ -354,14 +358,14 @@ MemeGen.TextBox = (function () {
     //   • Multi-touch — only single-finger ends count.
     // Never deletes — Delete remains gated behind the visible × button or
     // the long-press menu's Delete action.
-    let lastTapAt = 0;
+    var lastTapAt = 0;
     this.el.addEventListener('touchend', function (e) {
       if (self.quickMenu && self.quickMenu.classList.contains('is-open')) return;
       if (e.touches && e.touches.length > 0) return;
       if (e.changedTouches && e.changedTouches.length !== 1) return;
-      const pinchAt = parseInt(self.el.dataset.pinchAt || '0', 10);
+      var pinchAt = parseInt(self.el.dataset.pinchAt || '0', 10);
       if (pinchAt && Date.now() - pinchAt < 500) return;
-      const now = Date.now();
+      var now = Date.now();
       if (now - lastTapAt < 300) {
         self.focusTextarea();
         if (typeof e.preventDefault === 'function') e.preventDefault();
@@ -370,6 +374,21 @@ MemeGen.TextBox = (function () {
         lastTapAt = now;
       }
     });
+  };
+
+  /**
+   * Programmatically sets the font family. Updates this.fontFamily, the
+   *   textarea inline style, and the per-box dropdown so its selected value
+   *   stays in sync. Mirrors the fontSelect 'change' handler — used by the
+   *   global font-settings menu to re-font every box at once.
+   * @param {string} value - a font value from MemeGen.TextBox.FONTS
+   */
+  TextBox.prototype.setFontFamily = function (value) {
+    this.fontFamily = value;
+    this.textarea.style.fontFamily = value;
+    if (this.fontSelect) {
+      this.fontSelect.value = value;
+    }
   };
 
   /**
@@ -394,7 +413,7 @@ MemeGen.TextBox = (function () {
    * @private
    */
   TextBox.prototype._fitBoxToFontSize = function () {
-    const newHeight = Math.max(40, Math.round(this.fontSize * 2.5));
+    var newHeight = Math.max(40, Math.round(this.fontSize * 2.5));
     this.el.style.height = newHeight + 'px';
     // Box height changed via A+/A− or pinch-resize — refresh ratios so the
     // next viewport/library resize re-applies the new proportional height.
@@ -408,28 +427,28 @@ MemeGen.TextBox = (function () {
    *   Floored at the CSS min sizes (80×40 px).
    */
   TextBox.prototype.fitToText = function () {
-    const text = this.textarea.value;
-    const boxWidth  = parseInt(this.el.style.width, 10)  || this.el.offsetWidth  || this.width;
-    const boxHeight = parseInt(this.el.style.height, 10) || this.el.offsetHeight || this.height;
+    var text = this.textarea.value;
+    var boxWidth  = parseInt(this.el.style.width, 10)  || this.el.offsetWidth  || this.width;
+    var boxHeight = parseInt(this.el.style.height, 10) || this.el.offsetHeight || this.height;
 
-    const innerWidth  = Math.max(1, boxWidth  - 16);
-    const innerHeight = Math.max(1, boxHeight - 12);
+    var innerWidth  = Math.max(1, boxWidth  - 16);
+    var innerHeight = Math.max(1, boxHeight - 12);
 
     // A single off-screen canvas is reused across all TextBox instances for
     // text measurement — canvas ctx measurement matches what Exporter draws,
     // and reusing it avoids allocating a new canvas element on every keystroke.
-    const ctx = (TextBox._measureCanvas || (TextBox._measureCanvas = document.createElement('canvas'))).getContext('2d');
+    var ctx = (TextBox._measureCanvas || (TextBox._measureCanvas = document.createElement('canvas'))).getContext('2d');
 
-    let best = FONT_SIZE_MIN;
-    for (let size = FONT_SIZE_MIN; size <= FONT_SIZE_MAX; size++) {
+    var best = FONT_SIZE_MIN;
+    for (var size = FONT_SIZE_MIN; size <= FONT_SIZE_MAX; size++) {
       ctx.font = size + 'px ' + this.fontFamily;
 
-      const lines = MemeGen.Exporter.wrapText(ctx, text, innerWidth);
-      const totalHeight = lines.length * size * 1.2;
+      var lines = MemeGen.Exporter.wrapText(ctx, text, innerWidth);
+      var totalHeight = lines.length * size * 1.2;
 
-      let widest = 0;
-      for (let i = 0; i < lines.length; i++) {
-        const w = ctx.measureText(lines[i]).width;
+      var widest = 0;
+      for (var i = 0; i < lines.length; i++) {
+        var w = ctx.measureText(lines[i]).width;
         if (w > widest) widest = w;
       }
 
@@ -486,7 +505,7 @@ MemeGen.TextBox = (function () {
    *   mobile touch gestures and desktop mousedown focus-stealing.
    */
   TextBox.prototype.focusTextarea = function () {
-    const self = this;
+    var self = this;
     self.editing = true;
     self.textarea.focus();
     // setTimeout 0 defers the second focus call to after the current event
@@ -586,15 +605,18 @@ MemeGen.TextBox = (function () {
   };
 
   TextBox.prototype.keepInsideContainer = function () {
-    const maxLeft = Math.max(0, this.container.offsetWidth - this.el.offsetWidth);
-    const maxTop = Math.max(0, this.container.offsetHeight - this.el.offsetHeight);
+    var maxLeft = Math.max(0, this.container.offsetWidth - this.el.offsetWidth);
+    var maxTop = Math.max(0, this.container.offsetHeight - this.el.offsetHeight);
 
-    const newLeft = Math.max(0, Math.min(this.el.offsetLeft, maxLeft));
-    const newTop = Math.max(0, Math.min(this.el.offsetTop, maxTop));
+    var newLeft = Math.max(0, Math.min(this.el.offsetLeft, maxLeft));
+    var newTop = Math.max(0, Math.min(this.el.offsetTop, maxTop));
 
     this.el.style.left = newLeft + 'px';
     this.el.style.top = newTop + 'px';
   };
+
+  // Static font list — read by app.js to build the global font-settings menu.
+  TextBox.FONTS = FONTS;
 
   return TextBox;
 })();

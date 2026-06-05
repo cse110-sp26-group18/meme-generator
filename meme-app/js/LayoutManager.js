@@ -5,10 +5,10 @@
 (function () {
   window.MemeGen = window.MemeGen || {};
 
-  const LayoutManager = {
+  var LayoutManager = {
     init: function (resizerId, rightPanelId) {
-      const resizer = document.getElementById(resizerId);
-      const rightPanel = document.getElementById(rightPanelId);
+      var resizer = document.getElementById(resizerId);
+      var rightPanel = document.getElementById(rightPanelId);
 
       // 防御性容错：若非桌面端环境或找不到节点，直接静默退出，不产生任何副作用
       if (!resizer || !rightPanel) return;
@@ -16,18 +16,18 @@
       resizer.addEventListener('mousedown', function (e) {
         e.preventDefault();
 
-        const startX = e.clientX;
-        const startWidth = rightPanel.getBoundingClientRect().width;
+        var startX = e.clientX;
+        var startWidth = rightPanel.getBoundingClientRect().width;
 
         function onMouseMove(e) {
-          const deltaX = e.clientX - startX;
-          const newWidth = startWidth - deltaX;
+          var deltaX = e.clientX - startX;
+          var newWidth = startWidth - deltaX;
 
           // Allow the panel to shrink to 1 card wide and expand up to 75 % of
           // the viewport. Both limits are evaluated at drag time so they adapt
           // when the window is resized between drags.
-          const minW = 160;
-          const maxW = Math.round(window.innerWidth * 0.75);
+          var minW = 160;
+          var maxW = Math.round(window.innerWidth * 0.75);
           if (newWidth >= minW && newWidth <= maxW) {
             rightPanel.style.width = newWidth + 'px';
           }

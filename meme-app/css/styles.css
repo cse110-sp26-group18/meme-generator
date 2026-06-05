@@ -134,6 +134,78 @@ main {
   cursor: not-allowed;
 }
 
+/* ── Font settings (⚙ right of Download) ─────────────────────────────────── */
+/* Relative wrapper so the dropdown anchors to the gear button. */
+.font-settings {
+  position: relative;
+  display: inline-flex;
+}
+
+.font-settings-btn {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--dark-forest);
+  border: 2px solid var(--dark-forest);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 2rem;
+  line-height: 1;
+  padding: 0;
+  transition: background 0.2s, color 0.2s;
+}
+
+.font-settings-btn:hover,
+.font-settings-btn[aria-expanded="true"] {
+  background: var(--forest-green);
+  color: var(--off-white);
+}
+
+/* Dropdown anchored to the gear; absolutely positioned so it overlays the
+   layout below instead of pushing the controls row taller. */
+.font-settings-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  min-width: 11rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--off-white);
+  border: 1px solid var(--soft-green-outline);
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(16, 40, 25, 0.18);
+}
+
+.font-settings-menu[hidden] {
+  display: none;
+}
+
+.font-settings-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  color: var(--dark-text);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.font-settings-item:hover,
+.font-settings-item:focus {
+  background: var(--soft-gray);
+  outline: none;
+}
+
 /* Share button — hidden by default; JS reveals it on mobile/tablet only. */
 #share-btn {
   display: none;
@@ -1287,11 +1359,7 @@ main {
   /* Right meme search panel — display: flex !important overrides mobile
    * display: none so it stays permanently visible on desktop.
    * min-width allows the grid to shrink to 1 card; max-width lets the user
-   * drag up to 75 % of the viewport (LayoutManager enforces the same limit).
-   * container-type: inline-size establishes a containment context so the
-   * .meme-search-results grid can react to the PANEL's width (not the
-   * viewport) via @container queries — that's how we cap the grid at
-   * 4 columns regardless of how wide the user drags the resizer. */
+   * drag up to 75 % of the viewport (LayoutManager enforces the same limit). */
   .meme-search {
     width: 380px;
     min-width: 160px;
@@ -1302,7 +1370,6 @@ main {
     overflow-y: auto;
     flex-shrink: 0;
     display: flex !important;
-    container-type: inline-size;
   }
 
   /* Canvas container fills the editor panel on desktop instead of staying
@@ -1317,77 +1384,13 @@ main {
     box-sizing: border-box;
   }
 
-  /* Once an image is loaded, app.js writes two CSS custom properties on
-   * the container:
-   *   --canvas-aspect-ratio : "W / H" — drives the box's aspect-ratio.
-   *   --canvas-ratio-num    : unitless W/H decimal for the min()/calc() math.
-   *
-   * Width is computed as the smaller of:
-   *   • 100 % of the editor-panel (library-resize responsiveness), and
-   *   • max-height × ratio (so derived height never exceeds the cap that
-   *     reserves room below the canvas for Scan Text + bottom controls).
-   *
-   * The result: width AND height stay in proportion (no distortion), and
-   * both bounds are honored — neither dimension ever clamps independently.
-   *
-   * The .canvas-frame and #meme-canvas rules below use width:100% +
-   * height:100% so all three layers (.canvas-container → .canvas-frame →
-   * #meme-canvas) scale together. Mobile is untouched: this whole block
-   * is inside @media (min-width: 769px). */
+  /* Once an image is loaded JS sets explicit pixel dimensions; the
+   * minimum height is no longer needed and max-width prevents wide images
+   * from overflowing the panel. */
   .canvas-container.has-image {
-    /* Reserve just the header height + a touch of breathing room — much
-     * smaller than the previous 18 rem reservation that was making the
-     * canvas plateau before it filled the panel. The editor-panel has
-     * overflow: auto, so when the canvas + controls below it together
-     * exceed the viewport the PANEL scrolls; Scan Text stays BELOW the
-     * canvas in scroll order, never on top of it. The 70 rem upper cap
-     * keeps the canvas from getting absurdly tall on very tall monitors. 
-    --canvas-max-h: clamp(24rem, calc(100vh - 8rem), 70rem);
-    aspect-ratio: var(--canvas-aspect-ratio, 1 / 1);
-    /* Three-way min(): width fills the editor panel up to a 70 rem absolute
-     * cap, but never exceeds (max-h × ratio) — so when the height bound
-     * is tighter (tall memes) the WIDTH shrinks proportionally instead of
-     * the height being clamped independently. That's how we prefer panel
-     * width AND still preserve aspect ratio without distortion. 
-    width: min(100%, 70rem, calc(var(--canvas-max-h) * var(--canvas-ratio-num, 1))) !important;
+    min-height: 0;
     max-width: 100%;
-    max-height: var(--canvas-max-h);
-    height: auto !important;
-    min-height: 0;
-    /* The base .canvas-container has align-self: stretch (used when the
-     * placeholder is visible so the cream box fills the panel). For a
-     * loaded image we want the now-explicit-width box to CENTER under the
-     * Upload / Download buttons instead of left-flushing.
-    align-self: center;
-     */
-    --canvas-max-h: min(72vh, 70rem);
-    aspect-ratio: var(--canvas-aspect-ratio, 1 / 1);
-    /*width: min(90%, 70rem) !important;*/
-    width: min(100%, 70rem, calc(var(--canvas-max-h) * var(--canvas-ratio-num, 1))) !important;
-    max-width: calc(100% - 4rem);
-    max-height: var(--canvas-max-h);
-    height: auto !important;
-    min-height: 0;
-    align-self: center;
-
-     
-  }
-
-  /* Fill the container so the rounded forest-green border always wraps the
-   * actual visible canvas, no empty cream gap between the border and image. */
-  .canvas-frame {
-    width: 100%;
-    height: 100%;
-  }
-
-  /* #meme-canvas display size = 100 % of its frame (which fills the
-   * container). The canvas's own pixel buffer (canvas.width / canvas.height
-   * attributes set by ImageLoader) is unchanged, so export still draws at
-   * the original resolution — only the CSS display is responsive. */
-  #meme-canvas {
-    width: 100% !important;
-    height: 100% !important;
-    display: block;
+    width: auto;
   }
 
   /* Draggable vertical resizer between the two panels. */
@@ -1408,33 +1411,9 @@ main {
     background-color: var(--forest-green);
   }
 
-  /* Desktop library grid — capped at 4 columns. Defaults to 1 column when
-   * the panel is narrow; widens to 2 / 3 / 4 columns via @container queries
-   * on .meme-search (container-type: inline-size, set above). Past the
-   * 4-column threshold the grid STAYS at 4 columns and the cards grow
-   * with the panel (each is 1fr of the available width). minmax(0, 1fr)
-   * guarantees columns never overflow on long meme names. */
   .meme-search-results {
-    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
     gap: 10px !important;
-  }
-
-  @container (min-width: 16rem) {
-    .meme-search-results {
-      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    }
-  }
-
-  @container (min-width: 24rem) {
-    .meme-search-results {
-      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    }
-  }
-
-  @container (min-width: 32rem) {
-    .meme-search-results {
-      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-    }
   }
 }
 

@@ -24,11 +24,11 @@
 var MemeGen = window.MemeGen || {};
 
 MemeGen.GeminiClient = (function () {
-  const STORAGE_KEY = 'mg.geminiApiKey';
+  var STORAGE_KEY = 'mg.geminiApiKey';
   // gemini-2.5-flash is the current generally-available free-tier model.
   // gemini-2.0-flash is currently quota-locked to 0 on new keys.
-  const MODEL = 'gemini-2.5-flash';
-  const ENDPOINT_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/';
+  var MODEL = 'gemini-2.5-flash';
+  var ENDPOINT_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/';
 
   // ── Error classes ───────────────────────────────────────────────────────────
 
@@ -76,7 +76,7 @@ MemeGen.GeminiClient = (function () {
   }
 
   function setApiKey(key) {
-    const trimmed = (key || '').trim();
+    var trimmed = (key || '').trim();
     if (!trimmed) return;
     // Private-browsing / cookie-blocked contexts throw on Storage writes.
     // Match getApiKey's defensive shape — best-effort, no surfacing.
@@ -88,13 +88,13 @@ MemeGen.GeminiClient = (function () {
   }
 
   function hasApiKey() {
-    const k = getApiKey();
+    var k = getApiKey();
     return !!(k && k.trim());
   }
 
   // ── Prompt construction ─────────────────────────────────────────────────────
 
-  const SYSTEM_INSTRUCTION =
+  var SYSTEM_INSTRUCTION =
     'You are a meme-suggestion assistant. From the supplied list of meme ' +
     'templates, pick exactly 3 templates that best fit the user\'s situation. ' +
     'For each pick, generate exactly 2 short caption strings: the first is ' +
@@ -103,7 +103,7 @@ MemeGen.GeminiClient = (function () {
     'in the supplied list — do not invent template ids. Return only the JSON ' +
     'object defined by the schema.';
 
-  const RESPONSE_SCHEMA = {
+  var RESPONSE_SCHEMA = {
     type: 'OBJECT',
     properties: {
       suggestions: {
@@ -128,7 +128,7 @@ MemeGen.GeminiClient = (function () {
     // Templates may carry rich metadata (character/emotion/tags) OR just a
     // name (e.g. ImgFlip memes whose entire identity is their cultural
     // reference). Build the line from whichever fields are present.
-    const parts = [t.id];
+    var parts = [t.id];
     if (t.name && t.name !== t.id) parts.push('"' + t.name + '"');
     if (t.character) parts.push(t.character);
     if (t.emotion) parts.push(t.emotion);
@@ -137,7 +137,7 @@ MemeGen.GeminiClient = (function () {
   }
 
   function buildUserPrompt(identity, situation, templates) {
-    const list = templates.map(templateLine).join('\n');
+    var list = templates.map(templateLine).join('\n');
     return (
       'The user describes themselves as: "' + identity + '"\n' +
       'Their situation: "' + situation + '"\n\n' +
@@ -170,8 +170,8 @@ MemeGen.GeminiClient = (function () {
    */
   function stripJsonFence(text) {
     if (typeof text !== 'string') return text;
-    const trimmed = text.trim();
-    const fenceMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
+    var trimmed = text.trim();
+    var fenceMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
     return fenceMatch ? fenceMatch[1].trim() : trimmed;
   }
 
@@ -183,11 +183,11 @@ MemeGen.GeminiClient = (function () {
     if (!result || !Array.isArray(result.candidates) || !result.candidates[0]) {
       throw new ParseError('Gemini response missing candidates[0].');
     }
-    const content = result.candidates[0].content;
+    var content = result.candidates[0].content;
     if (!content || !Array.isArray(content.parts) || !content.parts[0]) {
       throw new ParseError('Gemini response missing candidates[0].content.parts[0].');
     }
-    const text = content.parts[0].text;
+    var text = content.parts[0].text;
     if (typeof text !== 'string') {
       throw new ParseError('Gemini response part did not contain a text field.');
     }
@@ -195,8 +195,8 @@ MemeGen.GeminiClient = (function () {
   }
 
   function parseSuggestions(rawText, templates) {
-    const stripped = stripJsonFence(rawText);
-    let parsed;
+    var stripped = stripJsonFence(rawText);
+    var parsed;
     try {
       parsed = JSON.parse(stripped);
     } catch (e) {
@@ -206,10 +206,10 @@ MemeGen.GeminiClient = (function () {
       throw new ParseError('Gemini response missing suggestions array.');
     }
 
-    const validIds = {};
+    var validIds = {};
     templates.forEach(function (t) { validIds[t.id] = true; });
 
-    const valid = parsed.suggestions.filter(function (s) {
+    var valid = parsed.suggestions.filter(function (s) {
       return s &&
         typeof s.template_id === 'string' &&
         validIds[s.template_id] &&
@@ -227,13 +227,13 @@ MemeGen.GeminiClient = (function () {
   // ── Public: generateSuggestions ─────────────────────────────────────────────
 
   function generateSuggestions(identity, situation, templates) {
-    const key = getApiKey();
+    var key = getApiKey();
     if (!key || !key.trim()) {
       return Promise.reject(new KeyError());
     }
 
-    const url = ENDPOINT_BASE + MODEL + ':generateContent?key=' + encodeURIComponent(key);
-    const body = buildRequestBody(identity, situation, templates);
+    var url = ENDPOINT_BASE + MODEL + ':generateContent?key=' + encodeURIComponent(key);
+    var body = buildRequestBody(identity, situation, templates);
 
     return fetch(url, {
       method: 'POST',
@@ -242,7 +242,7 @@ MemeGen.GeminiClient = (function () {
     }).then(function (response) {
       // fetch resolves for HTTP errors too — they're not network failures.
       if (!response.ok) {
-        const status = response.status;
+        var status = response.status;
         return response.text().then(function (text) {
           throw new APIError('Gemini HTTP ' + status + ': ' + text.slice(0, 200), status);
         }, function () {
@@ -254,7 +254,7 @@ MemeGen.GeminiClient = (function () {
       // fetch rejects only for genuine network failures.
       throw new NetworkError(fetchErr && fetchErr.message ? fetchErr.message : 'Network request failed.');
     }).then(function (result) {
-      const rawText = extractText(result);
+      var rawText = extractText(result);
       return parseSuggestions(rawText, templates);
     });
   }

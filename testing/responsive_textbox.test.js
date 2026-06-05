@@ -241,7 +241,7 @@ describe('Exporter scales state coords to canvas bitmap', () => {
     return i;
   }
 
-  it.skip('scales x / y / fontSize when state.containerWidth differs from canvas.width', () => {
+  it('scales x / y / fontSize when state.containerWidth differs from canvas.width', () => {
     // Bitmap: 800×600. Display container was 400×300 when captured (half size).
     const canvas = makeCanvas(800, 600);
     const ctx = canvas.getContext('2d');

@@ -42,6 +42,15 @@ MemeGen.TextBoxManager = (function () {
         // preventDefault stops the browser from synthesizing a mouse click
         // after the touch, which would otherwise trigger a second createTextBox.
         e.preventDefault();
+
+        // Match desktop behavior: if a text box is selected, the first tap on
+        // the canvas should deselect it, or delete it if empty. It should not
+        // create a new text box until the next tap.
+        if (getSelectedTextBox()) {
+          deselectOrDeleteSelectedTextBox();
+          return;
+        }
+
         var rect = canvas.getBoundingClientRect();
         // changedTouches contains only the touches that changed in this event;
         // [0] is the first (and typically only) finger involved in the tap.

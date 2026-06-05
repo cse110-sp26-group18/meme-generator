@@ -134,6 +134,78 @@ main {
   cursor: not-allowed;
 }
 
+/* ── Font settings (⚙ right of Download) ─────────────────────────────────── */
+/* Relative wrapper so the dropdown anchors to the gear button. */
+.font-settings {
+  position: relative;
+  display: inline-flex;
+}
+
+.font-settings-btn {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--dark-forest);
+  border: 2px solid var(--dark-forest);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 2rem;
+  line-height: 1;
+  padding: 0;
+  transition: background 0.2s, color 0.2s;
+}
+
+.font-settings-btn:hover,
+.font-settings-btn[aria-expanded="true"] {
+  background: var(--forest-green);
+  color: var(--off-white);
+}
+
+/* Dropdown anchored to the gear; absolutely positioned so it overlays the
+   layout below instead of pushing the controls row taller. */
+.font-settings-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  min-width: 11rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--off-white);
+  border: 1px solid var(--soft-green-outline);
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(16, 40, 25, 0.18);
+}
+
+.font-settings-menu[hidden] {
+  display: none;
+}
+
+.font-settings-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  color: var(--dark-text);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.font-settings-item:hover,
+.font-settings-item:focus {
+  background: var(--soft-gray);
+  outline: none;
+}
+
 /* Share button — hidden by default; JS reveals it on mobile/tablet only. */
 #share-btn {
   display: none;

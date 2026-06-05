@@ -6,6 +6,24 @@ MemeGen.TextBox = (function () {
   var FONT_SIZE_MIN  = 8;
   var FONT_SIZE_MAX  = 120;
 
+  // Single source of truth for the font list — shared by each text box's own
+  // dropdown (below) and the global font-settings menu in app.js, so the two
+  // never drift out of sync. Exposed as MemeGen.TextBox.FONTS.
+  var FONTS = [
+    { label: 'Impact',       value: 'Impact' },
+    // ── Meme-style display fonts used by the "fonts" cycle button in app.js.
+    // Loaded via Google Fonts in index.html; browsers without network
+    // access fall back to the system default sans-serif.
+    { label: 'Anton',        value: 'Anton' },
+    { label: 'Bangers',      value: 'Bangers' },
+    { label: 'Luckiest Guy', value: 'Luckiest Guy' },
+    { label: 'Oswald',       value: 'Oswald' },
+    { label: 'Arial',        value: 'Arial' },
+    { label: 'Comic Sans', value: "'Comic Sans MS', cursive" },
+    { label: 'Helvetica', value: 'Helvetica, Arial, sans-serif' },
+    { label: 'Montserrat', value: "'Montserrat', sans-serif" }
+  ];
+
   /**
    * @constructor
    * @param {number} x - initial left offset in px relative to the container
@@ -90,22 +108,8 @@ MemeGen.TextBox = (function () {
     // Font family dropdown
     var fontSelect = document.createElement('select');
     fontSelect.className = 'font-select';
-    var fonts = [
-      { label: 'Impact',       value: 'Impact' },
-      // ── Meme-style display fonts used by the "fonts" cycle button in app.js.
-      // Loaded via Google Fonts in index.html; browsers without network
-      // access fall back to the system default sans-serif.
-      { label: 'Anton',        value: 'Anton' },
-      { label: 'Bangers',      value: 'Bangers' },
-      { label: 'Luckiest Guy', value: 'Luckiest Guy' },
-      { label: 'Oswald',       value: 'Oswald' },
-      { label: 'Arial',        value: 'Arial' },
-      { label: 'Comic Sans', value: "'Comic Sans MS', cursive" },
-      { label: 'Helvetica', value: 'Helvetica, Arial, sans-serif' },
-      { label: 'Montserrat', value: "'Montserrat', sans-serif" }
-    ];
 
-    fonts.forEach(function (f) {
+    FONTS.forEach(function (f) {
       var opt = document.createElement('option');
       opt.value = f.value;
       opt.textContent = f.label;
@@ -367,6 +371,21 @@ MemeGen.TextBox = (function () {
   };
 
   /**
+   * Programmatically sets the font family. Updates this.fontFamily, the
+   *   textarea inline style, and the per-box dropdown so its selected value
+   *   stays in sync. Mirrors the fontSelect 'change' handler — used by the
+   *   global font-settings menu to re-font every box at once.
+   * @param {string} value - a font value from MemeGen.TextBox.FONTS
+   */
+  TextBox.prototype.setFontFamily = function (value) {
+    this.fontFamily = value;
+    this.textarea.style.fontFamily = value;
+    if (this.fontSelect) {
+      this.fontSelect.value = value;
+    }
+  };
+
+  /**
    * Single source of truth for font size changes. Updates this.fontSize,
    *   the textarea inline style, and the toolbar display. Called from
    *   DragResize during resize and from the A+/A− click handlers.
@@ -534,6 +553,9 @@ MemeGen.TextBox = (function () {
     this.el.style.left = newLeft + 'px';
     this.el.style.top = newTop + 'px';
   };
+
+  // Static font list — read by app.js to build the global font-settings menu.
+  TextBox.FONTS = FONTS;
 
   return TextBox;
 })();

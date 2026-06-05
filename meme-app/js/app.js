@@ -1,23 +1,25 @@
 // DOMContentLoaded fires once the HTML is parsed but before images and
 // stylesheets finish loading — all DOM elements queried below are available.
 document.addEventListener('DOMContentLoaded', function () {
-  const canvas = document.getElementById('meme-canvas');
-  const container = document.getElementById('canvas-container');
-  const imageInput = document.getElementById('image-input');
-  const downloadBtn = document.getElementById('download-btn');
-  const shareBtn = document.getElementById('share-btn');
-  const scanTextBtn = document.getElementById('scan-text-btn');
-  const searchIconBtn = document.getElementById('search-icon-btn');
-  const memeSearchSection = document.getElementById('meme-search');
-  const memeSearchCloseBtn = document.getElementById('meme-search-close');
-  const mobileBackBtn = document.getElementById('mobile-back-btn');
-  const mobileHomeBackBtn = document.getElementById('mobile-home-back-btn');
-  const mobileHomePlusBtn = document.getElementById('mobile-home-plus-btn');
-  const browseMemesBtn = document.getElementById('browse-memes-btn');
-  const fontsBtn = document.getElementById('fonts-btn');
-  const aiPandaBtn = document.getElementById('ai-panda-btn');
-  const placeholder = document.getElementById('placeholder');
-  const hint = document.getElementById('hint');
+  var canvas = document.getElementById('meme-canvas');
+  var container = document.getElementById('canvas-container');
+  var imageInput = document.getElementById('image-input');
+  var downloadBtn = document.getElementById('download-btn');
+  var shareBtn = document.getElementById('share-btn');
+  var scanTextBtn = document.getElementById('scan-text-btn');
+  var searchIconBtn = document.getElementById('search-icon-btn');
+  var memeSearchSection = document.getElementById('meme-search');
+  var memeSearchCloseBtn = document.getElementById('meme-search-close');
+  var mobileBackBtn = document.getElementById('mobile-back-btn');
+  var mobileHomeBackBtn = document.getElementById('mobile-home-back-btn');
+  var mobileHomePlusBtn = document.getElementById('mobile-home-plus-btn');
+  var browseMemesBtn = document.getElementById('browse-memes-btn');
+  var fontsBtn = document.getElementById('fonts-btn');
+  var fontSettingsBtn = document.getElementById('font-settings-btn');
+  var fontSettingsMenu = document.getElementById('font-settings-menu');
+  var aiPandaBtn = document.getElementById('ai-panda-btn');
+  var placeholder = document.getElementById('placeholder');
+  var hint = document.getElementById('hint');
 
   // ── Mobile editor-first homepage / browse overlay (Screen 13) ──
   // Mobile boots into the editor. Tapping Browse Memes adds
@@ -40,16 +42,6 @@ document.addEventListener('DOMContentLoaded', function () {
   MemeGen.ImageLoader.init(canvas, function (width, height) {
     container.style.width = width + 'px';
     container.style.height = height + 'px';
-    // Expose the loaded image's aspect ratio to CSS so the desktop layout
-    // (see @media (min-width: 769px) in styles.css) can drive a responsive
-    // size that scales the container, the canvas-frame, and #meme-canvas
-    // together when the user resizes the library panel.
-    //   --canvas-aspect-ratio : "W / H" for the CSS aspect-ratio property.
-    //   --canvas-ratio-num    : unitless decimal for the min()/calc() math
-    //                           that prevents width × ratio from exceeding
-    //                           the max-height clamp (and vice versa).
-    container.style.setProperty('--canvas-aspect-ratio', width + ' / ' + height);
-    container.style.setProperty('--canvas-ratio-num', (width / height).toFixed(4));
     container.classList.add('has-image');
     placeholder.hidden = true;
     hint.hidden = false;
@@ -59,9 +51,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // contract below. Do NOT enable it when an image loads.
     MemeGen.TextBoxManager.setImageLoaded(true);
     // Clear any "Loading…" message left over from the meme-search flow.
-    const s = document.getElementById('meme-search-status');
+    var s = document.getElementById('meme-search-status');
     if (s) s.textContent = '';
-    const ai = document.getElementById('ai-status');
+    var ai = document.getElementById('ai-status');
     if (ai && /^Loading /.test(ai.textContent)) ai.textContent = '';
 
     // Close the legacy slide-up overlay variant if it was left open.
@@ -78,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // If an AI suggestion is pending its captions, populate text boxes now
     // that the canvas is sized. Deferred one tick so layout fully commits.
     if (MemeGen.pendingAICaptions && Array.isArray(MemeGen.pendingAICaptions)) {
-      const caps = MemeGen.pendingAICaptions;
+      var caps = MemeGen.pendingAICaptions;
       MemeGen.pendingAICaptions = null;
       setTimeout(function () { populatePresetCaptions(container, caps); }, 0);
     }
@@ -98,7 +90,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // sees on reload is the meme template grid (per the flow correction).
     // Desktop stays on the editor — its inline layout shows everything.
     showBrowseView();
-    
   }
 
   imageInput.addEventListener('change', function () {
@@ -115,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function () {
    */
   function firstImageFile(fileList) {
     if (!fileList) return null;
-    for (let i = 0; i < fileList.length; i++) {
+    for (var i = 0; i < fileList.length; i++) {
       if (fileList[i].type && fileList[i].type.indexOf('image/') === 0) {
         return fileList[i];
       }
@@ -152,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function () {
     e.preventDefault();
     e.stopPropagation();
     container.classList.remove('drag-over');
-    const file = firstImageFile(e.dataTransfer && e.dataTransfer.files);
+    var file = firstImageFile(e.dataTransfer && e.dataTransfer.files);
     if (file) {
       MemeGen.ImageLoader.loadFromFile(file);
     }
@@ -174,9 +165,9 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   downloadBtn.addEventListener('click', function () {
-    const image = MemeGen.ImageLoader.getImage();
-    const ctx = MemeGen.ImageLoader.getContext();
-    const textBoxes = MemeGen.TextBoxManager.getAll();
+    var image = MemeGen.ImageLoader.getImage();
+    var ctx = MemeGen.ImageLoader.getContext();
+    var textBoxes = MemeGen.TextBoxManager.getAll();
 
     MemeGen.TextBoxManager.getAll().forEach(function (tb) {
       tb.deselect();
@@ -195,9 +186,9 @@ document.addEventListener('DOMContentLoaded', function () {
   // internally falls back to a normal download.
   if (shareBtn) {
     shareBtn.addEventListener('click', function () {
-      const image = MemeGen.ImageLoader.getImage();
-      const ctx = MemeGen.ImageLoader.getContext();
-      const textBoxes = MemeGen.TextBoxManager.getAll();
+      var image = MemeGen.ImageLoader.getImage();
+      var ctx = MemeGen.ImageLoader.getContext();
+      var textBoxes = MemeGen.TextBoxManager.getAll();
 
       textBoxes.forEach(function (tb) { tb.deselect(); });
 
@@ -214,7 +205,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // a mobile affordance, but the class toggle is harmless on desktop.
   if (searchIconBtn && memeSearchSection) {
     searchIconBtn.addEventListener('click', function () {
-      const nowOpen = memeSearchSection.classList.toggle('is-open');
+      var nowOpen = memeSearchSection.classList.toggle('is-open');
       searchIconBtn.setAttribute('aria-expanded', nowOpen ? 'true' : 'false');
     });
   }
@@ -264,13 +255,13 @@ document.addEventListener('DOMContentLoaded', function () {
   // so live update and export both stay consistent. If a text box's
   // current font isn't in the cycle list, it starts at the first entry
   // ('Impact'). If there are no text boxes, surface the discovery hint.
-  const MEME_FONTS = ['Impact', 'Anton', 'Bangers', 'Luckiest Guy', 'Oswald'];
+  var MEME_FONTS = ['Impact', 'Anton', 'Bangers', 'Luckiest Guy', 'Oswald'];
 
   function cycleFontForTextBox(tb) {
     if (!tb || !tb.fontSelect) return;
-    const current = tb.fontSelect.value;
-    const idx = MEME_FONTS.indexOf(current);
-    const next = idx === -1
+    var current = tb.fontSelect.value;
+    var idx = MEME_FONTS.indexOf(current);
+    var next = idx === -1
       ? MEME_FONTS[0]
       : MEME_FONTS[(idx + 1) % MEME_FONTS.length];
     tb.fontSelect.value = next;
@@ -279,12 +270,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (fontsBtn) {
     fontsBtn.addEventListener('click', function () {
-      const boxes = (MemeGen.TextBoxManager && typeof MemeGen.TextBoxManager.getAll === 'function')
+      var boxes = (MemeGen.TextBoxManager && typeof MemeGen.TextBoxManager.getAll === 'function')
         ? MemeGen.TextBoxManager.getAll() : [];
       if (boxes.length === 0) {
         if (hint) {
-          const prev = hint.textContent;
-          const wasHidden = hint.hidden;
+          var prev = hint.textContent;
+          var wasHidden = hint.hidden;
           hint.textContent = 'Add or select text to change fonts';
           hint.hidden = false;
           setTimeout(function () {
@@ -373,34 +364,34 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Wire up meme search: when a result is clicked, load it onto the canvas
   // through the same pipeline as a normal upload.
-  const searchInput = document.getElementById('meme-search-input');
-  const searchResults = document.getElementById('meme-search-results');
-  const searchStatus = document.getElementById('meme-search-status');
-  const editorLibraryResults = document.getElementById('editor-library-results');
-  const editorLibrarySearchInput = document.getElementById('editor-library-search-input');
+  var searchInput = document.getElementById('meme-search-input');
+  var searchResults = document.getElementById('meme-search-results');
+  var searchStatus = document.getElementById('meme-search-status');
+  var editorLibraryResults = document.getElementById('editor-library-results');
+  var editorLibrarySearchInput = document.getElementById('editor-library-search-input');
 
   // Cached meme list for the editor preview's own search.
-  let allEditorMemes = [];
+  var allEditorMemes = [];
   // Guard prevents duplicate input listeners if onFetched fires more than once.
-  let editorPreviewListenerAdded = false;
+  var editorPreviewListenerAdded = false;
 
   // Render (or re-render) cards into the editor preview container.
   function buildEditorPreviewCards(list) {
     if (!editorLibraryResults) return;
     editorLibraryResults.innerHTML = '';
     list.slice(0, 50).forEach(function (meme) {
-      const card = document.createElement('button');
+      var card = document.createElement('button');
       card.type = 'button';
       card.className = 'meme-search-card';
       card.title = meme.name;
 
-      const img = document.createElement('img');
+      var img = document.createElement('img');
       img.src = meme.url;
       img.alt = meme.name;
       img.loading = 'lazy';
       img.crossOrigin = 'anonymous';
 
-      const label = document.createElement('span');
+      var label = document.createElement('span');
       label.className = 'meme-search-name';
       label.textContent = meme.name;
 
@@ -420,8 +411,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Filter the cached meme list by the preview search query and re-render.
   function filterEditorPreview() {
-    const query = (editorLibrarySearchInput ? editorLibrarySearchInput.value : '').trim().toLowerCase();
-    const filtered = query
+    var query = (editorLibrarySearchInput ? editorLibrarySearchInput.value : '').trim().toLowerCase();
+    var filtered = query
       ? allEditorMemes.filter(function (m) { return m.name.toLowerCase().indexOf(query) !== -1; })
       : allEditorMemes;
     buildEditorPreviewCards(filtered);
@@ -436,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (!editorPreviewListenerAdded && editorLibrarySearchInput) {
       editorPreviewListenerAdded = true;
-      let debounce = null;
+      var debounce = null;
       editorLibrarySearchInput.addEventListener('input', function () {
         clearTimeout(debounce);
         debounce = setTimeout(filterEditorPreview, 150);
@@ -487,12 +478,12 @@ document.addEventListener('DOMContentLoaded', function () {
       tb.destroy();
     });
 
-    const w = containerEl.offsetWidth  || 600;
-    const h = containerEl.offsetHeight || 400;
+    var w = containerEl.offsetWidth  || 600;
+    var h = containerEl.offsetHeight || 400;
     // 200×60 is the TextBox default size; center horizontally, top/bottom pad.
-    const boxW = 200;
-    const x = Math.max(0, Math.round((w - boxW) / 2));
-    const items = [
+    var boxW = 200;
+    var x = Math.max(0, Math.round((w - boxW) / 2));
+    var items = [
       { x: x, y: Math.round(h * 0.06),                       text: captions[0] || '' },
       { x: x, y: Math.max(0, Math.round(h * 0.78)),          text: captions[1] || '' }
     ];
@@ -500,14 +491,14 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ── AI suggestions panel (opened by the 🐼 panda button) ────────────────
-  const aiPanel = document.getElementById('ai-suggestions-panel');
-  const aiCloseBtn = document.getElementById('ai-close-btn');
+  var aiPanel = document.getElementById('ai-suggestions-panel');
+  var aiCloseBtn = document.getElementById('ai-close-btn');
 
   function openAiPanel() {
     if (!aiPanel) return;
     aiPanel.hidden = false;
     if (aiPandaBtn) aiPandaBtn.setAttribute('aria-expanded', 'true');
-    const identityInput = document.getElementById('ai-identity');
+    var identityInput = document.getElementById('ai-identity');
     if (identityInput) identityInput.focus();
   }
 
@@ -531,7 +522,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   if (aiPanel && MemeGen.AISuggestions) {
-    const aiStatus = document.getElementById('ai-status');
+    var aiStatus = document.getElementById('ai-status');
     MemeGen.AISuggestions.init({
       root: aiPanel,
       // No getBtn — panel visibility is managed by the panda button above,

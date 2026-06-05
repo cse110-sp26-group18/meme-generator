@@ -1,10 +1,14 @@
 var MemeGen = window.MemeGen || {};
 
 MemeGen.TextBoxManager = (function () {
-  let textBoxes = [];
-  let container = null;
-  let canvas = null;
-  let imageLoaded = false;
+  var textBoxes = [];
+  var container = null;
+  var canvas = null;
+  var imageLoaded = false;
+  // Global font applied to every text box. Changed via the font-settings menu
+  // (setFontForAll); newly created boxes adopt it so the choice sticks for
+  // future text too. Defaults to the same 'Impact' each TextBox starts with.
+  var defaultFontFamily = 'Impact';
 
   /**
    * @param {HTMLElement} containerEl - the canvas container that receives
@@ -24,9 +28,9 @@ MemeGen.TextBoxManager = (function () {
         }
         // getBoundingClientRect() returns viewport-relative coordinates;
         // subtracting rect.left/top converts them to canvas-local coordinates.
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        var rect = canvas.getBoundingClientRect();
+        var x = e.clientX - rect.left;
+        var y = e.clientY - rect.top;
 
         createTextBox(x, y);
       }
@@ -38,23 +42,13 @@ MemeGen.TextBoxManager = (function () {
         // preventDefault stops the browser from synthesizing a mouse click
         // after the touch, which would otherwise trigger a second createTextBox.
         e.preventDefault();
-
-        // Mirror the mousedown contract (v4 behavior): a tap on the canvas
-        // while a text box is selected should deselect it (or delete it if
-        // empty) instead of creating a second box. The user has to tap once
-        // more — on the now-empty canvas — to actually create a new box.
-        if (getSelectedTextBox()) {
-          deselectOrDeleteSelectedTextBox();
-          return;
-        }
-
-        const rect = canvas.getBoundingClientRect();
+        var rect = canvas.getBoundingClientRect();
         // changedTouches contains only the touches that changed in this event;
         // [0] is the first (and typically only) finger involved in the tap.
-        const touch = e.changedTouches[0];
+        var touch = e.changedTouches[0];
 
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
+        var x = touch.clientX - rect.left;
+        var y = touch.clientY - rect.top;
 
         createTextBox(x, y);
       }
@@ -72,7 +66,7 @@ MemeGen.TextBoxManager = (function () {
         return;
       }
 
-      const activeEl = document.activeElement;
+      var activeEl = document.activeElement;
 
       // isContentEditable catches rich-text editor elements alongside
       // INPUT/TEXTAREA/SELECT — prevents accidental deletion while typing.
@@ -107,10 +101,10 @@ MemeGen.TextBoxManager = (function () {
    * @param {number} y - y position in px relative to the canvas origin
    */
   function createTextBox(x, y) {
-    const tb = new MemeGen.TextBox(0, 0, container);
+    var tb = new MemeGen.TextBox(0, 0, container);
 
     tb.onDelete = function (box) {
-      const idx = textBoxes.indexOf(box);
+      var idx = textBoxes.indexOf(box);
       if (idx !== -1) textBoxes.splice(idx, 1);
     };
 
@@ -129,8 +123,8 @@ MemeGen.TextBoxManager = (function () {
     deselectAll();
 
     // Keep new textbox fully inside the image/template.
-    const clampedX = Math.max(0, Math.min(x, container.offsetWidth - tb.el.offsetWidth));
-    const clampedY = Math.max(0, Math.min(y, container.offsetHeight - tb.el.offsetHeight));
+    var clampedX = Math.max(0, Math.min(x, container.offsetWidth - tb.el.offsetWidth));
+    var clampedY = Math.max(0, Math.min(y, container.offsetHeight - tb.el.offsetHeight));
 
     tb.el.style.left = clampedX + 'px';
     tb.el.style.top = clampedY + 'px';
@@ -150,12 +144,12 @@ MemeGen.TextBoxManager = (function () {
   function createBatch(items) {
     if (!Array.isArray(items)) return [];
 
-    const created = [];
+    var created = [];
     items.forEach(function (item) {
-      const tb = new MemeGen.TextBox(0, 0, container);
+      var tb = new MemeGen.TextBox(0, 0, container);
 
       tb.onDelete = function (box) {
-        const idx = textBoxes.indexOf(box);
+        var idx = textBoxes.indexOf(box);
         if (idx !== -1) textBoxes.splice(idx, 1);
       };
 
@@ -174,10 +168,10 @@ MemeGen.TextBoxManager = (function () {
         tb.textarea.dispatchEvent(new Event('input', { bubbles: true }));
       }
 
-      const x = typeof item.x === 'number' ? item.x : 0;
-      const y = typeof item.y === 'number' ? item.y : 0;
-      const clampedX = Math.max(0, Math.min(x, container.offsetWidth  - tb.el.offsetWidth));
-      const clampedY = Math.max(0, Math.min(y, container.offsetHeight - tb.el.offsetHeight));
+      var x = typeof item.x === 'number' ? item.x : 0;
+      var y = typeof item.y === 'number' ? item.y : 0;
+      var clampedX = Math.max(0, Math.min(x, container.offsetWidth  - tb.el.offsetWidth));
+      var clampedY = Math.max(0, Math.min(y, container.offsetHeight - tb.el.offsetHeight));
       tb.el.style.left = clampedX + 'px';
       tb.el.style.top  = clampedY + 'px';
 
@@ -193,7 +187,7 @@ MemeGen.TextBoxManager = (function () {
    * Destroys the currently selected text box, if any.
    */
   function deleteSelectedTextBox() {
-    const selectedBox = textBoxes.find(function (tb) {
+    var selectedBox = textBoxes.find(function (tb) {
       return tb.selected;
     });
 
@@ -260,7 +254,7 @@ MemeGen.TextBoxManager = (function () {
   }
 
   function deselectOrDeleteSelectedTextBox() {
-    const selectedBox = getSelectedTextBox();
+    var selectedBox = getSelectedTextBox();
 
     if (!selectedBox) {
       return;

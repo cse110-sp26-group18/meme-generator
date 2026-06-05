@@ -25,11 +25,11 @@
 var MemeGen = window.MemeGen || {};
 
 MemeGen.AISuggestions = (function () {
-  const IMGFLIP_ENDPOINT = 'https://api.imgflip.com/get_memes';
+  var IMGFLIP_ENDPOINT = 'https://api.imgflip.com/get_memes';
 
   // Cached meme list from ImgFlip; fetched on first Generate click.
-  let memes = [];
-  let memesPromise = null;
+  var memes = [];
+  var memesPromise = null;
 
   function fetchMemes() {
     if (memesPromise) return memesPromise;
@@ -54,14 +54,14 @@ MemeGen.AISuggestions = (function () {
   }
 
   // DOM refs (from init opts)
-  let rootEl, getBtn, formEl, identityEl, situationEl, generateBtn,
+  var rootEl, getBtn, formEl, identityEl, situationEl, generateBtn,
       keyFormEl, keyInputEl, keySaveBtn, changeKeyLink,
       statusEl, resultsEl;
-  let onSelectCallback = null;
+  var onSelectCallback = null;
 
   // Set to true when a Generate click is blocked by a missing key; once the
   // key is saved we re-fire the generate flow automatically.
-  let pendingGenerate = false;
+  var pendingGenerate = false;
 
   // ── Init / wiring ────────────────────────────────────────────────────────
 
@@ -119,8 +119,8 @@ MemeGen.AISuggestions = (function () {
   }
 
   function onGenerateClick() {
-    const identity  = identityEl ? identityEl.value.trim() : '';
-    const situation = situationEl ? situationEl.value.trim() : '';
+    var identity  = identityEl ? identityEl.value.trim() : '';
+    var situation = situationEl ? situationEl.value.trim() : '';
 
     if (!identity || !situation) {
       setStatus('Please fill in both fields.');
@@ -148,7 +148,7 @@ MemeGen.AISuggestions = (function () {
         // ImgFlip returns ~100 templates; Gemini only needs the name to
         // recognize each one culturally. Trim to a reasonable size so the
         // prompt stays small (~100 lines is fine for gemini-2.5-flash).
-        const templates = memeList.map(function (m) {
+        var templates = memeList.map(function (m) {
           return { id: m.id, name: m.name };
         });
         return MemeGen.GeminiClient.generateSuggestions(identity, situation, templates);
@@ -161,7 +161,7 @@ MemeGen.AISuggestions = (function () {
   }
 
   function onSaveKeyClick() {
-    const key = keyInputEl ? keyInputEl.value : '';
+    var key = keyInputEl ? keyInputEl.value : '';
     if (!key || !key.trim()) {
       setStatus('Please paste a key first.');
       return;
@@ -173,8 +173,8 @@ MemeGen.AISuggestions = (function () {
 
     if (pendingGenerate) {
       pendingGenerate = false;
-      const identity  = identityEl ? identityEl.value.trim() : '';
-      const situation = situationEl ? situationEl.value.trim() : '';
+      var identity  = identityEl ? identityEl.value.trim() : '';
+      var situation = situationEl ? situationEl.value.trim() : '';
       if (identity && situation) {
         runGenerate(identity, situation);
       }
@@ -200,7 +200,7 @@ MemeGen.AISuggestions = (function () {
   // ── Rendering ─────────────────────────────────────────────────────────────
 
   function findMemeById(id) {
-    for (let i = 0; i < memes.length; i++) {
+    for (var i = 0; i < memes.length; i++) {
       if (memes[i].id === id) return memes[i];
     }
     return null;
@@ -212,16 +212,16 @@ MemeGen.AISuggestions = (function () {
     setStatus(suggestions.length + ' suggestion' + (suggestions.length === 1 ? '' : 's') + ' — click one to load.');
 
     suggestions.forEach(function (s) {
-      const meme = findMemeById(s.template_id);
+      var meme = findMemeById(s.template_id);
       if (!meme) return;
       // Normalize to the {id, name, url} shape the rest of the code expects.
-      const template = { id: meme.id, name: meme.name, url: meme.url };
+      var template = { id: meme.id, name: meme.name, url: meme.url };
       resultsEl.appendChild(buildCard(template, s.captions));
     });
   }
 
   function buildCard(template, captions) {
-    const card = document.createElement('button');
+    var card = document.createElement('button');
     card.type = 'button';
     card.className = 'ai-result-card';
     card.setAttribute('data-template-id', template.id);
@@ -231,7 +231,7 @@ MemeGen.AISuggestions = (function () {
       (captions[0] || '') + '" and "' + (captions[1] || '') + '"'
     );
 
-    const img = document.createElement('img');
+    var img = document.createElement('img');
     img.src = template.url;
     img.alt = template.name;
     img.loading = 'lazy';
@@ -240,15 +240,15 @@ MemeGen.AISuggestions = (function () {
     img.crossOrigin = 'anonymous';
     card.appendChild(img);
 
-    const name = document.createElement('span');
+    var name = document.createElement('span');
     name.className = 'ai-result-name';
     name.textContent = template.name;
     card.appendChild(name);
 
-    const capList = document.createElement('ul');
+    var capList = document.createElement('ul');
     capList.className = 'ai-caption-list';
     captions.forEach(function (cap) {
-      const li = document.createElement('li');
+      var li = document.createElement('li');
       li.textContent = cap;
       capList.appendChild(li);
     });
@@ -268,7 +268,7 @@ MemeGen.AISuggestions = (function () {
       setStatus('Gemini client is not loaded.');
       return;
     }
-    const GC = MemeGen.GeminiClient;
+    var GC = MemeGen.GeminiClient;
     if (err instanceof GC.KeyError) {
       pendingGenerate = true;
       showKeyForm();

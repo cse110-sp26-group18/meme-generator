@@ -12,19 +12,19 @@ MemeGen.Exporter = (function () {
    * @returns {string[]} array of wrapped lines ready to render onto the canvas
    */
   function wrapText(ctx, text, maxWidth) {
-    const paragraphs = text.split('\n');
-    const lines = [];
+    var paragraphs = text.split('\n');
+    var lines = [];
 
     paragraphs.forEach(function (para) {
       if (para === '') {
         lines.push('');
         return;
       }
-      const words = para.split(' ');
-      let currentLine = '';
+      var words = para.split(' ');
+      var currentLine = '';
 
       words.forEach(function (word) {
-        const testLine = currentLine ? currentLine + ' ' + word : word;
+        var testLine = currentLine ? currentLine + ' ' + word : word;
         if (ctx.measureText(testLine).width > maxWidth && currentLine) {
           lines.push(currentLine);
           currentLine = word;
@@ -56,7 +56,7 @@ MemeGen.Exporter = (function () {
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
     textBoxes.forEach(function (tb) {
-      const state = tb.getState();
+      var state = tb.getState();
       if (!state.text.trim()) return;
 
       // save() pushes the current canvas state (font, styles, transforms)
@@ -64,13 +64,13 @@ MemeGen.Exporter = (function () {
       // from one box don't bleed into the next.
       ctx.save();
 
-      const padding = 6;
-      const boxInnerWidth = state.width - padding * 2;
+      var padding = 6;
+      var boxInnerWidth = state.width - padding * 2;
       // Use the font size the user sees in the editor, not a re-derived formula.
       // state.fontSize is kept in sync by TextBox.applyFontSize(), so the
       // exported PNG always matches what was visible on screen.
-      const fontSize = state.fontSize;
-      const fontFamily = state.fontFamily || 'Impact';
+      var fontSize = state.fontSize;
+      var fontFamily = state.fontFamily || 'Impact';
 
       ctx.font = fontSize + 'px ' + fontFamily;
       // 'top' baseline anchors text at the top of the em box, matching the
@@ -80,12 +80,12 @@ MemeGen.Exporter = (function () {
       // are especially visible on bold fonts at large sizes.
       ctx.lineJoin = 'round';
 
-      const lines = wrapText(ctx, state.text, boxInnerWidth);
-      const lineHeight = fontSize * 1.2;
+      var lines = wrapText(ctx, state.text, boxInnerWidth);
+      var lineHeight = fontSize * 1.2;
 
       lines.forEach(function (line, i) {
-        const textX = state.x + padding;
-        const textY = state.y + padding + i * lineHeight;
+        var textX = state.x + padding;
+        var textY = state.y + padding + i * lineHeight;
 
         if (state.borderEnabled) {
           ctx.strokeStyle = 'black';
@@ -110,8 +110,8 @@ MemeGen.Exporter = (function () {
       if (!blob) return;
       // createObjectURL creates a temporary in-memory URL for the Blob;
       // it must be revoked after use to free the memory reference.
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
       a.href = url;
       a.download = 'meme.png';
       document.body.appendChild(a);
@@ -127,11 +127,11 @@ MemeGen.Exporter = (function () {
   }
 
   function isMobileOrTablet() {
-    const mq = typeof window.matchMedia === 'function'
+    var mq = typeof window.matchMedia === 'function'
       ? window.matchMedia('(max-width: 768px)')
       : null;
-    const smallOrTabletScreen = mq ? mq.matches : false;
-    const hasTouch = 'ontouchstart' in window || (navigator.maxTouchPoints || 0) > 0;
+    var smallOrTabletScreen = mq ? mq.matches : false;
+    var hasTouch = 'ontouchstart' in window || (navigator.maxTouchPoints || 0) > 0;
     return smallOrTabletScreen && hasTouch;
   }
 
@@ -146,8 +146,8 @@ MemeGen.Exporter = (function () {
         return;
       }
 
-      const file = new File([blob], 'meme.png', { type: 'image/png' });
-      const shareData = { files: [file] };
+      var file = new File([blob], 'meme.png', { type: 'image/png' });
+      var shareData = { files: [file] };
 
       if (
         isMobileOrTablet() &&

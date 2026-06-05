@@ -12,19 +12,19 @@ var MemeGen = window.MemeGen || {};
  * against the cached list — no per-keystroke network calls.
  */
 MemeGen.MemeSearch = (function () {
-  const ENDPOINT = 'https://api.imgflip.com/get_memes';
+  var ENDPOINT = 'https://api.imgflip.com/get_memes';
 
   // Cached templates and fetch state.
-  let memes = [];
-  let fetched = false;
-  let fetching = false;
+  var memes = [];
+  var fetched = false;
+  var fetching = false;
 
   // DOM references and callbacks set during init().
-  let inputEl = null;
-  let resultsEl = null;
-  let statusEl = null;
-  let onSelectCallback = null;
-  let onFetchedCallback = null;
+  var inputEl = null;
+  var resultsEl = null;
+  var statusEl = null;
+  var onSelectCallback = null;
+  var onFetchedCallback = null;
 
   /**
    * @param {Object} opts - configuration object containing: input
@@ -45,7 +45,7 @@ MemeGen.MemeSearch = (function () {
     }
 
     // Simple debounce so we don't re-render on every keystroke.
-    let debounceTimer = null;
+    var debounceTimer = null;
     inputEl.addEventListener('input', function () {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(runSearch, 150);
@@ -107,8 +107,8 @@ MemeGen.MemeSearch = (function () {
       ensureFetched();
       return;
     }
-    const query = (inputEl.value || '').trim().toLowerCase();
-    const filtered = query
+    var query = (inputEl.value || '').trim().toLowerCase();
+    var filtered = query
       ? memes.filter(function (m) {
           return m.name.toLowerCase().indexOf(query) !== -1;
         })
@@ -132,12 +132,12 @@ MemeGen.MemeSearch = (function () {
     setStatus('');
 
     list.forEach(function (meme) {
-      const card = document.createElement('button');
+      var card = document.createElement('button');
       card.type = 'button';
       card.className = 'meme-search-card';
       card.title = meme.name;
 
-      const img = document.createElement('img');
+      var img = document.createElement('img');
       img.src = meme.url;
       img.alt = meme.name;
       // lazy loading defers fetching off-screen images until they near the
@@ -146,7 +146,7 @@ MemeGen.MemeSearch = (function () {
       // Anonymous CORS so the image can be drawn to canvas without tainting.
       img.crossOrigin = 'anonymous';
 
-      const label = document.createElement('span');
+      var label = document.createElement('span');
       label.className = 'meme-search-name';
       label.textContent = meme.name;
 

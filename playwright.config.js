@@ -26,6 +26,15 @@ module.exports = defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] }
+    },
+    {
+      // Mobile project: emulates an iPhone 13 (390px viewport + touch) on the
+      // Chromium engine, so it needs no extra browser install beyond chromium.
+      // This activates the app's mobile code paths (Exporter.isMobileOrTablet()
+      // gates on matchMedia('(max-width: 768px)') + touch support) and lets the
+      // mobile-only CSS media queries actually apply — things jsdom cannot test.
+      name: 'mobile-chromium',
+      use: { ...devices['iPhone 13'], defaultBrowserType: 'chromium' }
     }
   ]
 });

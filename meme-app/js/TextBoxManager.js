@@ -129,6 +129,10 @@ MemeGen.TextBoxManager = (function () {
     tb.el.style.left = clampedX + 'px';
     tb.el.style.top = clampedY + 'px';
 
+    // Record image-relative ratios so the box follows the canvas when CSS
+    // resizes the container (viewport change / desktop library drag).
+    if (typeof tb.captureRelativeState === 'function') tb.captureRelativeState();
+
     tb.select();
     tb.focusTextarea();
   }
@@ -174,6 +178,10 @@ MemeGen.TextBoxManager = (function () {
       var clampedY = Math.max(0, Math.min(y, container.offsetHeight - tb.el.offsetHeight));
       tb.el.style.left = clampedX + 'px';
       tb.el.style.top  = clampedY + 'px';
+
+      // Record image-relative ratios so the box follows the canvas when CSS
+      // resizes the container (viewport change / desktop library drag).
+      if (typeof tb.captureRelativeState === 'function') tb.captureRelativeState();
 
       created.push(tb);
     });
@@ -253,6 +261,41 @@ MemeGen.TextBoxManager = (function () {
     defaultFontFamily = 'Impact';
   }
 
+  // ── Responsive sync ────────────────────────────────────────────────────
+  // A ResizeObserver in app.js calls syncTextBoxesToCanvas() whenever the
+  // canvas-container display size changes (viewport / desktop library
+  // resize). For each text box, we reapply its stored image-relative
+  // ratios so it stays anchored to the same point on the meme.
+  //
+  // isSyncing is a re-entrancy guard. applyRelativeState changes child
+  // element pixel sizes; because the container is sized by CSS (not by
+  // its children) it cannot resize in response, so no observer feedback
+  // loop is possible — but the guard plus requestAnimationFrame keeps
+  // the per-frame cost flat even if the observer fires several times.
+  let isSyncing = false;
+
+  function syncTextBoxesToCanvas() {
+    if (isSyncing) return;
+    isSyncing = true;
+    const raf = (typeof requestAnimationFrame === 'function')
+      ? requestAnimationFrame
+      : function (cb) { return setTimeout(cb, 16); };
+    raf(function () {
+      textBoxes.forEach(function (tb) {
+        if (typeof tb.applyRelativeState === 'function') tb.applyRelativeState();
+      });
+      isSyncing = false;
+    });
+  }
+
+  function updateTextBoxRelativeState(tb) {
+    if (tb && typeof tb.captureRelativeState === 'function') tb.captureRelativeState();
+  }
+
+  function updateAllRelativeStates() {
+    textBoxes.forEach(updateTextBoxRelativeState);
+  }
+
   function deselectOrDeleteSelectedTextBox() {
     var selectedBox = getSelectedTextBox();
 
@@ -276,7 +319,11 @@ MemeGen.TextBoxManager = (function () {
     createTextBoxAt: createTextBoxAt,
     setFontForAll: setFontForAll,
     createBatch: createBatch,
-    reset: reset
+    reset: reset,
+    // Responsive sync (called by app.js's ResizeObserver on the container).
+    syncTextBoxesToCanvas: syncTextBoxesToCanvas,
+    updateTextBoxRelativeState: updateTextBoxRelativeState,
+    updateAllRelativeStates: updateAllRelativeStates
   };
 })();
 

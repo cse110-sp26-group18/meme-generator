@@ -64,9 +64,9 @@ MemeGen.MemeSearch = (function () {
     scared: ['scared', 'afraid', 'fear', 'terrified', 'nervous', 'anxious', 'panicked'],
     scare: ['scare', 'scared', 'scary', 'afraid', 'fear', 'terrified'],
     scary: ['scary', 'scared', 'afraid', 'fear', 'terrified'],
-    angry: ['angry', 'mad', 'annoyed', 'frustrated', 'furious', 'rage'],
+    angry: ['angry', 'anger', 'mad', 'annoyed', 'frustrated', 'furious', 'rage'],
     anger: ['anger', 'angry', 'mad', 'annoyed', 'frustrated', 'furious', 'rage'],
-    sad: ['sad', 'upset', 'disappointed', 'depressed', 'crying', 'heartbroken', 'lonely'],
+    sad: ['sad', 'sadness', 'upset', 'disappointed', 'depressed', 'crying', 'heartbroken', 'lonely'],
     sadness: ['sadness', 'sad', 'upset', 'disappointed', 'depressed', 'crying', 'heartbroken'],
     surprised: ['surprised', 'shocked', 'stunned', 'astonished', 'speechless', 'unexpected'],
     surprise: ['surprise', 'surprised', 'shocked', 'stunned', 'astonished', 'unexpected'],
@@ -603,7 +603,8 @@ MemeGen.MemeSearch = (function () {
     }
 
     return normalizedHaystack.split(' ').some(function (word) {
-      return word.indexOf(normalizedTerm) === 0;
+      if (word === normalizedTerm) return true;
+      return normalizedTerm.length >= 4 && word.indexOf(normalizedTerm) === 0;
     });
   }
 

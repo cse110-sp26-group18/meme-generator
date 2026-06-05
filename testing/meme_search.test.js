@@ -323,10 +323,10 @@ describe('Meme Search — init() and fetch', () => {
       imgflip: makeImgflipPayload(),
       templates: makeTemplatesPayload(),
       tags: {
-        '181913649': { name: 'Drake Hotline Bling', tags: ['relaxed', 'choice', 'excited'] },
-        '112126428': { name: 'Distracted Boyfriend', tags: ['sad', 'disappointed'] },
+        '181913649': { name: 'Drake Hotline Bling', tags: ['relaxed', 'choice', 'excited', 'sadistic', 'made'] },
+        '112126428': { name: 'Distracted Boyfriend', tags: ['sad', 'disappointed', 'unhappy'] },
         '4087833': { name: 'Waiting Skeleton', tags: ['waiting', 'tired', 'sad'] },
-        '87743020': { name: 'Two Buttons', tags: ['worried', 'dilemma', 'tired'] }
+        '87743020': { name: 'Two Buttons', tags: ['worried', 'dilemma', 'tired', 'mad'] }
       }
     });
 
@@ -475,10 +475,10 @@ describe('Meme Search — filtering', () => {
       imgflip: makeImgflipPayload(),
       templates: makeTemplatesPayload(),
       tags: {
-        '181913649': { name: 'Drake Hotline Bling', tags: ['relaxed', 'choice', 'excited'] },
-        '112126428': { name: 'Distracted Boyfriend', tags: ['sad', 'disappointed'] },
+        '181913649': { name: 'Drake Hotline Bling', tags: ['relaxed', 'choice', 'excited', 'sadistic', 'made'] },
+        '112126428': { name: 'Distracted Boyfriend', tags: ['sad', 'disappointed', 'unhappy'] },
         '4087833': { name: 'Waiting Skeleton', tags: ['waiting', 'tired', 'sad'] },
-        '87743020': { name: 'Two Buttons', tags: ['worried', 'dilemma', 'tired'] }
+        '87743020': { name: 'Two Buttons', tags: ['worried', 'dilemma', 'tired', 'mad'] }
       }
     });
 
@@ -587,6 +587,14 @@ describe('Meme Search — filtering', () => {
     dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
 
     expect(getVisibleNames(dom.results)).toEqual(['Drake Hotline Bling']);
+
+    dom.input.value = 'sad';
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(getVisibleNames(dom.results)).toEqual(['Distracted Boyfriend']);
+
+    dom.input.value = 'mad';
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(getVisibleNames(dom.results)).toEqual(['Two Buttons']);
   });
 
   it('filters as the user types after the debounce delay', async () => {

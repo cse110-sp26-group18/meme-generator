@@ -272,7 +272,13 @@ describe('Meme Search — init() and fetch', () => {
 
     global.fetch = mockFetchByUrl({
       imgflip: makeImgflipPayload(),
-      templates: makeTemplatesPayload()
+      templates: makeTemplatesPayload(),
+      tags: {
+        '181913649': { name: 'Drake Hotline Bling', tags: ['relaxed', 'choice', 'excited'] },
+        '112126428': { name: 'Distracted Boyfriend', tags: ['sad', 'disappointed'] },
+        '4087833': { name: 'Waiting Skeleton', tags: ['waiting', 'tired', 'sad'] },
+        '87743020': { name: 'Two Buttons', tags: ['worried', 'dilemma', 'tired'] }
+      }
     });
 
     const MemeSearch = loadFreshMemeSearch();
@@ -315,7 +321,13 @@ describe('Meme Search — init() and fetch', () => {
 
     global.fetch = mockFetchByUrl({
       imgflip: makeImgflipPayload(),
-      templates: makeTemplatesPayload()
+      templates: makeTemplatesPayload(),
+      tags: {
+        '181913649': { name: 'Drake Hotline Bling', tags: ['relaxed', 'choice', 'excited'] },
+        '112126428': { name: 'Distracted Boyfriend', tags: ['sad', 'disappointed'] },
+        '4087833': { name: 'Waiting Skeleton', tags: ['waiting', 'tired', 'sad'] },
+        '87743020': { name: 'Two Buttons', tags: ['worried', 'dilemma', 'tired'] }
+      }
     });
 
     const MemeSearch = loadFreshMemeSearch();
@@ -461,7 +473,13 @@ describe('Meme Search — filtering', () => {
 
     global.fetch = mockFetchByUrl({
       imgflip: makeImgflipPayload(),
-      templates: makeTemplatesPayload()
+      templates: makeTemplatesPayload(),
+      tags: {
+        '181913649': { name: 'Drake Hotline Bling', tags: ['relaxed', 'choice', 'excited'] },
+        '112126428': { name: 'Distracted Boyfriend', tags: ['sad', 'disappointed'] },
+        '4087833': { name: 'Waiting Skeleton', tags: ['waiting', 'tired', 'sad'] },
+        '87743020': { name: 'Two Buttons', tags: ['worried', 'dilemma', 'tired'] }
+      }
     });
 
     MemeSearch = loadFreshMemeSearch();
@@ -519,6 +537,49 @@ describe('Meme Search — filtering', () => {
     dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
 
     expect(getVisibleNames(dom.results)).toEqual(['LeBron Funny']);
+  });
+
+  it('expands emotion search queries to related tag synonyms', () => {
+    dom.input.value = 'nervous';
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+
+    expect(getVisibleNames(dom.results)).toEqual(['Two Buttons']);
+  });
+
+  it('expands additional common emotion queries', () => {
+    dom.input.value = 'calm';
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(getVisibleNames(dom.results)).toEqual(['Drake Hotline Bling']);
+
+    dom.input.value = 'bored';
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(getVisibleNames(dom.results)).toEqual(['Two Buttons']);
+
+    dom.input.value = 'stress';
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(getVisibleNames(dom.results)).toEqual(['Two Buttons']);
+
+    dom.input.value = 'stressed';
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(getVisibleNames(dom.results)).toEqual(['Two Buttons']);
+
+    dom.input.value = 'worry';
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(getVisibleNames(dom.results)).toEqual(['Two Buttons']);
+  });
+
+  it('expands common phrase searches into emotion and reaction tags', () => {
+    dom.input.value = 'so sad';
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(getVisibleNames(dom.results)).toEqual(['Distracted Boyfriend']);
+
+    dom.input.value = 'lets go';
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(getVisibleNames(dom.results)).toEqual(['Drake Hotline Bling']);
+
+    dom.input.value = 'I am stressed';
+    dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(getVisibleNames(dom.results)).toEqual(['Two Buttons']);
   });
 
   it('filters as the user types after the debounce delay', async () => {
@@ -767,6 +828,31 @@ describe('Meme Search — tags from the cloud Worker', () => {
 
     global.fetch = mockFetchWithWorkerTags({
       '181913649': ['worker-only']
+    });
+
+    const MemeSearch = loadFreshMemeSearch();
+    MemeSearch.init({
+      input: dom.input,
+      results: dom.results,
+      status: dom.status,
+      aiTagEndpoint: WORKER_URL
+    });
+    await waitForAsyncRender();
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      WORKER_URL,
+      expect.objectContaining({
+        method: 'POST'
+      })
+    );
+  });
+
+  it('refreshes from the Worker even when older localStorage tags exist', async () => {
+    const dom = mountSearchDom();
+    setLocalTagCache({ '181913649': ['old-local-tag'] });
+
+    global.fetch = mockFetchWithWorkerTags({
+      '181913649': ['nervous', 'updated']
     });
 
     const MemeSearch = loadFreshMemeSearch();

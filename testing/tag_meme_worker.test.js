@@ -130,15 +130,15 @@ describe('tag-meme Worker — Gemini provider', () => {
     const geminiBody = JSON.parse(fetchImpl.mock.calls[0][1].body);
     const prompt = geminiBody.contents[0].parts[0].text;
     expect(prompt).toContain('focused primarily on emotion and reaction search');
-    expect(prompt).toContain('sad, angry, confused, shocked');
+    expect(prompt).toContain('nervous, anxious, worried');
     expect(prompt).toContain('reaction intent');
-    expect(prompt).toContain('at most 25 tags');
+    expect(prompt).toContain('at most 30 tags');
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ tags: ['reaction', 'choice'], cached: false });
   });
 
-  it('allows up to 25 valid generated tags', async () => {
-    const tags = Array.from({ length: 26 }, (_, i) => 'tag' + i);
+  it('allows up to 30 valid generated tags', async () => {
+    const tags = Array.from({ length: 31 }, (_, i) => 'tag' + i);
     const fetchImpl = jest.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -161,8 +161,102 @@ describe('tag-meme Worker — Gemini provider', () => {
 
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.tags).toHaveLength(25);
-    expect(body.tags[24]).toBe('tag24');
+    expect(body.tags).toHaveLength(30);
+    expect(body.tags[29]).toBe('tag29');
+  });
+
+  it('expands generated emotion tags with search-friendly synonyms', async () => {
+    const fetchImpl = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({
+        candidates: [
+          {
+            content: {
+              parts: [{ text: JSON.stringify({ tags: ['anxious', 'dilemma'] }) }]
+            }
+          }
+        ]
+      })
+    });
+    const worker = loadWorker({ fetchImpl });
+
+    const response = await worker.fetch(
+      makeTagRequest({ id: '87743020', name: 'Two Buttons', imageUrl: 'https://example.com/two-buttons.jpg' }),
+      { GEMINI_API_KEY: 'gemini-test-key' }
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.tags).toEqual(expect.arrayContaining(['anxious', 'nervous', 'worried', 'stressed', 'panicked']));
+  });
+
+  it('expands tense variants for emotion tags before caching', async () => {
+    const fetchImpl = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({
+        candidates: [
+          {
+            content: {
+              parts: [{ text: JSON.stringify({ tags: ['stress', 'dilemma'] }) }]
+            }
+          }
+        ]
+      })
+    });
+    const worker = loadWorker({ fetchImpl });
+
+    const response = await worker.fetch(
+      makeTagRequest({ id: '87743020', name: 'Two Buttons', imageUrl: 'https://example.com/two-buttons.jpg' }),
+      { GEMINI_API_KEY: 'gemini-test-key' }
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.tags).toEqual(expect.arrayContaining([
+      'stress',
+      'stressed',
+      'stressing',
+      'anxious',
+      'nervous',
+      'worried'
+    ]));
+  });
+
+  it('expands broader emotion tags for exhaustive search coverage', async () => {
+    const fetchImpl = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({
+        candidates: [
+          {
+            content: {
+              parts: [{ text: JSON.stringify({ tags: ['bored', 'jealous', 'calm'] }) }]
+            }
+          }
+        ]
+      })
+    });
+    const worker = loadWorker({ fetchImpl });
+
+    const response = await worker.fetch(
+      makeTagRequest({ id: '4087833', name: 'Waiting Skeleton', imageUrl: 'https://example.com/waiting.jpg' }),
+      { GEMINI_API_KEY: 'gemini-test-key' }
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.tags).toEqual(expect.arrayContaining([
+      'bored',
+      'tired',
+      'exhausted',
+      'jealous',
+      'insecure',
+      'calm',
+      'relaxed',
+      'chill'
+    ]));
   });
 
   it('returns cached KV tags without calling Gemini', async () => {

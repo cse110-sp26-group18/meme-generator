@@ -49,7 +49,98 @@ const ALLOWED_ORIGINS = [
 
 const AI_MODEL = 'gemini-2.5-flash-lite';
 const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models/';
-const MAX_TAGS = 25;
+const MAX_TAGS = 30;
+
+const EMOTION_TAG_EXPANSIONS = {
+  nervous: ['anxious', 'worried', 'stressed', 'panicked', 'sweating', 'overwhelmed'],
+  anxious: ['nervous', 'worried', 'stressed', 'panicked'],
+  worried: ['nervous', 'anxious', 'concerned', 'stressed'],
+  stress: ['stressed', 'stressing', 'anxious', 'nervous', 'worried', 'overwhelmed', 'pressure'],
+  stressed: ['nervous', 'anxious', 'overwhelmed', 'frustrated'],
+  stressing: ['stress', 'stressed', 'anxious', 'nervous', 'worried'],
+  panicked: ['nervous', 'scared', 'anxious', 'overwhelmed'],
+  scare: ['scared', 'scary', 'afraid', 'fear', 'terrified'],
+  scared: ['afraid', 'terrified', 'nervous', 'anxious', 'panicked'],
+  scary: ['scared', 'afraid', 'fear', 'terrified'],
+  terrified: ['scared', 'afraid', 'panicked'],
+  anger: ['angry', 'mad', 'annoyed', 'frustrated', 'furious', 'rage'],
+  angry: ['mad', 'annoyed', 'frustrated', 'furious', 'rage'],
+  annoyed: ['angry', 'frustrated', 'irritated'],
+  frustrated: ['angry', 'annoyed', 'stressed'],
+  frustration: ['frustrated', 'annoyed', 'angry', 'stressed'],
+  sadness: ['sad', 'upset', 'disappointed', 'depressed', 'crying', 'heartbroken'],
+  sad: ['upset', 'disappointed', 'depressed', 'crying', 'heartbroken', 'lonely'],
+  disappointed: ['sad', 'upset', 'frustrated'],
+  surprise: ['surprised', 'shocked', 'stunned', 'astonished', 'unexpected'],
+  surprised: ['shocked', 'stunned', 'astonished', 'speechless', 'unexpected'],
+  shocked: ['surprised', 'stunned', 'disbelief'],
+  confusion: ['confused', 'puzzled', 'uncertain', 'lost'],
+  confused: ['puzzled', 'uncertain', 'lost', 'disbelief'],
+  embarrassment: ['embarrassed', 'awkward', 'cringe', 'ashamed'],
+  embarrassed: ['awkward', 'cringe', 'ashamed', 'uncomfortable'],
+  happy: ['joyful', 'excited', 'pleased', 'proud', 'relieved'],
+  excited: ['happy', 'joyful', 'eager', 'hyped', 'thrilled'],
+  excitement: ['excited', 'happy', 'joyful', 'eager', 'hyped', 'thrilled'],
+  bored: ['tired', 'uninterested', 'waiting', 'dull', 'exhausted'],
+  boredom: ['bored', 'tired', 'uninterested', 'waiting', 'dull'],
+  disgusted: ['grossed out', 'repulsed', 'dislike', 'reject'],
+  jealous: ['envy', 'insecure', 'resentful', 'betrayal'],
+  jealousy: ['jealous', 'envy', 'insecure', 'resentful'],
+  lonely: ['alone', 'isolated', 'sad', 'empty'],
+  hopeful: ['optimistic', 'wishful', 'eager', 'encouraged'],
+  proud: ['confident', 'satisfied', 'accomplished', 'victorious'],
+  calm: ['relaxed', 'peaceful', 'unbothered', 'chill'],
+  overwhelmed: ['stressed', 'anxious', 'panicked', 'too much'],
+  overwhelm: ['overwhelmed', 'stressed', 'anxious', 'panicked', 'too much'],
+  exhausted: ['tired', 'drained', 'bored', 'burned out'],
+  relieved: ['calm', 'grateful', 'safe', 'reassured'],
+  guilty: ['ashamed', 'embarrassed', 'regret', 'caught'],
+  suspicious: ['doubtful', 'skeptical', 'judgment', 'side eye'],
+  smug: ['confident', 'self satisfied', 'proud', 'superior'],
+  awkward: ['embarrassed', 'cringe', 'uncomfortable'],
+  cringe: ['awkward', 'embarrassed', 'uncomfortable'],
+  heartbroken: ['sad', 'devastated', 'lonely'],
+  devastated: ['heartbroken', 'sad', 'shocked']
+};
+
+const EMOTION_TAG_INFLECTIONS = {
+  stress: ['stressed', 'stressing'],
+  stressed: ['stress', 'stressing'],
+  stressing: ['stress', 'stressed'],
+  panic: ['panicked', 'panicking'],
+  panicked: ['panic', 'panicking'],
+  panicking: ['panic', 'panicked'],
+  worry: ['worried', 'worrying'],
+  worried: ['worry', 'worrying'],
+  worrying: ['worry', 'worried'],
+  scare: ['scared', 'scary'],
+  scared: ['scare', 'scary'],
+  scary: ['scare', 'scared'],
+  confuse: ['confused', 'confusion'],
+  confused: ['confuse', 'confusion'],
+  confusion: ['confuse', 'confused'],
+  embarrass: ['embarrassed', 'embarrassment'],
+  embarrassed: ['embarrass', 'embarrassment'],
+  embarrassment: ['embarrass', 'embarrassed'],
+  excite: ['excited', 'excitement'],
+  excited: ['excite', 'excitement'],
+  excitement: ['excite', 'excited'],
+  bore: ['bored', 'boredom'],
+  bored: ['bore', 'boredom'],
+  boredom: ['bore', 'bored'],
+  frustrate: ['frustrated', 'frustration'],
+  frustrated: ['frustrate', 'frustration'],
+  frustration: ['frustrate', 'frustrated'],
+  disappoint: ['disappointed', 'disappointment'],
+  disappointed: ['disappoint', 'disappointment'],
+  disappointment: ['disappoint', 'disappointed'],
+  overwhelm: ['overwhelmed', 'overwhelming'],
+  overwhelmed: ['overwhelm', 'overwhelming'],
+  overwhelming: ['overwhelm', 'overwhelmed'],
+  exhaust: ['exhausted', 'exhaustion'],
+  exhausted: ['exhaust', 'exhaustion'],
+  exhaustion: ['exhaust', 'exhausted']
+};
 
 function getAllowedOrigin(request) {
   var origin = request.headers.get('Origin');
@@ -91,6 +182,26 @@ function sanitizeTags(rawTags) {
   return out;
 }
 
+function expandEmotionTags(rawTags) {
+  if (!Array.isArray(rawTags)) return [];
+  const expanded = [];
+  for (const tag of rawTags) {
+    expanded.push(tag);
+    const clean = typeof tag === 'string' ? tag.toLowerCase().trim() : '';
+    const inflections = EMOTION_TAG_INFLECTIONS[clean];
+    if (inflections) expanded.push.apply(expanded, inflections);
+    const related = EMOTION_TAG_EXPANSIONS[clean];
+    if (related) {
+      expanded.push.apply(expanded, related);
+      for (const relatedTag of related) {
+        const relatedInflections = EMOTION_TAG_INFLECTIONS[relatedTag];
+        if (relatedInflections) expanded.push.apply(expanded, relatedInflections);
+      }
+    }
+  }
+  return sanitizeTags(expanded);
+}
+
 // Validate the request body. Returns { ok: true, value } or { ok: false, error }.
 function parseBody(data) {
   if (!data || typeof data !== 'object') {
@@ -116,10 +227,10 @@ function buildPrompt(name) {
     'You generate exhaustive search tags for a meme template.',
     'Template name: "' + name + '".',
     '',
-    'Return 15-25 short, lowercase tags focused primarily on emotion and reaction search.',
+    'Return 20-30 short, lowercase tags focused primarily on emotion and reaction search.',
     '',
     'Prioritize these tag types:',
-    '- emotions: happy, sad, angry, confused, shocked, scared, embarrassed, disappointed, excited, smug, annoyed, frustrated',
+    '- emotions: happy, sad, angry, confused, shocked, scared, nervous, anxious, worried, embarrassed, disappointed, excited, smug, annoyed, frustrated, overwhelmed, bored, disgusted, jealous, lonely, hopeful, proud, calm, exhausted, relieved, guilty, suspicious',
     '- reaction intent: approval, disapproval, rejection, acceptance, disbelief, agreement, disagreement, judgment',
     '- facial expression or body language if implied by the template name',
     '- social situation: argument, awkward, cringe, celebration, failure, success, waiting, betrayal',
@@ -127,7 +238,8 @@ function buildPrompt(name) {
     '- well-known character/person names only if obvious from the template name',
     '',
     'Add useful synonyms so users can find templates by emotion.',
-    'For example, for sad also include disappointed, upset, crying, depressed when appropriate.',
+    'For nervous also include anxious, worried, stressed, panicked, sweating, or overwhelmed when appropriate.',
+    'For sad also include disappointed, upset, crying, depressed when appropriate.',
     'For angry also include mad, annoyed, frustrated, rage when appropriate.',
     '',
     'Rules:',
@@ -136,7 +248,7 @@ function buildPrompt(name) {
     '- never full sentences',
     '- no duplicates',
     '- no offensive, sexual, hateful, or unsafe tags',
-    '- at most 25 tags',
+    '- at most 30 tags',
     '',
     'Respond with ONLY a JSON object of the form {"tags": ["tag1","tag2",...]}.'
   ].join('\n');
@@ -232,7 +344,7 @@ function requestTagsFromAI(env, meme) {
       } catch (e) {
         throw new Error('AI response was not valid JSON');
       }
-      return sanitizeTags(parsed && parsed.tags);
+      return expandEmotionTags(parsed && parsed.tags);
     });
 }
 

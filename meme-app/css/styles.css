@@ -699,6 +699,7 @@ main {
 }
 
 .meme-search-name {
+  display: none;
   font-size: 0.8rem;
   color: var(--off-white);
   white-space: nowrap;
@@ -1194,7 +1195,7 @@ main {
 
   /* Show the compact editor library preview on mobile in editor view. */
   .editor-library-preview {
-    display: block;
+    display: none;
   }
 
   .text-box.menu-open .text-box-toolbar {
@@ -1362,7 +1363,7 @@ main {
   .meme-search {
     width: 380px;
     min-width: 160px;
-    max-width: 75vw;
+    max-width: 50vw;
     height: 100%;
     margin-top: 0 !important;
     border-radius: 0 !important;

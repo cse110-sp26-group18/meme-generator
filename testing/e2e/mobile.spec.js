@@ -93,11 +93,8 @@ test('selecting a text box applies the mobile layout (toolbar hidden, X-delete s
   await expect(page.locator('#canvas-container')).toHaveClass(/has-image/);
 
   // Tap the canvas to create + select a text box (mobile touch create path).
-  const canvas = page.locator('#meme-canvas');
-  const box = await canvas.boundingBox();
-  expect(box).not.toBeNull();
-  await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
-
+  await page.locator('#meme-canvas').tap();
+  
   const textBox = page.locator('.text-box');
   await expect(textBox).toHaveCount(1);
   await expect(textBox).toHaveClass(/selected/);

@@ -71,11 +71,7 @@ test('uploads an image, adds text, changes font, and downloads the meme', async 
   await expect(page.locator('#hint')).toBeVisible();
   await expect(page.locator('#download-btn')).toBeEnabled();
 
-  const canvas = page.locator('#meme-canvas');
-  const box = await canvas.boundingBox();
-  expect(box).not.toBeNull();
-
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await page.locator('#meme-canvas').click();
 
   const textBox = page.locator('.text-box');
   await expect(textBox).toHaveCount(1);
@@ -103,10 +99,8 @@ test.fixme('changing font keeps the text fitting inside the box (review finding 
   await page.goto('/');
   await uploadTemplate(page);
 
-  const canvas = page.locator('#meme-canvas');
-  const box = await canvas.boundingBox();
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-
+  await page.locator('#meme-canvas').click();
+  
   const textarea = page.locator('.text-box .text-content');
   await textarea.fill('WIDE TEXT THAT IS QUITE LONG INDEED');
 

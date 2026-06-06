@@ -112,7 +112,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   imageInput.addEventListener('change', function () {
     if (this.files && this.files[0]) {
-      MemeGen.ImageLoader.loadFromFile(this.files[0]);
+      if (MemeGen.FileValidator.validate(this.files[0])) {
+        MemeGen.ImageLoader.loadFromFile(this.files[0]);
+      }
     }
   });
 
@@ -163,7 +165,11 @@ document.addEventListener('DOMContentLoaded', function () {
     container.classList.remove('drag-over');
     var file = firstImageFile(e.dataTransfer && e.dataTransfer.files);
     if (file) {
-      MemeGen.ImageLoader.loadFromFile(file);
+      if (MemeGen.FileValidator.validate(file)) {
+        MemeGen.ImageLoader.loadFromFile(file);
+      }
+    } else if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      alert('Please drop an image file.');
     }
   });
 

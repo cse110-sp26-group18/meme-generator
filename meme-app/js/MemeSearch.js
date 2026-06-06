@@ -49,6 +49,10 @@ MemeGen.MemeSearch = (function () {
   var CLOUD_TAG_DELAY_MS = 1500;
   var MAX_TAGS = 20;
 
+  var CONTEXT_ALIASES_BY_ID = {
+    '91538330': ['toy story', 'buzz lightyear', 'buzz', 'pixar', 'x x everywhere']
+  };
+
   // Cached templates and fetch state.
   var memes = [];
   var fetched = false;
@@ -404,13 +408,20 @@ MemeGen.MemeSearch = (function () {
   // name-only matching, matching prior behavior for untagged templates.
   function buildImgflipMeme(raw, tags) {
     var list = Array.isArray(tags) ? tags : [];
+    var aliases = getContextAliases(raw);
     return {
       id: raw.id,
       name: raw.name,
       url: raw.url,
       source: 'imgflip',
       tags: list,
-      searchText: (raw.name + ' ' + list.join(' ')).toLowerCase()
+      aliases: aliases,
+      searchText: buildSearchText({
+        name: raw.name,
+        source: 'imgflip',
+        tags: list,
+        aliases: aliases
+      })
     };
   }
 
@@ -424,14 +435,22 @@ MemeGen.MemeSearch = (function () {
       url: resolveImageUrl(t.image),
       source: 'internal',
       tags: Array.isArray(t.tags) ? t.tags : [],
+      aliases: Array.isArray(t.aliases) ? t.aliases : [],
       searchText: buildSearchText(t)
     };
   }
 
   function buildSearchText(t) {
-    var parts = [t.name, t.character, t.emotion];
+    var parts = [t.name, t.character, t.emotion, t.category, t.source];
     if (Array.isArray(t.tags)) parts = parts.concat(t.tags);
+    if (Array.isArray(t.aliases)) parts = parts.concat(t.aliases);
     return parts.filter(Boolean).join(' ').toLowerCase();
+  }
+
+  function getContextAliases(raw) {
+    if (!raw) return [];
+    var aliases = CONTEXT_ALIASES_BY_ID[raw.id] || [];
+    return aliases.slice();
   }
 
   // encodeURI keeps "/" but escapes spaces and other unsafe characters so
@@ -532,7 +551,7 @@ MemeGen.MemeSearch = (function () {
     for (var i = 0; i < memes.length; i++) {
       if (memes[i].id === id) {
         memes[i].tags = clean;
-        memes[i].searchText = (memes[i].name + ' ' + clean.join(' ')).toLowerCase();
+        memes[i].searchText = buildSearchText(memes[i]);
         break;
       }
     }

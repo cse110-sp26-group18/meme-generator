@@ -132,6 +132,23 @@ function makeTemplatesPayload() {
   ];
 }
 
+function makeToyStoryPayload() {
+  return {
+    success: true,
+    data: {
+      memes: [
+        {
+          id: '91538330',
+          name: 'X, X Everywhere',
+          url: 'https://i.imgflip.com/1ihzfe.jpg',
+          width: 2118,
+          height: 1440
+        }
+      ]
+    }
+  };
+}
+
 function mockFetchJson(payload, { ok = true, status = 200 } = {}) {
   return jest.fn().mockResolvedValue({
     ok,
@@ -537,6 +554,64 @@ describe('Meme Search — filtering', () => {
     dom.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
 
     expect(getVisibleNames(dom.results)).toEqual(['LeBron Funny']);
+  });
+
+  it('filters internal templates by optional context aliases', async () => {
+    const domWithAliases = mountSearchDom();
+
+    global.fetch = mockFetchByUrl({
+      imgflip: { success: true, data: { memes: [] } },
+      templates: [
+        {
+          id: 'lebron-funny',
+          name: 'LeBron Funny',
+          character: 'LeBron',
+          emotion: 'funny',
+          category: 'sports',
+          tags: ['sports', 'basketball', 'lebron', 'funny'],
+          aliases: ['nba finals', 'cleveland cavaliers'],
+          image: 'assets/templates/lebron-meme-templates/lebron-funny.jpg',
+          textBoxes: []
+        }
+      ],
+      tags: {}
+    });
+
+    const FreshMemeSearch = loadFreshMemeSearch();
+    FreshMemeSearch.init({
+      input: domWithAliases.input,
+      results: domWithAliases.results,
+      status: domWithAliases.status
+    });
+    await waitForAsyncRender();
+
+    domWithAliases.input.value = 'cavaliers';
+    domWithAliases.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+
+    expect(getVisibleNames(domWithAliases.results)).toEqual(['LeBron Funny']);
+  });
+
+  it('matches known external templates by curated source context', async () => {
+    const domWithContext = mountSearchDom();
+
+    global.fetch = mockFetchByUrl({
+      imgflip: makeToyStoryPayload(),
+      templates: [],
+      tags: {}
+    });
+
+    const FreshMemeSearch = loadFreshMemeSearch();
+    FreshMemeSearch.init({
+      input: domWithContext.input,
+      results: domWithContext.results,
+      status: domWithContext.status
+    });
+    await waitForAsyncRender();
+
+    domWithContext.input.value = 'toy story';
+    domWithContext.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+
+    expect(getVisibleNames(domWithContext.results)).toEqual(['X, X Everywhere']);
   });
 
   it('expands emotion search queries to related tag synonyms', () => {

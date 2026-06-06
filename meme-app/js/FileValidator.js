@@ -1,5 +1,5 @@
 (function () {
-  if (!window.MemeGen) window.MemeGen = {};
+  var MemeGen = window.MemeGen || {};
 
   MemeGen.FileValidator = {
     /**
@@ -18,17 +18,19 @@
                    fileName.endsWith('.heic') || fileName.endsWith('.heif');
       
       if (isHeic) {
-        alert('HEIC images are not supported yet. Please use JPG, PNG, or GIF.');
+        window.alert('HEIC images are not supported yet. Please use JPG, PNG, or GIF.');
         return false;
       }
 
       // Check for generic image MIME types.
       if (file.type && file.type.indexOf('image/') !== 0) {
-        alert('Unsupported file type. Please upload an image file (JPG, PNG, GIF).');
+        window.alert('Unsupported file type. Please upload an image file (JPG, PNG, GIF).');
         return false;
       }
 
       return true;
     }
   };
+
+  window.MemeGen = MemeGen;
 })();

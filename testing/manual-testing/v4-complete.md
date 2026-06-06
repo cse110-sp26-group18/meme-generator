@@ -111,7 +111,7 @@
 
 ## 8. AI Meme Generation
 
-- [X] (only mobile) An AI generaiton button exists 
+- [X] (only mobile) An AI generation button exists 
 - [ ] Intuitive and easy to follow 
 - [ ] Clear UI design after generation
 - [X] Clear meme generation suggestions

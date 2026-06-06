@@ -105,7 +105,7 @@
 - [ ] copy to clipboard button
 
 **Comments**
-> no implementation of the copy to clipboard button 
+> No implementation of the copy to clipboard button 
 
 ---
 

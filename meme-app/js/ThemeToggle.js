@@ -53,9 +53,12 @@ MemeGen.ThemeToggle = (function () {
     document.documentElement.setAttribute('data-theme', theme);
     if (toggleEl) {
       var dark = theme === 'dark';
+      // aria-pressed already conveys the toggle's on/off state. The aria-label
+      // stays static ("Toggle dark mode") to avoid the screen-reader anti-
+      // pattern of announcing "Switch to light mode, toggle button, pressed".
+      // Only the visible title (hover tooltip) describes the next action.
       toggleEl.setAttribute('aria-pressed', String(dark));
       toggleEl.setAttribute('title', dark ? 'Switch to light mode' : 'Switch to dark mode');
-      toggleEl.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
     }
   }
 
@@ -76,6 +79,11 @@ MemeGen.ThemeToggle = (function () {
   // ── Init ─────────────────────────────────────────────────────────────
 
   function init(opts) {
+    // If a previous init() bound a toggle, detach that listener first so
+    // re-initialization (tests, SPA-like flows) doesn't stack handlers.
+    if (toggleEl) {
+      toggleEl.removeEventListener('click', toggle);
+    }
     toggleEl = (opts && opts.toggle) || null;
 
     var stored = readStored();

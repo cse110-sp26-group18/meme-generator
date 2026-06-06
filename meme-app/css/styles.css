@@ -23,11 +23,18 @@
 /* Dark theme (#89). Same variable names; the values flip so the rest of the
  * stylesheet "just works" — no rule changes needed. Surfaces become deep
  * navy/forest, text becomes off-white, accents are lifted versions of the
- * forest greens for adequate contrast. */
+ * forest greens for adequate contrast.
+ *
+ * --dark-forest is overloaded in the existing stylesheet: it serves both as
+ * an accent (borders, header h1) AND as a panel background (.meme-search,
+ * .editor-library-preview). The mid-green value below works for both
+ * roles in dark mode — visible enough as an accent against --cream-bg, but
+ * not so light that the panels look like light-mode bleed-through
+ * (addresses Aila's review on PR #90). */
 [data-theme="dark"] {
   --cream-bg: #0F1A23;
   --forest-green: #6BA77C;
-  --dark-forest: #B8D9C2;
+  --dark-forest: #6BA77C;
   --deep-green: #0A1116;
   --soft-green-outline: #4A6852;
   --off-white: #16242E;

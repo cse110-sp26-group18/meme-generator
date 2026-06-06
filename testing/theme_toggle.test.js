@@ -123,13 +123,15 @@ describe('ThemeToggle — clicking the toggle', () => {
     expect(btn.getAttribute('aria-pressed')).toBe('false');
   });
 
-  it('updates title and aria-label to describe the next click', () => {
+  it('updates title to describe the next click, but keeps aria-label static', () => {
     const btn = makeToggleButton();
     MemeGen.ThemeToggle.init({ toggle: btn });
     expect(btn.getAttribute('title')).toMatch(/switch to dark/i);
+    expect(btn.getAttribute('aria-label')).toBe('Toggle dark mode');
     btn.click();
     expect(btn.getAttribute('title')).toMatch(/switch to light/i);
-    expect(btn.getAttribute('aria-label')).toMatch(/switch to light/i);
+    // aria-label must NOT change — aria-pressed already conveys the state.
+    expect(btn.getAttribute('aria-label')).toBe('Toggle dark mode');
   });
 });
 

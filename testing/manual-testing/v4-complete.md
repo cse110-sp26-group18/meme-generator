@@ -27,7 +27,7 @@
 - [X] Drag-and-drop upload works
 - [X] File picker upload works
 - [X] Uploaded image opens in editor
-- [ ] The templates on the right can be dragged but the upload area does not accep it
+- [ ] The templates on the right can be dragged but the upload area does not accept it
 
 **Comments**
 > Still no graceful degradation of unsupported image types

@@ -141,6 +141,9 @@ document.addEventListener('DOMContentLoaded', function () {
     e.preventDefault();
     e.stopPropagation();
     container.classList.remove('drag-over');
+    // In AI mode (#87) the user picks templates from AI suggestions only;
+    // drag-and-drop into the canvas is disabled.
+    if (document.body.classList.contains('ai-mode')) return;
     var file = firstImageFile(e.dataTransfer && e.dataTransfer.files);
     if (file) {
       MemeGen.ImageLoader.loadFromFile(file);
@@ -493,6 +496,25 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         });
       }
+    });
+  }
+
+  // ── Desktop AI mode toggle (#87) ─────────────────────────────────────────
+  // Tapping the header toggle adds `ai-mode` to <body>, which the desktop
+  // CSS uses to swap the library grid out for the AI suggestions panel.
+  // The toggle's text + aria-pressed reflect the current state so the user
+  // can see which mode they're in. Mobile users don't see the toggle (CSS
+  // hides it under 769px) — they keep using the 🐼 button.
+  var aiModeToggle = document.getElementById('ai-mode-toggle');
+  if (aiModeToggle) {
+    aiModeToggle.addEventListener('click', function () {
+      var on = !document.body.classList.contains('ai-mode');
+      document.body.classList.toggle('ai-mode', on);
+      aiModeToggle.setAttribute('aria-pressed', String(on));
+      aiModeToggle.textContent = on ? 'AI Mode: ON' : 'AI Mode: OFF';
+      aiModeToggle.title = on
+        ? 'Switch back to normal mode'
+        : 'Switch to AI suggestion mode';
     });
   }
 });

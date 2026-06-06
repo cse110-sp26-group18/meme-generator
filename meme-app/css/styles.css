@@ -820,13 +820,47 @@ main {
   outline: none;
 }
 
+/* Desktop AI mode toggle pill. Sits to the right of the title, before the
+ * settings gear. Indicates state via text + aria-pressed. Hidden on mobile
+ * where the 🐼 button is the AI entry point instead — the desktop @media
+ * block below re-enables it. */
+.ai-mode-toggle {
+  display: none;
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 0.4rem 0.875rem;
+  background: transparent;
+  color: var(--dark-forest);
+  border: 2px solid var(--dark-forest);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ai-mode-toggle:hover,
+.ai-mode-toggle:focus-visible {
+  background: var(--dark-forest);
+  color: var(--off-white);
+  outline: none;
+}
+
+.ai-mode-toggle[aria-pressed="true"] {
+  background: var(--forest-green);
+  color: var(--off-white);
+  border-color: var(--forest-green);
+}
+
 /* Settings gear button (Screen 13). Same circular shape as the legacy
  * search-icon-btn; pushed to the right of the header by margin-left: auto. */
 .settings-btn {
   width: 2.5rem;
   height: 2.5rem;
   flex: 0 0 auto;
-  margin-left: auto;
+  /* When the AI Mode toggle is present (desktop) it claims the margin-left
+   * auto slot. The gear sits just to the right of it. */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1217,6 +1251,53 @@ main {
   /* Mobile-only affordances stay hidden on desktop. */
   .meme-search-toggle {
     display: none;
+  }
+
+  /* AI Mode pill is desktop-only (#87). Mobile users have the 🐼 button. */
+  .ai-mode-toggle {
+    display: inline-block;
+  }
+
+  /* ── Desktop AI mode (#87) ──
+   * When body.ai-mode is on, the right-side .meme-search panel swaps its
+   * static library content for the inline AI suggestions panel. The user
+   * fills in the form at the top and clicks suggestion cards to load
+   * templates into the center canvas. */
+  body.ai-mode .meme-search > .meme-search-input,
+  body.ai-mode #meme-search-status,
+  body.ai-mode #meme-search-results {
+    display: none;
+  }
+
+  /* Force the AI panel visible (overrides the [hidden] attribute) and
+   * unwind the fixed-position modal styles so it lives inline in the
+   * right panel instead of floating. */
+  body.ai-mode .ai-suggestions-panel,
+  body.ai-mode .ai-suggestions-panel[hidden] {
+    display: flex;
+    position: static;
+    transform: none;
+    top: auto;
+    left: auto;
+    width: auto;
+    max-height: none;
+    overflow: visible;
+    box-shadow: none;
+    border: none;
+    background: transparent;
+    padding: 0 0.5rem;
+    z-index: auto;
+  }
+
+  /* No modal → no need for the close ×. The header toggle controls visibility. */
+  body.ai-mode .ai-suggestions-panel .ai-close-btn {
+    display: none;
+  }
+
+  /* Visual cue: dim the canvas border when drag-and-drop is gated off. */
+  body.ai-mode .canvas-container:not(.has-image) {
+    border-style: dotted;
+    opacity: 0.75;
   }
 
   .quick-action-menu.is-open {

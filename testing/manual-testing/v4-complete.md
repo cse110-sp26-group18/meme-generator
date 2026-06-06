@@ -117,7 +117,7 @@
 - [X] Clear meme generation suggestions
 
 **Comments** 
-> The feature only exits on mobile and not desktop 
+> The feature only exists on mobile and not desktop 
 > The panda button needs a title so user knows its the AI generator 
 > The process of getting the API key is fine but possibly slow 
 > The fonts on the suggested memes blend in with the background 

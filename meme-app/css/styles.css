@@ -1361,7 +1361,17 @@ main {
    * When body.ai-mode is on, the right-side .meme-search panel swaps its
    * static library content for the inline AI suggestions panel. The user
    * fills in the form at the top and clicks suggestion cards to load
-   * templates into the center canvas. */
+   * templates into the center canvas.
+   *
+   * Layout flip (Aila's PR #91 feedback): in AI mode the panels reverse so
+   * the AI form sits on the LEFT and the (initially blank) editor/canvas
+   * sits on the RIGHT. row-reverse swaps visual order without touching the
+   * DOM, so the existing resizer and onSelect → loadTemplate flow keep
+   * working. */
+  body.ai-mode main {
+    flex-direction: row-reverse;
+  }
+
   body.ai-mode .meme-search > .meme-search-input,
   body.ai-mode #meme-search-status,
   body.ai-mode #meme-search-results {

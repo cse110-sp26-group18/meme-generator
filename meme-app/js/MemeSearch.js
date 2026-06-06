@@ -530,6 +530,7 @@ MemeGen.MemeSearch = (function () {
   // Defensive client-side cleanup of any tag list: lowercase, trimmed, short,
   // de-duplicated, capped. The Worker validates too, but we never trust input.
   function sanitizeTags(tags) {
+    if (!Array.isArray(tags)) return [];
     var seen = {};
     var out = [];
     for (var i = 0; i < tags.length && out.length < MAX_TAGS; i++) {

@@ -54,9 +54,6 @@ MemeGen.DragResize = (function () {
         // Release capture so the browser resumes normal pointer event routing.
         moveBtn.releasePointerCapture(e.pointerId);
       }
-      // Record the new position relative to the container so the box
-      // stays anchored when CSS later resizes the canvas (viewport / library).
-      if (typeof textBox.captureRelativeState === 'function') textBox.captureRelativeState();
     });
 
     el.addEventListener('pointercancel', function (e) {
@@ -198,10 +195,6 @@ MemeGen.DragResize = (function () {
     });
 
     document.addEventListener('mouseup', function () {
-      if (resizing) {
-        // Box size changed via corner resize — refresh image-relative ratios.
-        if (typeof textBox.captureRelativeState === 'function') textBox.captureRelativeState();
-      }
       resizing = false;
       resizeCorner = null;
     });
@@ -374,10 +367,6 @@ MemeGen.DragResize = (function () {
         if (typeof textBox.showQuickActions === 'function') {
           textBox.showQuickActions();
         }
-      } else if (holdMoved) {
-        // Hold-to-move drag just ended — refresh image-relative ratios so
-        // the box stays anchored when CSS later resizes the canvas.
-        if (typeof textBox.captureRelativeState === 'function') textBox.captureRelativeState();
       }
       resetHold();
     });

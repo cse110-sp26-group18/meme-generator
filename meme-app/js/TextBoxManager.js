@@ -42,6 +42,14 @@ MemeGen.TextBoxManager = (function () {
         // preventDefault stops the browser from synthesizing a mouse click
         // after the touch, which would otherwise trigger a second createTextBox.
         e.preventDefault();
+
+        // Mirror the mousedown handler: if a text box is already selected,
+        // deselect (or delete if empty) instead of spawning a new one.
+        if (getSelectedTextBox()) {
+          deselectOrDeleteSelectedTextBox();
+          return;
+        }
+
         var rect = canvas.getBoundingClientRect();
         // changedTouches contains only the touches that changed in this event;
         // [0] is the first (and typically only) finger involved in the tap.
@@ -51,6 +59,14 @@ MemeGen.TextBoxManager = (function () {
         var y = touch.clientY - rect.top;
 
         createTextBox(x, y);
+      }
+    });
+
+    // Touch equivalent of the document mousedown handler: deselect all text
+    // boxes when the user taps outside the canvas container on mobile.
+    document.addEventListener('touchend', function (e) {
+      if (!container.contains(e.target)) {
+        deselectAll();
       }
     });
 

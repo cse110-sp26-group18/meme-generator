@@ -357,11 +357,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // AI panda button — placeholder only; no action in this version.
-  if (aiPandaBtn) {
-    aiPandaBtn.addEventListener('click', function () { /* AI meme ideas — coming soon */ });
-  }
-
   // Wire up meme search: when a result is clicked, load it onto the canvas
   // through the same pipeline as a normal upload.
   var searchInput = document.getElementById('meme-search-input');

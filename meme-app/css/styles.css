@@ -1294,10 +1294,14 @@ main {
     display: none;
   }
 
-  /* Visual cue: dim the canvas border when drag-and-drop is gated off. */
+  /* In AI mode the canvas is just a blank target for the chosen suggestion —
+   * no drag-and-drop, no upload prompt. Hide the placeholder text so the
+   * canvas looks intentionally empty. */
+  body.ai-mode .canvas-container:not(.has-image) .placeholder {
+    display: none;
+  }
   body.ai-mode .canvas-container:not(.has-image) {
-    border-style: dotted;
-    opacity: 0.75;
+    cursor: default;
   }
 
   .quick-action-menu.is-open {
@@ -1615,7 +1619,7 @@ main {
 .ai-result-name {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #fff;
+  color: var(--dark-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1632,7 +1636,7 @@ main {
 
 .ai-caption-list li {
   font-size: 0.8rem;
-  color: #ddd;
+  color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

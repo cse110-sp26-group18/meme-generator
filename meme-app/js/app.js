@@ -152,9 +152,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Click the empty canvas region to open the file picker. Once an image
   // is loaded, clicks inside the canvas are reserved for adding text boxes,
-  // so we gate on .has-image to avoid hijacking that interaction.
+  // so we gate on .has-image to avoid hijacking that interaction. Also
+  // gated in AI mode (#87) where the canvas is intentionally a blank
+  // target waiting for the user to pick an AI-generated suggestion.
   container.addEventListener('click', function () {
     if (container.classList.contains('has-image')) return;
+    if (document.body.classList.contains('ai-mode')) return;
     imageInput.click();
   });
 

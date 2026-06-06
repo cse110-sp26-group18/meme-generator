@@ -1294,6 +1294,21 @@ main {
     display: none;
   }
 
+  /* In ai-mode the panel sits on .meme-search's --dark-forest background,
+   * so all the panel text needs to switch from the default forest-green
+   * palette to light colors to stay readable. */
+  body.ai-mode .ai-suggestions-panel .ai-suggestions-title,
+  body.ai-mode .ai-suggestions-panel .ai-label,
+  body.ai-mode .ai-suggestions-panel .ai-change-key,
+  body.ai-mode .ai-suggestions-panel .ai-note a {
+    color: var(--off-white);
+  }
+
+  body.ai-mode .ai-suggestions-panel .ai-note,
+  body.ai-mode .ai-suggestions-panel .ai-status {
+    color: var(--soft-gray);
+  }
+
   /* In AI mode the canvas is just a blank target for the chosen suggestion —
    * no drag-and-drop, no upload prompt. Hide the placeholder text so the
    * canvas looks intentionally empty. */

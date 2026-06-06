@@ -114,6 +114,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   ['dragenter', 'dragover'].forEach(function (evt) {
     container.addEventListener(evt, function (e) {
+      // In AI mode (#87) drag-and-drop is disabled — skip the visual
+      // highlight so we don't mislead the user into thinking they can drop.
+      if (document.body.classList.contains('ai-mode')) return;
       // preventDefault on dragover is required for the drop event to fire;
       // without it the browser cancels the drag and drop never triggers.
       e.preventDefault();
@@ -127,6 +130,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   ['dragleave', 'dragend'].forEach(function (evt) {
     container.addEventListener(evt, function (e) {
+      if (document.body.classList.contains('ai-mode')) return;
       e.preventDefault();
       e.stopPropagation();
       // relatedTarget is the element the pointer moved to; if it is still
@@ -518,6 +522,12 @@ document.addEventListener('DOMContentLoaded', function () {
       aiModeToggle.title = on
         ? 'Switch back to normal mode'
         : 'Switch to AI suggestion mode';
+      // Mirror the mobile 🐼 modal flow: focus the first input so the user
+      // can start typing immediately after toggling on.
+      if (on) {
+        var identityInput = document.getElementById('ai-identity');
+        if (identityInput) identityInput.focus();
+      }
     });
   }
 });

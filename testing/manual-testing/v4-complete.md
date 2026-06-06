@@ -133,7 +133,7 @@
 ### Bugs Found
 | Severity | Description |
 |-----------|-------------|
-| unsupported image files        |       implement graceful degregation of unsupported image types   |
+| unsupported image files        |       implement graceful degradation of unsupported image types   |
 | meme search | only works for meme titles, not emotions or descriptions, or even slight misspellings |
 | text-detection button | button UI is always visible and not functional |
 | AI suggested memes | implement the feature on desktop as well and work on a clear and intuitive UI/UX | 

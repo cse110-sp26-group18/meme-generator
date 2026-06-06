@@ -66,7 +66,7 @@
 - [ ] All buttons are functional and intuitive
 
 **Comments**
-> the setting button is not clickable and disfunctional 
+> The settings button is not clickable and is dysfunctional 
 > 
 
 ---

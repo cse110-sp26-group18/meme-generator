@@ -575,4 +575,14 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
+
+  // ── Theme toggle (#89) ───────────────────────────────────────────────────
+  // Wires the header pill so clicking it flips data-theme on <html> and
+  // saves the choice. ThemeToggle.init also applies the stored or system
+  // preference on first paint.
+  if (MemeGen.ThemeToggle) {
+    MemeGen.ThemeToggle.init({
+      toggle: document.getElementById('theme-toggle')
+    });
+  }
 });

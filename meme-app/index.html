@@ -28,6 +28,23 @@
       aria-expanded="false"
     >🔍</button>
     <h1>Meme Generator</h1>
+    <!-- Theme toggle (#89). Pill-shaped switch with ☀️ and 🌙; clicking
+         slides the thumb between them and flips the data-theme attribute
+         on <html>. Persisted in localStorage. -->
+    <button
+      type="button"
+      id="theme-toggle"
+      class="theme-toggle"
+      aria-label="Toggle dark mode"
+      aria-pressed="false"
+      title="Toggle dark mode"
+    >
+      <span class="theme-toggle-track" aria-hidden="true">
+        <span class="theme-toggle-icon theme-toggle-icon--light">☀️</span>
+        <span class="theme-toggle-icon theme-toggle-icon--dark">🌙</span>
+        <span class="theme-toggle-thumb"></span>
+      </span>
+    </button>
     <!-- Settings gear (Screen 13). Inert in this version; behavior TBD. -->
     <button
       type="button"
@@ -181,6 +198,7 @@
       <div id="ai-results" class="ai-results"></div>
     </section>
   </main>
+  <script src="js/ThemeToggle.js"></script>
   <script src="js/LayoutManager.js"></script>
   <script src="js/ImageLoader.js"></script>
   <script src="js/TextBox.js"></script>

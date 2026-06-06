@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', function () {
   var mobileHomePlusBtn = document.getElementById('mobile-home-plus-btn');
   var browseMemesBtn = document.getElementById('browse-memes-btn');
   var fontsBtn = document.getElementById('fonts-btn');
+  var fontSettingsBtn = document.getElementById('font-settings-btn');
+  var fontSettingsMenu = document.getElementById('font-settings-menu');
   var aiPandaBtn = document.getElementById('ai-panda-btn');
   var placeholder = document.getElementById('placeholder');
   var hint = document.getElementById('hint');
@@ -38,13 +40,16 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   MemeGen.ImageLoader.init(canvas, function (width, height) {
-    container.style.width = width + 'px';
-    container.style.height = height + 'px';
+    container.style.removeProperty('width');
+    container.style.removeProperty('height');
+
+    container.style.setProperty('--canvas-aspect-ratio', width + ' / ' + height);
+    container.style.setProperty('--canvas-ratio-num', (width / height).toFixed(4));
     container.classList.add('has-image');
     placeholder.hidden = true;
     hint.hidden = false;
     downloadBtn.disabled = false;
-    if (shareBtn && MemeGen.Exporter.isMobileOrTablet()) shareBtn.disabled = false;
+    shareBtn.disabled = false;
     // Scan Text stays disabled in this version — see the inert button
     // contract below. Do NOT enable it when an image loads.
     MemeGen.TextBoxManager.setImageLoaded(true);
@@ -76,14 +81,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
   MemeGen.TextBoxManager.init(container, canvas);
 
+  // ── Responsive text-box anchoring ──
+  // CSS controls the canvas-container display size (mobile 60vh / desktop
+  // 72vh / library-resize-driven width). When that size changes, the
+  // ResizeObserver below asks TextBoxManager to re-apply each text box's
+  // stored image-relative ratios, so the boxes stay anchored to the same
+  // visual point on the meme instead of drifting with the pixel grid.
+  // Guarded on ResizeObserver existence — older browsers degrade to the
+  // pre-existing pixel-positioning behavior.
+  if (typeof ResizeObserver === 'function' && container &&
+      typeof MemeGen.TextBoxManager.syncTextBoxesToCanvas === 'function') {
+    const ro = new ResizeObserver(function () {
+      MemeGen.TextBoxManager.syncTextBoxesToCanvas();
+    });
+    ro.observe(container);
+  }
+
   MemeGen.LayoutManager.init('panel-resizer', 'meme-search');
 
   // Show share button on mobile/tablet only; keep it hidden on desktop.
   // Mirror: hide #download-btn on mobile so the top action row is just
   // Upload + Share, matching the polished mobile mockup (Screen 1).
   if (MemeGen.Exporter.isMobileOrTablet()) {
-    if (shareBtn) shareBtn.style.display = 'inline-block';
-    if (downloadBtn) downloadBtn.style.display = 'none';
+   
     // Mobile boots into the Browse Memes overlay so the first thing a user
     // sees on reload is the meme template grid (per the flow correction).
     // Desktop stays on the editor — its inline layout shows everything.
@@ -294,6 +314,66 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
       boxes.forEach(cycleFontForTextBox);
+    });
+  }
+
+  // ── Font settings dropdown (⚙ right of Download) ──
+  // The gear opens a dropdown built from the shared MemeGen.TextBox.FONTS
+  // list. Choosing a font calls TextBoxManager.setFontForAll, which re-fonts
+  // every existing box AND stores it as the default so future boxes match —
+  // i.e. the choice applies to all text, current and future.
+  if (fontSettingsBtn && fontSettingsMenu && MemeGen.TextBox && MemeGen.TextBox.FONTS) {
+    // Build the menu items once from the shared font list.
+    MemeGen.TextBox.FONTS.forEach(function (f) {
+      var li = document.createElement('li');
+      li.setAttribute('role', 'none');
+
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'font-settings-item';
+      item.setAttribute('role', 'menuitem');
+      item.dataset.fontValue = f.value;
+      item.textContent = f.label;
+      // Preview each option in its own font so the choice is visible up-front.
+      item.style.fontFamily = f.value;
+
+      li.appendChild(item);
+      fontSettingsMenu.appendChild(li);
+    });
+
+    function openFontMenu() {
+      fontSettingsMenu.hidden = false;
+      fontSettingsBtn.setAttribute('aria-expanded', 'true');
+    }
+    function closeFontMenu() {
+      fontSettingsMenu.hidden = true;
+      fontSettingsBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    fontSettingsBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (fontSettingsMenu.hidden) {
+        openFontMenu();
+      } else {
+        closeFontMenu();
+      }
+    });
+
+    fontSettingsMenu.addEventListener('click', function (e) {
+      var item = e.target.closest('.font-settings-item');
+      if (!item) return;
+      MemeGen.TextBoxManager.setFontForAll(item.dataset.fontValue);
+      closeFontMenu();
+    });
+
+    // Click anywhere outside the menu (or press Escape) closes it.
+    document.addEventListener('click', function (e) {
+      if (fontSettingsMenu.hidden) return;
+      if (fontSettingsBtn.contains(e.target) || fontSettingsMenu.contains(e.target)) return;
+      closeFontMenu();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !fontSettingsMenu.hidden) closeFontMenu();
     });
   }
 

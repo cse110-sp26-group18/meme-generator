@@ -134,6 +134,78 @@ main {
   cursor: not-allowed;
 }
 
+/* ── Font settings (⚙ right of Download) ─────────────────────────────────── */
+/* Relative wrapper so the dropdown anchors to the gear button. */
+.font-settings {
+  position: relative;
+  display: inline-flex;
+}
+
+.font-settings-btn {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--dark-forest);
+  border: 2px solid var(--dark-forest);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 2rem;
+  line-height: 1;
+  padding: 0;
+  transition: background 0.2s, color 0.2s;
+}
+
+.font-settings-btn:hover,
+.font-settings-btn[aria-expanded="true"] {
+  background: var(--forest-green);
+  color: var(--off-white);
+}
+
+/* Dropdown anchored to the gear; absolutely positioned so it overlays the
+   layout below instead of pushing the controls row taller. */
+.font-settings-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  min-width: 11rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--off-white);
+  border: 1px solid var(--soft-green-outline);
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(16, 40, 25, 0.18);
+}
+
+.font-settings-menu[hidden] {
+  display: none;
+}
+
+.font-settings-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  color: var(--dark-text);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.font-settings-item:hover,
+.font-settings-item:focus {
+  background: var(--soft-gray);
+  outline: none;
+}
+
 /* Share button — hidden by default; JS reveals it on mobile/tablet only. */
 #share-btn {
   display: none;
@@ -259,6 +331,7 @@ main {
   cursor: default;
   border-color: var(--dark-forest);
   min-width: 0;
+  
   min-height: 0;
   /* Clip the loaded canvas inside the rounded forest-green border. Without
    * this, box-sizing: border-box + the inline width set by ImageLoader
@@ -1074,7 +1147,13 @@ main {
     padding: 0.75rem 1rem;
     text-align: center;
   }
+  #download-btn {
+    display: none;
+  }
 
+  #share-btn {
+    display: inline-block;
+  }
   /* Hide the top Upload / Download row on mobile. */
   .controls {
     display: none;
@@ -1113,17 +1192,34 @@ main {
     font-size: 1.4rem;
   }
 
-  .canvas-container {
+ .canvas-container {
     min-width: 0;
     width: 100%;
     max-width: 100%;
   }
 
-  #meme-canvas {
-    width: 100%;
-    height: auto;
+  /* When an image is loaded on mobile, force CSS to control the visual
+  * size instead of stale inline JS dimensions from desktop/tablet loads. */
+  .canvas-container.has-image {
+    --canvas-max-h: min(60vh, 70rem);
+    width: min(100%, 70rem, calc(var(--canvas-max-h) * var(--canvas-ratio-num, 1))) ;
+    max-width: 100% !important;
+    max-height: var(--canvas-max-h);
+    height: auto !important;
+    aspect-ratio: var(--canvas-aspect-ratio, 1 / 1);
+    align-self: center;
   }
 
+    .canvas-container.has-image .canvas-frame {
+    width: 100%;
+    height: 100%;
+  }
+
+  .canvas-container.has-image #meme-canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+  }
   .placeholder {
     font-size: 1rem;
     text-align: center;
@@ -1135,6 +1231,9 @@ main {
     display: block;
   }
 
+  .text-box.menu-open .text-box-toolbar {
+    display: none;
+  }
   /* Hide the bottom text toolbar on mobile entirely — X button + gestures
    * replace it. */
   .text-box.selected .text-box-toolbar {
@@ -1387,10 +1486,26 @@ main {
   /* Once an image is loaded JS sets explicit pixel dimensions; the
    * minimum height is no longer needed and max-width prevents wide images
    * from overflowing the panel. */
-  .canvas-container.has-image {
+    .canvas-container.has-image {
+    --canvas-max-h: min(72vh, 70rem);
+    aspect-ratio: var(--canvas-aspect-ratio, 1 / 1);
+    width: min(100%, 70rem, calc(var(--canvas-max-h) * var(--canvas-ratio-num, 1))) !important;
+    max-width: calc(100% - 4rem);
+    max-height: var(--canvas-max-h);
+    height: auto !important;
     min-height: 0;
-    max-width: 100%;
-    width: auto;
+    align-self: center;
+  }
+
+  .canvas-frame {
+    width: 100%;
+    height: 100%;
+  }
+
+  #meme-canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
   }
 
   /* Draggable vertical resizer between the two panels. */
@@ -1411,9 +1526,31 @@ main {
     background-color: var(--forest-green);
   }
 
+    .meme-search {
+    container-type: inline-size;
+  }
+
   .meme-search-results {
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
     gap: 10px !important;
+  }
+
+  @container (min-width: 16rem) {
+    .meme-search-results {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+  }
+
+  @container (min-width: 24rem) {
+    .meme-search-results {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+  }
+
+  @container (min-width: 32rem) {
+    .meme-search-results {
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    }
   }
 }
 

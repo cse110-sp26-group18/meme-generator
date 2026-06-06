@@ -56,6 +56,25 @@
           <input type="file" id="image-input" accept="image/*" hidden>
         </label>
         <button id="download-btn" disabled>Download Meme</button>
+        <!-- Font settings: gear opens a dropdown of fonts; choosing one sets
+             the font for every text box, current and future (app.js wiring). -->
+        <div class="font-settings" id="font-settings">
+          <button
+            type="button"
+            id="font-settings-btn"
+            class="font-settings-btn"
+            aria-label="Font settings"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >⚙</button>
+          <ul
+            id="font-settings-menu"
+            class="font-settings-menu"
+            role="menu"
+            aria-label="Choose a font"
+            hidden
+          ></ul>
+        </div>
       </div>
 
       <div id="canvas-container" class="canvas-container">
@@ -179,6 +198,11 @@
   <script src="js/DragResize.js"></script>
   <script src="js/TextBoxManager.js"></script>
   <script src="js/Exporter.js"></script>
+  <script>
+    window.MemeGenConfig = {
+      aiTagEndpoint: 'https://tag-meme-worker.brendan-nguyen.workers.dev/tag-meme'
+    };
+  </script>
   <script src="js/MemeSearch.js"></script>
   <script src="js/GeminiClient.js"></script>
   <script src="js/AISuggestions.js"></script>

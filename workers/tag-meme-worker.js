@@ -257,7 +257,7 @@ function buildPrompt(name) {
 function extractJsonObject(text) {
   if (typeof text !== 'string') throw new Error('No content in AI response');
   var trimmed = text.trim();
-  var match = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  var match = trimmed.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/i);
   return match ? match[1].trim() : trimmed;
 }
 

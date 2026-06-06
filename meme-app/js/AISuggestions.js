@@ -53,11 +53,18 @@ MemeGen.AISuggestions = (function () {
     return memesPromise;
   }
 
-  // DOM refs (from init opts)
-  var rootEl, getBtn, formEl, identityEl, situationEl, generateBtn,
+  // DOM refs (from init opts). opts.root is accepted but not retained — the
+  // host (app.js) controls panel show/hide via the `hidden` attribute.
+  var getBtn, formEl, identityEl, situationEl, generateBtn,
       keyFormEl, keyInputEl, keySaveBtn, changeKeyLink,
       statusEl, resultsEl;
   var onSelectCallback = null;
+  // Optional callbacks the host can hook to drive a secondary UI surface
+  // (e.g. the desktop meme library on app.js side). All three default to
+  // null so existing callers that only supply `onSelect` stay unchanged.
+  var onGenerateStartCallback = null;
+  var onGeneratedCallback     = null;
+  var onGenerateErrorCallback = null;
 
   // Set to true when a Generate click is blocked by a missing key; once the
   // key is saved we re-fire the generate flow automatically.
@@ -66,7 +73,6 @@ MemeGen.AISuggestions = (function () {
   // ── Init / wiring ────────────────────────────────────────────────────────
 
   function init(opts) {
-    rootEl        = opts.root;
     getBtn        = opts.getBtn;
     formEl        = opts.form;
     identityEl    = opts.identity;
@@ -79,6 +85,9 @@ MemeGen.AISuggestions = (function () {
     statusEl      = opts.status;
     resultsEl     = opts.results;
     onSelectCallback = opts.onSelect || null;
+    onGenerateStartCallback = typeof opts.onGenerateStart === 'function' ? opts.onGenerateStart : null;
+    onGeneratedCallback     = typeof opts.onGenerated     === 'function' ? opts.onGenerated     : null;
+    onGenerateErrorCallback = typeof opts.onGenerateError === 'function' ? opts.onGenerateError : null;
 
     if (getBtn) {
       getBtn.addEventListener('click', onGetClick);
@@ -141,6 +150,9 @@ MemeGen.AISuggestions = (function () {
     setStatus('Loading templates…');
     if (resultsEl) resultsEl.innerHTML = '';
     if (generateBtn) generateBtn.disabled = true;
+    // Let the host UI (e.g. desktop meme library) flip into its loading
+    // state as soon as the request is dispatched.
+    if (onGenerateStartCallback) onGenerateStartCallback();
 
     fetchMemes()
       .then(function (memeList) {
@@ -153,7 +165,24 @@ MemeGen.AISuggestions = (function () {
         });
         return MemeGen.GeminiClient.generateSuggestions(identity, situation, templates);
       })
-      .then(renderSuggestions)
+      .then(function (suggestions) {
+        renderSuggestions(suggestions);
+        // Hand the host a normalized {id,name,url,captions}[] list so it
+        // can mirror the cards in its own surface (no duplicate code).
+        if (onGeneratedCallback) {
+          var normalized = suggestions.map(function (s) {
+            var meme = findMemeById(s.template_id);
+            if (!meme) return null;
+            return {
+              id: meme.id,
+              name: meme.name,
+              url: meme.url,
+              captions: s.captions || []
+            };
+          }).filter(Boolean);
+          onGeneratedCallback(normalized);
+        }
+      })
       .catch(handleError)
       .then(function () {
         if (generateBtn) generateBtn.disabled = false;
@@ -266,6 +295,11 @@ MemeGen.AISuggestions = (function () {
   function handleError(err) {
     if (!MemeGen.GeminiClient) {
       setStatus('Gemini client is not loaded.');
+      // Notify the host so it can surface the error in its secondary UI
+      // (e.g. desktop meme library). KeyError below is recoverable — we
+      // resume the same generate flow once the key is saved — so it
+      // intentionally does NOT fire onGenerateError.
+      if (onGenerateErrorCallback) onGenerateErrorCallback(err);
       return;
     }
     var GC = MemeGen.GeminiClient;
@@ -283,17 +317,21 @@ MemeGen.AISuggestions = (function () {
       } else {
         setStatus('Gemini error (HTTP ' + err.status + '). Try again.');
       }
+      if (onGenerateErrorCallback) onGenerateErrorCallback(err);
       return;
     }
     if (err instanceof GC.NetworkError) {
       setStatus('Could not reach Gemini. Check your connection.');
+      if (onGenerateErrorCallback) onGenerateErrorCallback(err);
       return;
     }
     if (err instanceof GC.ParseError) {
       setStatus('Gemini returned an unexpected response. Try again.');
+      if (onGenerateErrorCallback) onGenerateErrorCallback(err);
       return;
     }
     setStatus('Something went wrong: ' + (err && err.message ? err.message : 'unknown error'));
+    if (onGenerateErrorCallback) onGenerateErrorCallback(err);
   }
 
   return {

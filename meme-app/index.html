@@ -9,9 +9,6 @@
 </head>
 <body>
   <header>
-    <!-- Legacy header back button — kept in DOM so existing test selectors
-         don't break, but hidden permanently on mobile (the editor IS the
-         default mobile view now, so there is no editor-back direction). -->
     <button
       type="button"
       id="mobile-back-btn"
@@ -19,46 +16,31 @@
       aria-label="Back to home"
       hidden
     >←</button>
-    
+
     <h1>Meme Generator</h1>
-    <!-- Settings gear (Screen 13). Inert in this version; behavior TBD. -->
-    <button
-      type="button"
-      id="settings-btn"
-      class="settings-btn"
-      aria-label="Settings (coming soon)"
-      aria-disabled="true"
-      title="Settings coming soon"
-    >⚙</button>
+
+    
   </header>
 
-<main>
+  <main>
     <div class="editor-panel">
       <div class="controls">
         <label class="upload-btn">
           Upload
           <input type="file" id="image-input" accept="image/*" hidden>
         </label>
-        <button id="download-btn" disabled>Download Meme</button>
-        <!-- Font settings: gear opens a dropdown of fonts; choosing one sets
-             the font for every text box, current and future (app.js wiring). -->
-        <div class="font-settings" id="font-settings">
-          <button
-            type="button"
-            id="font-settings-btn"
-            class="font-settings-btn"
-            aria-label="Font settings"
-            aria-haspopup="true"
-            aria-expanded="false"
-          >⚙</button>
-          <ul
-            id="font-settings-menu"
-            class="font-settings-menu"
-            role="menu"
-            aria-label="Choose a font"
-            hidden
-          ></ul>
-        </div>
+
+        <button id="download-btn" disabled>Download</button>
+
+        <button
+          type="button"
+          id="desktop-ai-btn"
+          class="desktop-ai-btn"
+          aria-label="Get AI meme suggestions"
+          aria-controls="desktop-ai-suggestions-panel"
+          aria-expanded="false"
+          title="Get AI meme suggestions"
+        >🐼</button>
       </div>
 
       <div id="canvas-container" class="canvas-container">
@@ -66,20 +48,95 @@
           <canvas id="meme-canvas"></canvas>
           <div class="placeholder" id="placeholder">Click here or drag &amp; drop an image to get started</div>
         </div>
+
+        <!-- Desktop AI panel: lives inside the canvas container only -->
+        <section
+          id="desktop-ai-suggestions-panel"
+          class="ai-suggestions-panel desktop-ai-panel"
+          aria-label="Desktop AI meme suggestions"
+          hidden
+        >
+          <header class="ai-suggestions-header">
+            <h2 class="ai-suggestions-title">🐼 AI meme suggestions</h2>
+            <button
+              type="button"
+              id="desktop-ai-close-btn"
+              class="ai-close-btn"
+              aria-label="Close AI suggestions"
+            >×</button>
+          </header>
+
+          <div id="desktop-ai-form" class="ai-form">
+            <label class="ai-field">
+              <span class="ai-label">I am…</span>
+              <input
+                id="desktop-ai-identity"
+                class="ai-input"
+                placeholder="e.g. a college student"
+                autocomplete="off"
+              >
+            </label>
+
+            <label class="ai-field">
+              <span class="ai-label">My situation…</span>
+              <input
+                id="desktop-ai-situation"
+                class="ai-input"
+                placeholder="e.g. struggling to study for finals"
+                autocomplete="off"
+              >
+            </label>
+
+            <button type="button" id="desktop-ai-generate-btn" class="ai-generate-btn">Generate</button>
+            <a href="#" id="desktop-ai-change-key" class="ai-change-key" hidden>Change API key</a>
+          </div>
+
+          <div id="desktop-ai-key-form" class="ai-key-form" hidden>
+            <label class="ai-field">
+              <span class="ai-label">Gemini API key</span>
+              <input
+                id="desktop-ai-key-input"
+                type="password"
+                class="ai-input"
+                placeholder="Paste your Gemini API key"
+                autocomplete="off"
+              >
+            </label>
+
+            <button type="button" id="desktop-ai-key-save-btn" class="ai-generate-btn">Save key</button>
+
+            <p class="ai-note">
+              Your key is stored only on your device (localStorage). Get a free key at
+              <a href="https://aistudio.google.com" target="_blank" rel="noopener">aistudio.google.com</a>.
+            </p>
+          </div>
+
+          <p id="desktop-ai-status" class="ai-status" role="status" aria-live="polite"></p>
+          <div id="desktop-ai-results" class="ai-results"></div>
+        </section>
       </div>
 
-      <div class="fonts-row">
-        <button type="button" id="fonts-btn" class="fonts-btn">fonts</button>
-      </div>
-
-      <div class="scan-text-row">
+      <!-- Fonts row — replaces the old Scan Text affordance. The button is
+           the dropdown trigger formerly known as #font-settings-btn (gear
+           in the top row), now relabeled "Fonts" and moved below the
+           canvas. The wrapper keeps its `font-settings` class so the
+           absolutely-positioned dropdown menu anchors to the button. -->
+      <div class="fonts-row font-settings" id="font-settings">
         <button
           type="button"
-          id="scan-text-btn"
-          disabled
-          aria-disabled="true"
-          title="Scan Text coming soon"
-        >Scan Text</button>
+          id="font-settings-btn"
+          class="fonts-btn"
+          aria-label="Font settings"
+          aria-haspopup="true"
+          aria-expanded="false"
+        >Fonts</button>
+        <ul
+          id="font-settings-menu"
+          class="font-settings-menu"
+          role="menu"
+          aria-label="Choose a font"
+          hidden
+        ></ul>
       </div>
 
       <p class="hint" id="hint" hidden>Click on the image to add text</p>
@@ -112,8 +169,10 @@
           aria-label="Close browse memes"
           hidden
         >←</button>
+
         <h2 class="meme-search-title">Meme Generator</h2>
       </div>
+
       <input
         type="text"
         id="meme-search-input"
@@ -121,59 +180,95 @@
         placeholder="Search"
         autocomplete="off"
       >
+
       <p id="meme-search-status" class="meme-search-status" role="status" aria-live="polite"></p>
       <div id="meme-search-results" class="meme-search-results"></div>
+
       <button
         type="button"
         id="mobile-home-plus-btn"
         class="mobile-home-plus-btn"
         aria-label="Upload an image"
       >+</button>
+
       <button
         type="button"
         id="ai-panda-btn"
         class="ai-panda-btn"
         aria-label="Get AI meme suggestions"
-        aria-controls="ai-suggestions-panel"
+        aria-controls="mobile-ai-suggestions-panel"
         aria-expanded="false"
         title="Get AI meme suggestions"
       >🐼</button>
     </section>
 
-    <!-- AI suggestions panel — opened by the 🐼 button in the meme-search
-         section. Hidden by default; app.js toggles visibility. -->
-    <section id="ai-suggestions-panel" class="ai-suggestions-panel" aria-label="AI meme suggestions" hidden>
+    <!-- Mobile AI panel: separate IDs, separate panel, does not touch desktop canvas panel -->
+    <section
+      id="mobile-ai-suggestions-panel"
+      class="ai-suggestions-panel mobile-ai-panel"
+      aria-label="Mobile AI meme suggestions"
+      hidden
+    >
       <header class="ai-suggestions-header">
         <h2 class="ai-suggestions-title">🐼 AI meme suggestions</h2>
-        <button type="button" id="ai-close-btn" class="ai-close-btn" aria-label="Close AI suggestions">×</button>
+        <button
+          type="button"
+          id="mobile-ai-close-btn"
+          class="ai-close-btn"
+          aria-label="Close AI suggestions"
+        >×</button>
       </header>
 
-      <div id="ai-form" class="ai-form">
+      <div id="mobile-ai-form" class="ai-form">
         <label class="ai-field">
           <span class="ai-label">I am…</span>
-          <input id="ai-identity" class="ai-input" placeholder="e.g. a college student" autocomplete="off">
+          <input
+            id="mobile-ai-identity"
+            class="ai-input"
+            placeholder="e.g. a college student"
+            autocomplete="off"
+          >
         </label>
+
         <label class="ai-field">
           <span class="ai-label">My situation…</span>
-          <input id="ai-situation" class="ai-input" placeholder="e.g. struggling to study for finals" autocomplete="off">
+          <input
+            id="mobile-ai-situation"
+            class="ai-input"
+            placeholder="e.g. struggling to study for finals"
+            autocomplete="off"
+          >
         </label>
-        <button type="button" id="ai-generate-btn" class="ai-generate-btn">Generate</button>
-        <a href="#" id="ai-change-key" class="ai-change-key" hidden>Change API key</a>
+
+        <button type="button" id="mobile-ai-generate-btn" class="ai-generate-btn">Generate</button>
+        <a href="#" id="mobile-ai-change-key" class="ai-change-key" hidden>Change API key</a>
       </div>
 
-      <div id="ai-key-form" class="ai-key-form" hidden>
+      <div id="mobile-ai-key-form" class="ai-key-form" hidden>
         <label class="ai-field">
           <span class="ai-label">Gemini API key</span>
-          <input id="ai-key-input" type="password" class="ai-input" placeholder="Paste your Gemini API key" autocomplete="off">
+          <input
+            id="mobile-ai-key-input"
+            type="password"
+            class="ai-input"
+            placeholder="Paste your Gemini API key"
+            autocomplete="off"
+          >
         </label>
-        <button type="button" id="ai-key-save-btn" class="ai-generate-btn">Save key</button>
-        <p class="ai-note">Your key is stored only on your device (localStorage). Get a free key at <a href="https://aistudio.google.com" target="_blank" rel="noopener">aistudio.google.com</a>.</p>
+
+        <button type="button" id="mobile-ai-key-save-btn" class="ai-generate-btn">Save key</button>
+
+        <p class="ai-note">
+          Your key is stored only on your device (localStorage). Get a free key at
+          <a href="https://aistudio.google.com" target="_blank" rel="noopener">aistudio.google.com</a>.
+        </p>
       </div>
 
-      <p id="ai-status" class="ai-status" role="status" aria-live="polite"></p>
-      <div id="ai-results" class="ai-results"></div>
+      <p id="mobile-ai-status" class="ai-status" role="status" aria-live="polite"></p>
+      <div id="mobile-ai-results" class="ai-results"></div>
     </section>
   </main>
+
   <script src="js/LayoutManager.js"></script>
   <script src="js/ImageLoader.js"></script>
   <script src="js/TextBox.js"></script>

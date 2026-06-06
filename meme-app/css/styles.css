@@ -395,13 +395,14 @@ main {
 
 .text-box.selected {
   z-index: 20;
+  border: 2px dashed;
 }
 
 .text-box textarea {
   width: 100%;
   height: 100%;
   background: transparent;
-  border: 2px dashed rgba(15, 43, 26, 0.45);
+  border: none;
   color: #fff;
   font-family: Impact, sans-serif;
   font-size: 24px;
@@ -428,6 +429,7 @@ main {
 
 .text-box.selected textarea {
   border-color: var(--forest-green);
+  
 }
 
 /* Toolbar — dark forest panel with cream-outlined controls, matching the
@@ -804,6 +806,74 @@ main {
   transform: scale(0.96);
 }
 
+/* Desktop AI button — sits in the top .controls row next to Upload/Download.
+ * Hidden by default; the desktop @media block lower in this file reveals it.
+ * Previously floated at the editor panel's top-left edge; now an inline
+ * control pill so the canvas alignment stays predictable. */
+.desktop-ai-btn {
+  display: none;
+  width: 3rem;
+  min-width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: var(--forest-green);
+  color: var(--off-white);
+  border: 2px solid var(--off-white);
+  font-size: 1.4rem;
+  line-height: 1;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(15, 43, 26, 0.4);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.15s;
+}
+
+.desktop-ai-btn:hover {
+  transform: scale(1.06);
+  box-shadow: 0 4px 12px rgba(15, 43, 26, 0.55);
+}
+
+.desktop-ai-btn:active {
+  transform: scale(0.96);
+}
+
+/* Empty / loading / error message rendered into the desktop meme library
+ * (#meme-search-results) when the user has flipped the panel into AI mode.
+ * Spans the full grid width so it always sits centered inside the panel. */
+.ai-library-message {
+  grid-column: 1 / -1;
+  color: var(--off-white);
+  text-align: center;
+  padding: 1.5rem 1rem;
+  font-size: 0.95rem;
+  margin: 0;
+  opacity: 0.9;
+}
+
+/* "Back to templates" link rendered above the AI suggestion cards so the
+ * user can return to the normal meme library at any time. */
+.ai-library-back {
+  grid-column: 1 / -1;
+  background: transparent;
+  color: var(--off-white);
+  border: 1.5px solid var(--off-white);
+  border-radius: 999px;
+  padding: 0.4rem 0.875rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ai-library-back:hover,
+.ai-library-back:focus-visible {
+  background: var(--off-white);
+  color: var(--dark-forest);
+  outline: none;
+}
+
 /* Mobile back-to-editor button — sits at the top-left of the home view
  * (Screen 12) when there is editor state to return to. Hidden via the
  * `hidden` attribute on initial load; JS removes the attribute the first
@@ -920,10 +990,15 @@ main {
   opacity: 0.5;
 }
 
-/* "fonts" pill — removed from mobile UI; fonts are accessible via the
- * per-text-box dropdown on desktop. Hidden globally. */
+/* "Fonts" pill row — the primary font-dropdown trigger sits below the
+ * canvas on both desktop and mobile. Inline-flex so the wrapper shrinks
+ * around the button; the parent (main / .editor-panel) already centers
+ * children via align-items: center. Keeps `position: relative` from the
+ * co-applied .font-settings class so the dropdown menu anchors to the
+ * button instead of the page. */
 .fonts-row {
-  display: none;
+  display: inline-flex;
+  align-self: center;
 }
 
 .fonts-btn {
@@ -1080,7 +1155,17 @@ main {
     text-align: center;
     flex: 1 1 auto;
   }
-
+  /* Mobile full-bleed positioning is scoped to the mobile panel only so the
+   * desktop panel (lives inside .canvas-container) is not overridden when
+   * the same .ai-suggestions-panel base class is loaded at narrow widths. */
+  .mobile-ai-panel {
+    position: fixed;
+    inset: 1rem;
+    width: auto;
+    max-height: calc(100vh - 2rem);
+    transform: none;
+    z-index: 1000;
+  }
   main {
     /* Extra bottom padding clears the fixed .bottom-actions row. */
     padding: 0 0.75rem 5rem;
@@ -1245,12 +1330,12 @@ main {
     position: absolute;
     bottom: 1.25rem;
     right: 1.25rem;
-    width: 3.5rem;
-    height: 3.5rem;
+    width: 4rem;
+    height: 4rem;
     background: var(--forest-green);
     color: var(--off-white);
     border: 2px solid var(--off-white);
-    font-size: 1.75rem;
+    font-size: 2rem;
     font-weight: 700;
     border-radius: 50%;
     flex: none;
@@ -1328,7 +1413,6 @@ main {
   .mobile-home-back-btn,
   .search-icon-btn,
   .bottom-actions,
-  .fonts-row,
   .settings-btn,
   .ai-panda-btn,
   .editor-library-preview {
@@ -1345,7 +1429,9 @@ main {
     gap: 0 !important;
   }
 
-  /* Left editor panel. */
+  /* Left editor panel.
+   * position: relative so the absolutely-positioned #desktop-ai-btn (top
+   * left of the canvas area) anchors to the panel instead of the page. */
   .editor-panel {
     flex: 1;
     overflow: auto;
@@ -1354,12 +1440,20 @@ main {
     flex-direction: column;
     align-items: center;
     gap: 16px;
+    position: relative;
+  }
+
+  /* Reveal the desktop AI button on wide viewports. Mobile keeps its
+   * `display: none` from the base rule so the panda inside Browse Memes
+   * stays the only mobile entry point. */
+  .desktop-ai-btn {
+    display: inline-flex;
   }
 
   /* Right meme search panel — display: flex !important overrides mobile
    * display: none so it stays permanently visible on desktop.
    * min-width allows the grid to shrink to 1 card; max-width lets the user
-   * drag up to 75 % of the viewport (LayoutManager enforces the same limit). */
+   * drag up to 50 % of the viewport (LayoutManager enforces the same limit). */
   .meme-search {
     width: 380px;
     min-width: 160px;
@@ -1479,33 +1573,69 @@ main {
 }
 
 /* ── AI Suggestions ──────────────────────────────────────────────────────── */
-
-/* Panel that opens when the 🐼 panda button is clicked. Modal-like overlay
- * floating above the editor; click ×, or the panda again, to close. */
+/* ── AI Suggestions ──────────────────────────────────────────────────────── */
 .ai-suggestions-panel {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(560px, calc(100vw - 32px));
-  max-height: calc(100vh - 64px);
-  overflow-y: auto;
   padding: 20px;
   background: var(--off-white);
   border: 1px solid var(--soft-green-outline);
-  border-radius: 10px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  border-radius: 1.5rem;
+  box-shadow: 0 8px 24px rgba(15, 43, 26, 0.25);
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.ai-suggestions-panel[hidden] {
+  display: none;
+}
+
+.desktop-ai-panel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* Sized to fit comfortably inside the canvas container even when the
+   * library has been dragged narrow. min() lets the panel shrink with the
+   * container while never blowing past 460px / 420px on wide screens. */
+  width: min(460px, calc(100% - 3rem));
+  max-height: min(420px, calc(100% - 3rem));
+  transform: translate(-50%, -50%);
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  z-index: 60;
+}
+
+.desktop-ai-panel::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-ai-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: min(90vw, 34rem);
+  max-height: min(80vh, 38rem);
+  transform: translate(-50%, -50%);
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   z-index: 1000;
 }
 
-/* The `display: flex` above wins over the browser's default [hidden] rule, so
- * the panel would render even with the `hidden` attribute set. Re-assert it
- * explicitly so toggling .hidden in JS actually hides the panel. */
-.ai-suggestions-panel[hidden] {
+.mobile-ai-panel::-webkit-scrollbar {
   display: none;
+}
+
+@media (max-width: 768px) {
+  .desktop-ai-panel {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-ai-panel {
+    display: none !important;
+  }
 }
 
 .ai-suggestions-header {
@@ -1531,10 +1661,7 @@ main {
   background: rgba(47, 79, 53, 0.1);
 }
 
-.ai-suggestions,
-.ai-suggestions-panel {
-  width: 100%;
-}
+
 
 .ai-suggestions {
   margin-top: 24px;

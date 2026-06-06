@@ -134,13 +134,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
   ['dragenter', 'dragover'].forEach(function (evt) {
     container.addEventListener(evt, function (e) {
-      // In AI mode (#87) drag-and-drop is disabled — skip the visual
-      // highlight so we don't mislead the user into thinking they can drop.
-      if (document.body.classList.contains('ai-mode')) return;
-      // preventDefault on dragover is required for the drop event to fire;
-      // without it the browser cancels the drag and drop never triggers.
+      // preventDefault on dragover is ALWAYS required, even when drop is
+      // gated: without it the browser's default kicks in and dropping a
+      // file would navigate the tab to the image, destroying unsaved work.
       e.preventDefault();
       e.stopPropagation();
+      // In AI mode (#87) drag-and-drop is disabled — set dropEffect to
+      // 'none' so the OS shows the no-drop cursor, and skip the highlight
+      // class so we don't mislead the user into thinking they can drop.
+      if (document.body.classList.contains('ai-mode')) {
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'none';
+        return;
+      }
       // dropEffect visually signals to the user that dropping will copy content
       // (shows a + cursor on most platforms).
       if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';

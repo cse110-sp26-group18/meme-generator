@@ -1788,7 +1788,9 @@ main {
 
 .ai-caption-list li {
   font-size: 0.8rem;
-  color: #fff;
+  /* Forest-green on the cream card background — dark-enough contrast to
+   * stay readable. The earlier #fff washed out against --cream-bg. */
+  color: var(--forest-green);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

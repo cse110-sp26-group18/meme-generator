@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', function () {
   var mobileHomePlusBtn = document.getElementById('mobile-home-plus-btn');
   var browseMemesBtn = document.getElementById('browse-memes-btn');
   var fontsBtn = document.getElementById('fonts-btn');
+  var fontSettingsBtn = document.getElementById('font-settings-btn');
+  var fontSettingsMenu = document.getElementById('font-settings-menu');
   var aiPandaBtn = document.getElementById('ai-panda-btn');
   var placeholder = document.getElementById('placeholder');
   var hint = document.getElementById('hint');
@@ -38,19 +40,25 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   MemeGen.ImageLoader.init(canvas, function (width, height) {
-    container.style.width = width + 'px';
-    container.style.height = height + 'px';
+    container.style.removeProperty('width');
+    container.style.removeProperty('height');
+
+    container.style.setProperty('--canvas-aspect-ratio', width + ' / ' + height);
+    container.style.setProperty('--canvas-ratio-num', (width / height).toFixed(4));
     container.classList.add('has-image');
     placeholder.hidden = true;
     hint.hidden = false;
     downloadBtn.disabled = false;
-    if (shareBtn && MemeGen.Exporter.isMobileOrTablet()) shareBtn.disabled = false;
+    shareBtn.disabled = false;
     // Scan Text stays disabled in this version — see the inert button
     // contract below. Do NOT enable it when an image loads.
     MemeGen.TextBoxManager.setImageLoaded(true);
     // Clear any "Loading…" message left over from the meme-search flow.
     var s = document.getElementById('meme-search-status');
     if (s) s.textContent = '';
+    var ai = document.getElementById('ai-status');
+    if (ai && /^Loading /.test(ai.textContent)) ai.textContent = '';
+
     // Close the legacy slide-up overlay variant if it was left open.
     if (memeSearchSection) {
       memeSearchSection.classList.remove('is-open');
@@ -61,9 +69,33 @@ document.addEventListener('DOMContentLoaded', function () {
     // up-front so the user sees the "Loading…" state against the editor;
     // calling again here is idempotent and covers the plain upload path.)
     showEditorView();
+
+    // If an AI suggestion is pending its captions, populate text boxes now
+    // that the canvas is sized. Deferred one tick so layout fully commits.
+    if (MemeGen.pendingAICaptions && Array.isArray(MemeGen.pendingAICaptions)) {
+      var caps = MemeGen.pendingAICaptions;
+      MemeGen.pendingAICaptions = null;
+      setTimeout(function () { populatePresetCaptions(container, caps); }, 0);
+    }
   });
 
   MemeGen.TextBoxManager.init(container, canvas);
+
+  // ── Responsive text-box anchoring ──
+  // CSS controls the canvas-container display size (mobile 60vh / desktop
+  // 72vh / library-resize-driven width). When that size changes, the
+  // ResizeObserver below asks TextBoxManager to re-apply each text box's
+  // stored image-relative ratios, so the boxes stay anchored to the same
+  // visual point on the meme instead of drifting with the pixel grid.
+  // Guarded on ResizeObserver existence — older browsers degrade to the
+  // pre-existing pixel-positioning behavior.
+  if (typeof ResizeObserver === 'function' && container &&
+      typeof MemeGen.TextBoxManager.syncTextBoxesToCanvas === 'function') {
+    const ro = new ResizeObserver(function () {
+      MemeGen.TextBoxManager.syncTextBoxesToCanvas();
+    });
+    ro.observe(container);
+  }
 
   MemeGen.LayoutManager.init('panel-resizer', 'meme-search');
 
@@ -71,8 +103,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Mirror: hide #download-btn on mobile so the top action row is just
   // Upload + Share, matching the polished mobile mockup (Screen 1).
   if (MemeGen.Exporter.isMobileOrTablet()) {
-    if (shareBtn) shareBtn.style.display = 'inline-block';
-    if (downloadBtn) downloadBtn.style.display = 'none';
+   
     // Mobile boots into the Browse Memes overlay so the first thing a user
     // sees on reload is the meme template grid (per the flow correction).
     // Desktop stays on the editor — its inline layout shows everything.
@@ -276,6 +307,66 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // ── Font settings dropdown (⚙ right of Download) ──
+  // The gear opens a dropdown built from the shared MemeGen.TextBox.FONTS
+  // list. Choosing a font calls TextBoxManager.setFontForAll, which re-fonts
+  // every existing box AND stores it as the default so future boxes match —
+  // i.e. the choice applies to all text, current and future.
+  if (fontSettingsBtn && fontSettingsMenu && MemeGen.TextBox && MemeGen.TextBox.FONTS) {
+    // Build the menu items once from the shared font list.
+    MemeGen.TextBox.FONTS.forEach(function (f) {
+      var li = document.createElement('li');
+      li.setAttribute('role', 'none');
+
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'font-settings-item';
+      item.setAttribute('role', 'menuitem');
+      item.dataset.fontValue = f.value;
+      item.textContent = f.label;
+      // Preview each option in its own font so the choice is visible up-front.
+      item.style.fontFamily = f.value;
+
+      li.appendChild(item);
+      fontSettingsMenu.appendChild(li);
+    });
+
+    function openFontMenu() {
+      fontSettingsMenu.hidden = false;
+      fontSettingsBtn.setAttribute('aria-expanded', 'true');
+    }
+    function closeFontMenu() {
+      fontSettingsMenu.hidden = true;
+      fontSettingsBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    fontSettingsBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (fontSettingsMenu.hidden) {
+        openFontMenu();
+      } else {
+        closeFontMenu();
+      }
+    });
+
+    fontSettingsMenu.addEventListener('click', function (e) {
+      var item = e.target.closest('.font-settings-item');
+      if (!item) return;
+      MemeGen.TextBoxManager.setFontForAll(item.dataset.fontValue);
+      closeFontMenu();
+    });
+
+    // Click anywhere outside the menu (or press Escape) closes it.
+    document.addEventListener('click', function (e) {
+      if (fontSettingsMenu.hidden) return;
+      if (fontSettingsBtn.contains(e.target) || fontSettingsMenu.contains(e.target)) return;
+      closeFontMenu();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !fontSettingsMenu.hidden) closeFontMenu();
+    });
+  }
+
   // Circular + button on the home view → reuse the existing file picker.
   // ImageLoader's success callback then calls showEditorView().
   if (mobileHomePlusBtn && imageInput) {
@@ -387,6 +478,99 @@ document.addEventListener('DOMContentLoaded', function () {
         MemeGen.MemeSearch.loadFromUrl(meme.url, function (err) {
           searchStatus.textContent =
             'Could not load that meme: ' + (err && err.message ? err.message : 'unknown error');
+        });
+      }
+    });
+  }
+
+  // Wire up AI suggestions. When a card is picked, load the template through
+  // the same pipeline as meme search and pre-populate text boxes from the
+  // returned captions (top + bottom).
+  function populatePresetCaptions(containerEl, captions) {
+    if (!Array.isArray(captions) || captions.length === 0) return;
+
+    // Picking a new AI suggestion replaces the meme — drop any existing text
+    // boxes so the new captions don't stack on top of the old ones.
+    // slice() because destroy() splices the live array via onDelete.
+    MemeGen.TextBoxManager.getAll().slice().forEach(function (tb) {
+      tb.destroy();
+    });
+
+    var w = containerEl.offsetWidth  || 600;
+    var h = containerEl.offsetHeight || 400;
+    // 200×60 is the TextBox default size; center horizontally, top/bottom pad.
+    var boxW = 200;
+    var x = Math.max(0, Math.round((w - boxW) / 2));
+    var items = [
+      { x: x, y: Math.round(h * 0.06),                       text: captions[0] || '' },
+      { x: x, y: Math.max(0, Math.round(h * 0.78)),          text: captions[1] || '' }
+    ];
+    MemeGen.TextBoxManager.createBatch(items);
+  }
+
+  // ── AI suggestions panel (opened by the 🐼 panda button) ────────────────
+  var aiPanel = document.getElementById('ai-suggestions-panel');
+  var aiCloseBtn = document.getElementById('ai-close-btn');
+
+  function openAiPanel() {
+    if (!aiPanel) return;
+    aiPanel.hidden = false;
+    if (aiPandaBtn) aiPandaBtn.setAttribute('aria-expanded', 'true');
+    var identityInput = document.getElementById('ai-identity');
+    if (identityInput) identityInput.focus();
+  }
+
+  function closeAiPanel() {
+    if (!aiPanel) return;
+    aiPanel.hidden = true;
+    if (aiPandaBtn) aiPandaBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  if (aiPandaBtn) {
+    aiPandaBtn.addEventListener('click', function () {
+      if (aiPanel && aiPanel.hidden) {
+        openAiPanel();
+      } else {
+        closeAiPanel();
+      }
+    });
+  }
+  if (aiCloseBtn) {
+    aiCloseBtn.addEventListener('click', closeAiPanel);
+  }
+
+  if (aiPanel && MemeGen.AISuggestions) {
+    var aiStatus = document.getElementById('ai-status');
+    MemeGen.AISuggestions.init({
+      root: aiPanel,
+      // No getBtn — panel visibility is managed by the panda button above,
+      // so AISuggestions auto-reveals the form on init.
+      form: document.getElementById('ai-form'),
+      identity: document.getElementById('ai-identity'),
+      situation: document.getElementById('ai-situation'),
+      generateBtn: document.getElementById('ai-generate-btn'),
+      keyForm: document.getElementById('ai-key-form'),
+      keyInput: document.getElementById('ai-key-input'),
+      keySaveBtn: document.getElementById('ai-key-save-btn'),
+      changeKeyLink: document.getElementById('ai-change-key'),
+      status: aiStatus,
+      results: document.getElementById('ai-results'),
+      onSelect: function (template, captions) {
+        if (aiStatus) aiStatus.textContent = 'Loading ' + template.name + '…';
+        // Stash captions where the ImageLoader.onLoad callback above will
+        // pick them up after the image is drawn.
+        MemeGen.pendingAICaptions = captions;
+        // Close the AI panel so the user sees the loaded template + captions
+        // on the canvas without being blocked by the suggestions UI.
+        closeAiPanel();
+        MemeGen.MemeSearch.loadFromUrl(template.url, function (err) {
+          // Failure path: clear the pending captions so we don't apply them
+          // to whatever image is on the canvas next.
+          MemeGen.pendingAICaptions = null;
+          if (aiStatus) {
+            aiStatus.textContent =
+              'Could not load that template: ' + (err && err.message ? err.message : 'unknown error');
+          }
         });
       }
     });

@@ -8,16 +8,16 @@
  * documentation/designs/. Surfaces are cream, primary buttons are forest
  * green pills, accents stay subtle. Delete is the only red. */
 :root {
-  --cream-bg: #F8F4EA;
-  --forest-green: #2F4F35;
-  --dark-forest: #14351F;
-  --deep-green: #0F2B1A;
-  --soft-green-outline: #6F806F;
-  --off-white: #FFFDF6;
-  --soft-gray: #E8E6DE;
-  --dark-text: #102819;
-  --muted-text: #6F746A;
-  --delete-red: #E74B3C;
+  --cream-bg: #FAF4FF;
+  --forest-green: #7C3FA8;
+  --dark-forest: #2A2035;
+  --deep-green: #2A2035;
+  --soft-green-outline: #DDD0EE;
+  --off-white: #FAF4FF;
+  --soft-gray: #F0E8FA;
+  --dark-text: #5A4870;
+  --muted-text: #9C88B0;
+  --delete-red: #C4599A;
 }
 
 /* Dark theme (#89). Same variable names; the values flip so the rest of the
@@ -32,16 +32,16 @@
  * not so light that the panels look like light-mode bleed-through
  * (addresses Aila's review on PR #90). */
 [data-theme="dark"] {
-  --cream-bg: #0F1A23;
-  --forest-green: #6BA77C;
-  --dark-forest: #6BA77C;
-  --deep-green: #0A1116;
-  --soft-green-outline: #4A6852;
-  --off-white: #16242E;
-  --soft-gray: #1F3340;
-  --dark-text: #E8EDE4;
-  --muted-text: #9BA89E;
-  --delete-red: #FF6B5B;
+  --cream-bg: #12091E;
+  --forest-green: #C084F5;
+  --dark-forest: #C084F5;
+  --deep-green: #12091E;
+  --soft-green-outline: #3A2A55;
+  --off-white: #1C1030;
+  --soft-gray: #261840;
+  --dark-text: #F0E0FF;
+  --muted-text: #B89ED0;
+  --delete-red: #FF8C69;
 }
 
 /* Smooth fade between themes. Limited to color properties on a handful of

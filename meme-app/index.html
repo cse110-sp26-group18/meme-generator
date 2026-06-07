@@ -6,6 +6,21 @@
   <title>Meme Generator</title>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Luckiest+Guy&family=Montserrat:wght@400;700&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
+  <!-- Apply theme synchronously before the body paints, so dark-mode users
+       don't see a flash of light theme on first load (FOUC). The full
+       ThemeToggle module re-applies this on DOMContentLoaded; this tiny
+       script just sets the attribute early. -->
+  <script>
+    (function () {
+      try {
+        var stored = window.localStorage.getItem('mg.theme');
+        var initial = (stored === 'light' || stored === 'dark')
+          ? stored
+          : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', initial);
+      } catch (e) { /* localStorage blocked — fall back to default light */ }
+    })();
+  </script>
 </head>
 <body>
   <header>
@@ -28,6 +43,23 @@
       aria-expanded="false"
     >🔍</button>
     <h1>Meme Generator</h1>
+    <!-- Theme toggle (#89). Pill-shaped switch with ☀️ and 🌙; clicking
+         slides the thumb between them and flips the data-theme attribute
+         on <html>. Persisted in localStorage. -->
+    <button
+      type="button"
+      id="theme-toggle"
+      class="theme-toggle"
+      aria-label="Toggle dark mode"
+      aria-pressed="false"
+      title="Toggle dark mode"
+    >
+      <span class="theme-toggle-track" aria-hidden="true">
+        <span class="theme-toggle-icon theme-toggle-icon--light">☀️</span>
+        <span class="theme-toggle-icon theme-toggle-icon--dark">🌙</span>
+        <span class="theme-toggle-thumb"></span>
+      </span>
+    </button>
     <!-- Settings gear (Screen 13). Inert in this version; behavior TBD. -->
     <button
       type="button"
@@ -131,6 +163,7 @@
   <!-- Tesseract.js powers the Scan Text OCR; loaded from CDN before
        TextRecognizer.js, which wraps it as MemeGen.TextRecognizer. -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="js/ThemeToggle.js"></script>
   <script src="js/LayoutManager.js"></script>
   <script src="js/ImageLoader.js"></script>
   <script src="js/Inpaint.js"></script>

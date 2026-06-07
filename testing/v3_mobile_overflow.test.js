@@ -197,7 +197,6 @@ describe('Toolbar visibility contract — selection state on text boxes', () => 
 
   it('the toolbar still contains every preserved control class so existing JS handlers (pinch, A-/A+, border, delete) keep working', () => {
     const toolbar = textBox.el.querySelector('.text-box-toolbar');
-    expect(toolbar.querySelector('.move-handle')).not.toBeNull();
     expect(toolbar.querySelector('.font-size-btn')).not.toBeNull();
     expect(toolbar.querySelector('.font-size-display')).not.toBeNull();
     expect(toolbar.querySelector('.font-select')).not.toBeNull();

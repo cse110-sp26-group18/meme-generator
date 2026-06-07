@@ -543,6 +543,7 @@ body.is-moving-text-box .copy-btn {
   z-index: 25;
 }
 
+/* Show the resize handles when the text box is selected. */
 .text-box.selected .resize-handle {
   display: block;
 }
@@ -571,19 +572,22 @@ body.is-moving-text-box .copy-btn {
   cursor: se-resize;
 }
 
-/* Move handle */
-/* .text-box-toolbar .move-handle {
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-  color: var(--off-white);
-  border-color: var(--off-white);
+.text-box.selected {
+  cursor: move;
 }
 
-/* .text-box-toolbar .move-handle:active {
-  cursor: grabbing;
-  background: var(--off-white);
-  color: var(--dark-forest);
+.text-box.selected textarea {
+  cursor: move;
+}
+
+.text-box.selected textarea:focus {
+  cursor: text;
+}
+
+.text-box-toolbar,
+.text-box-toolbar *,
+.resize-handle {
+  touch-action: none;
 }
 
 /* Visual separator between toolbar groups */

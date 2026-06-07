@@ -287,6 +287,62 @@ main {
   border-radius: inherit;
 }
 
+/* Copy-to-clipboard button — small, semi-transparent pill at the canvas
+ * area's top-right. #canvas-container already has position: relative, so
+ * the absolute coords here are container-local. z-index sits above the
+ * canvas frame but below the AI panel (z:60+) so it never blocks the
+ * AI dialog. Resting opacity is reduced so it doesn't compete with the
+ * meme; hover/focus restores full opacity for accessibility. */
+.copy-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 3.1875rem;
+  height: 3.1875rem;
+  border-radius: 999px;
+  border: 1px solid var(--forest-green);
+  background: rgba(255, 255, 255, 0.72);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.78;
+  z-index: 50;
+  box-shadow: 0 1px 4px rgba(15, 43, 26, 0.18);
+  transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s, background 0.15s;
+}
+
+.copy-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.copy-btn:not(:disabled):hover,
+.copy-btn:not(:disabled):focus-visible {
+  opacity: 1;
+  background: var(--off-white);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(15, 43, 26, 0.28);
+  outline: none;
+}
+
+.copy-btn:not(:disabled):active {
+  transform: translateY(0);
+}
+
+/* During an active move-handle drag, take the copy button out of the
+ * hit-test so it can't intercept the pointer when the dragged text box
+ * passes underneath. body.is-moving-text-box is toggled on by
+ * DragResize.js's pointerdown/up cycle. visibility + opacity make the
+ * removal obvious; pointer-events is the load-bearing part. The button
+ * returns to its resting style the moment the drag ends. */
+body.is-moving-text-box .copy-btn {
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+}
+
 #meme-canvas {
   display: block;
   max-width: 100%;
@@ -1236,21 +1292,36 @@ main {
     gap: 0 !important;
   }
 
-  /* Left editor panel. */
+  /* Left editor panel.
+   * overflow: visible keeps the panel from owning a scrollbar — any
+   * extra height flows up to <body>, which is the existing page
+   * scroller. This is deliberate: when the panel managed its own
+   * overflow, a textbox move-handle drag could push the selected
+   * toolbar past the panel's edge, the browser flipped the panel's
+   * scrollbar on/off mid-drag, and the resulting inner-width shift
+   * jumped the drag math. With overflow: visible the panel never
+   * toggles, so move math (container.offsetWidth/Height) stays stable.
+   * position + low z-index put the panel UNDER the right-side library
+   * so any toolbar that visually crosses the panel edge is covered. */
   .editor-panel {
     flex: 1;
-    overflow: auto;
+    overflow: visible;
     padding: 2rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 16px;
+    position: relative;
+    z-index: 1;
   }
 
   /* Right meme search panel — display: flex !important overrides mobile
    * display: none so it stays permanently visible on desktop.
    * min-width allows the grid to shrink to 1 card; max-width lets the user
-   * drag up to 75 % of the viewport (LayoutManager enforces the same limit). */
+   * drag up to 75 % of the viewport (LayoutManager enforces the same limit).
+   * position + high z-index put the library above the editor so a
+   * selected text-box-toolbar that extends rightward past the canvas
+   * is visually covered by the library instead of overlapping it. */
   .meme-search {
     width: 380px;
     min-width: 160px;
@@ -1261,6 +1332,8 @@ main {
     overflow-y: auto;
     flex-shrink: 0;
     display: flex !important;
+    position: relative;
+    z-index: 100;
   }
 
   /* Canvas container fills the editor panel on desktop instead of staying
@@ -1284,7 +1357,11 @@ main {
     width: auto;
   }
 
-  /* Draggable vertical resizer between the two panels. */
+  /* Draggable vertical resizer between the two panels.
+   * position: relative + z-index: 101 places the handle above both the
+   * editor panel (z:1) and the meme-search library (z:100), so the
+   * resize-grip stays grabbable even when a toolbar visually extends
+   * underneath the library. */
   .resizer {
     display: block;
     width: 8px;
@@ -1292,7 +1369,8 @@ main {
     cursor: col-resize;
     transition: background-color 0.2s;
     flex-shrink: 0;
-    z-index: 99;
+    position: relative;
+    z-index: 101;
     border-left: 1px solid rgba(0, 0, 0, 0.04);
     border-right: 1px solid rgba(0, 0, 0, 0.04);
   }

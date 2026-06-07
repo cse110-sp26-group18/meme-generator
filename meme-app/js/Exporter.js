@@ -169,10 +169,72 @@ MemeGen.Exporter = (function () {
     });
   }
 
+  /**
+   * Browser support probe for image clipboard copy. Both
+   * navigator.clipboard.write AND the ClipboardItem constructor must
+   * exist — Safari has had clipboard.write but no ClipboardItem in
+   * older versions, and Firefox shipped ClipboardItem behind a flag for
+   * a stretch. Checking both is the safest gate before attempting copy.
+   */
+  function canCopyImageToClipboard() {
+    return !!(
+      typeof navigator !== 'undefined' &&
+      navigator.clipboard &&
+      typeof navigator.clipboard.write === 'function' &&
+      typeof ClipboardItem === 'function'
+    );
+  }
+
+  /**
+   * Renders the meme PNG via the SAME pipeline as exportMeme / shareMeme
+   *   (getMemeBlob) and writes the resulting blob to the system clipboard.
+   *   On success or any failure, the callback receives `(err)` — `null` on
+   *   success, an Error on any failure path. The callback is OPTIONAL so
+   *   the function can be called fire-and-forget.
+   * @param {HTMLCanvasElement} canvas
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {HTMLImageElement} image
+   * @param {MemeGen.TextBox[]} textBoxes
+   * @param {function} [callback]
+   */
+  function copyMeme(canvas, ctx, image, textBoxes, callback) {
+    function done(err) {
+      if (typeof callback === 'function') callback(err || null);
+    }
+
+    // Gate first so we never burn a render when copy is impossible.
+    if (!canCopyImageToClipboard()) {
+      done(new Error('Image clipboard copy is not supported in this browser.'));
+      return;
+    }
+
+    try {
+      var blobPromise = new Promise(function (resolve, reject) {
+        getMemeBlob(canvas, ctx, image, textBoxes, function (blob) {
+          if (!blob) {
+            reject(new Error('Could not create meme image.'));
+          } else {
+            resolve(blob);
+          }
+        });
+      });
+
+      var item = new ClipboardItem({ 'image/png': blobPromise });
+      // calling the line in Safari results in a NotAllowedError because the browser considers the user gesture context to be lost
+      navigator.clipboard.write([item])
+        .then(function () { done(null); })
+        .catch(function (err) { done(err); });
+    } catch (err) {
+      done(err);
+    }
+  }
+
     return {
     exportMeme: exportMeme,
     getMemeBlob: getMemeBlob,
     shareMeme: shareMeme,
+    copyMeme: copyMeme,
+    canCopyImageToClipboard: canCopyImageToClipboard,
     isMobileOrTablet: isMobileOrTablet,
     canUseNativeShare: canUseNativeShare,
     wrapText: wrapText

@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var imageInput = document.getElementById('image-input');
   var downloadBtn = document.getElementById('download-btn');
   var shareBtn = document.getElementById('share-btn');
+  var copyBtn = document.getElementById('copy-btn');
   var scanTextBtn = document.getElementById('scan-text-btn');
   var searchIconBtn = document.getElementById('search-icon-btn');
   var memeSearchSection = document.getElementById('meme-search');
@@ -44,6 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
     placeholder.hidden = true;
     hint.hidden = false;
     downloadBtn.disabled = false;
+    if (copyBtn) copyBtn.disabled = false;
     if (shareBtn && MemeGen.Exporter.isMobileOrTablet()) shareBtn.disabled = false;
     // Scan Text stays disabled in this version — see the inert button
     // contract below. Do NOT enable it when an image loads.
@@ -184,6 +186,46 @@ document.addEventListener('DOMContentLoaded', function () {
       setTimeout(function () {
         MemeGen.ImageLoader.redraw();
       }, 100);
+    });
+  }
+
+  // Copy meme PNG to the clipboard. Mirrors download/share: pull the
+  // ImageLoader image + ctx, snapshot the live text boxes, deselect them
+  // so selection borders aren't baked into the render, hand off to
+  // Exporter.copyMeme (which goes through the same getMemeBlob pipeline
+  // as Download/Share), then redraw the editor view so the selection UI
+  // returns. Copy success / failure feed back through the #hint element
+  // so the user sees the outcome without a layout shift.
+  function showCopyStatus(message) {
+    if (!hint) return;
+    var prevText = hint.textContent;
+    var prevHidden = hint.hidden;
+    hint.textContent = message;
+    hint.hidden = false;
+    setTimeout(function () {
+      hint.textContent = prevText;
+      hint.hidden = prevHidden;
+    }, 2500);
+  }
+
+  if (copyBtn) {
+    copyBtn.addEventListener('click', function () { 
+      var image = MemeGen.ImageLoader.getImage();
+      var ctx = MemeGen.ImageLoader.getContext();
+      var textBoxes = MemeGen.TextBoxManager.getAll();
+
+      textBoxes.forEach(function (tb) { tb.deselect(); });
+
+      MemeGen.Exporter.copyMeme(canvas, ctx, image, textBoxes, function (err) {
+        MemeGen.ImageLoader.redraw();
+        if (err) {
+          // Browsers without clipboard image support land here. Point the
+          // user at Download — that path works everywhere.
+          showCopyStatus('Copy is not supported in this browser. Try Download instead.');
+          return;
+        }
+        showCopyStatus('Copied meme to clipboard');
+      });
     });
   }
 

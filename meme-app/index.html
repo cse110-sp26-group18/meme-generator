@@ -54,6 +54,17 @@
           <canvas id="meme-canvas"></canvas>
           <div class="placeholder" id="placeholder">Click here or drag &amp; drop an image to get started</div>
         </div>
+        <!-- Copy-to-clipboard button. Lives inside #canvas-container so it
+             positions to the canvas area top-right. Disabled until an
+             image is loaded (matches Download / Share). -->
+        <button
+          type="button"
+          id="copy-btn"
+          class="copy-btn"
+          aria-label="Copy meme to clipboard"
+          title="Copy meme"
+          disabled
+        ><img src="assets/copy-icon.png" alt="" width="27" height="27" draggable="false"></button>
       </div>
 
       <div class="fonts-row">

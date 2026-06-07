@@ -44,6 +44,36 @@
   --delete-red: #FF6B5B;
 }
 
+.app-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.app-logo {
+  height: 44px;
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.meme-search-header .app-title {
+  justify-content: center;
+  width: 100%;
+}
+
+header .app-logo {
+  height: 65px;
+  width: auto;
+  display: block;
+}
+
+.meme-search-header .app-logo {
+  height: 56px;
+  width: auto;
+  display: block;
+}
+
 /* Smooth fade between themes. Limited to color properties on a handful of
  * common surfaces so the transition is felt but doesn't slow down hover
  * animations or layout changes. */

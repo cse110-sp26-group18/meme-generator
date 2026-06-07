@@ -45,9 +45,6 @@ function buildDom() {
       </div>
       <div id="canvas-container"><canvas id="meme-canvas"></canvas><div class="placeholder" id="placeholder">Click</div></div>
       <div class="fonts-row"><button id="fonts-btn">fonts</button></div>
-      <div class="scan-text-row">
-        <button id="scan-text-btn" disabled title="Detect text in the image">Scan Text</button>
-      </div>
       <p class="hint" id="hint" hidden></p>
       <div class="bottom-actions">
         <button id="browse-memes-btn">Browse Memes</button>
@@ -269,34 +266,6 @@ describe('Browse overlay + upload button', () => {
     handler();
     document.getElementById('mobile-home-plus-btn').dispatchEvent(new Event('click', { bubbles: true }));
     expect(clickSpy).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('Scan Text button (OCR feature)', () => {
-  beforeEach(() => {
-    buildDom();
-    jest.spyOn(window.MemeGen.TextBoxManager, 'init').mockImplementation(() => {});
-    jest.spyOn(window.MemeGen.TextBoxManager, 'setImageLoaded').mockImplementation(() => {});
-    jest.spyOn(window.MemeGen.MemeSearch, 'init').mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
-    document.body.innerHTML = '';
-  });
-
-  it('starts disabled before an image is loaded', () => {
-    const btn = document.getElementById('scan-text-btn');
-    expect(btn.disabled).toBe(true);
-  });
-
-  it('becomes enabled once the ImageLoader callback fires', () => {
-    let imageLoaderCb = null;
-    jest.spyOn(window.MemeGen.ImageLoader, 'init').mockImplementation((_c, cb) => { imageLoaderCb = cb; });
-    const handler = loadAppAndGetHandler();
-    handler();
-    imageLoaderCb(400, 300);
-    expect(document.getElementById('scan-text-btn').disabled).toBe(false);
   });
 });
 

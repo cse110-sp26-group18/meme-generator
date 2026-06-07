@@ -160,7 +160,7 @@ describe('Upload Feature — loadFromFile()', () => {
     const file = new File([''], 'meme.jpg', { type: 'image/jpeg' });
     MemeGen.ImageLoader.loadFromFile(file);
 
-    expect(onLoadCallback).toHaveBeenCalledWith(400, 200);
+    expect(onLoadCallback).toHaveBeenCalledWith(400, 200, 'upload');
   });
 
   it('should scale down an image wider than 800 px, preserving aspect ratio', () => {
@@ -172,7 +172,7 @@ describe('Upload Feature — loadFromFile()', () => {
     MemeGen.ImageLoader.loadFromFile(file);
 
     // Expected: 800 × 400 (halved preserving 2:1 ratio)
-    expect(onLoadCallback).toHaveBeenCalledWith(800, 400);
+    expect(onLoadCallback).toHaveBeenCalledWith(800, 400, 'upload');
   });
 
   it('should not scale an image that is exactly 800 px wide', () => {
@@ -180,7 +180,7 @@ describe('Upload Feature — loadFromFile()', () => {
     global.Image = makeSyncImage({ width: 800, height: 600 });
 
     MemeGen.ImageLoader.loadFromFile(new File([''], 'ok.png', { type: 'image/png' }));
-    expect(onLoadCallback).toHaveBeenCalledWith(800, 600);
+    expect(onLoadCallback).toHaveBeenCalledWith(800, 600, 'upload');
   });
 
   it('should not throw when the onLoad callback is null', () => {
@@ -227,19 +227,19 @@ describe('Upload Feature — valid image formats', () => {
   it('should load a PNG file and invoke the onLoad callback', () => {
     global.FileReader = makeSyncFileReader('data:image/png;base64,abc');
     MemeGen.ImageLoader.loadFromFile(new File([''], 'meme.png', { type: 'image/png' }));
-    expect(onLoadCallback).toHaveBeenCalledWith(600, 400);
+    expect(onLoadCallback).toHaveBeenCalledWith(600, 400, 'upload');
   });
 
   it('should load a JPG file and invoke the onLoad callback', () => {
     global.FileReader = makeSyncFileReader('data:image/jpeg;base64,abc');
     MemeGen.ImageLoader.loadFromFile(new File([''], 'photo.jpg', { type: 'image/jpeg' }));
-    expect(onLoadCallback).toHaveBeenCalledWith(600, 400);
+    expect(onLoadCallback).toHaveBeenCalledWith(600, 400, 'upload');
   });
 
   it('should load a WEBP file and invoke the onLoad callback', () => {
     global.FileReader = makeSyncFileReader('data:image/webp;base64,abc');
     MemeGen.ImageLoader.loadFromFile(new File([''], 'img.webp', { type: 'image/webp' }));
-    expect(onLoadCallback).toHaveBeenCalledWith(600, 400);
+    expect(onLoadCallback).toHaveBeenCalledWith(600, 400, 'upload');
   });
 });
 
@@ -271,34 +271,34 @@ describe('Upload Feature — large file scaling', () => {
   it('should scale a 4000×3000 px image down to 800×600 px', () => {
     global.Image = makeSyncImage({ width: 4000, height: 3000 });
     MemeGen.ImageLoader.loadFromFile(new File([''], 'huge.jpg', { type: 'image/jpeg' }));
-    expect(onLoadCallback).toHaveBeenCalledWith(800, 600);
+    expect(onLoadCallback).toHaveBeenCalledWith(800, 600, 'upload');
   });
 
   it('should scale a 1920×1080 px (HD) image down preserving aspect ratio', () => {
     global.Image = makeSyncImage({ width: 1920, height: 1080 });
     MemeGen.ImageLoader.loadFromFile(new File([''], 'hd.png', { type: 'image/png' }));
     // 800 / 1920 ≈ 0.4167 → height = 1080 × 0.4167 = 450
-    expect(onLoadCallback).toHaveBeenCalledWith(800, 450);
+    expect(onLoadCallback).toHaveBeenCalledWith(800, 450, 'upload');
   });
 
   it('should scale a small image up to the minimum dimensions, preserving aspect ratio', () => {
     global.Image = makeSyncImage({ width: 320, height: 240 });
     MemeGen.ImageLoader.loadFromFile(new File([''], 'small.png', { type: 'image/png' }));
     // 320×240 → upscale by 1.25 → 400×300 (hits MIN_WIDTH=400)
-    expect(onLoadCallback).toHaveBeenCalledWith(400, 300);
+    expect(onLoadCallback).toHaveBeenCalledWith(400, 300, 'upload');
   });
 
   it('should leave an in-range image unchanged', () => {
     global.Image = makeSyncImage({ width: 600, height: 400 });
     MemeGen.ImageLoader.loadFromFile(new File([''], 'mid.png', { type: 'image/png' }));
-    expect(onLoadCallback).toHaveBeenCalledWith(600, 400);
+    expect(onLoadCallback).toHaveBeenCalledWith(600, 400, 'upload');
   });
 
   it('should cap a tall image by the max height', () => {
     global.Image = makeSyncImage({ width: 600, height: 1200 });
     MemeGen.ImageLoader.loadFromFile(new File([''], 'tall.png', { type: 'image/png' }));
     // height 1200 > MAX_HEIGHT=800 → scale by 800/1200 = 2/3 → 400×800
-    expect(onLoadCallback).toHaveBeenCalledWith(400, 800);
+    expect(onLoadCallback).toHaveBeenCalledWith(400, 800, 'upload');
   });
 });
 
@@ -346,6 +346,6 @@ describe('Upload Feature — edge cases', () => {
     global.Image = makeSyncImage({ width: 600, height: 400 });
     MemeGen.ImageLoader.loadFromFile(new File([''], 'second.png', { type: 'image/png' }));
     expect(onLoadCallback).toHaveBeenCalledTimes(2);
-    expect(onLoadCallback).toHaveBeenLastCalledWith(600, 400);
+    expect(onLoadCallback).toHaveBeenLastCalledWith(600, 400, 'upload');
   });
 });

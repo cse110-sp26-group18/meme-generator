@@ -486,7 +486,7 @@ body.is-moving-text-box .copy-btn {
 }
 
 .text-box.selected .text-box-toolbar {
-  display: flex;
+  display: none;
 }
 
 .text-box-toolbar select {
@@ -1269,6 +1269,34 @@ body.is-moving-text-box .copy-btn {
     display: none;
   }
 
+  .text-box-delete-btn {
+    display: none;
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1px solid #fff8e8;
+    background: #143d22;
+    color: #fff8e8;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    cursor: pointer;
+    z-index: 20;
+    padding: 0;
+  }
+
+  .text-box.selected .text-box-delete-btn {
+    display: block;
+  }
+
+  .text-box-delete-btn:hover {
+    background: #0d2c19;
+  }
+
   /* Show the mobile X delete button when a text box is selected. */
   .text-box.selected .mobile-delete-btn {
     display: flex;
@@ -1355,6 +1383,40 @@ body.is-moving-text-box .copy-btn {
   body:has(.text-box.selected) .bottom-actions {
     display: none;
   }
+}
+
+.text-box-delete-btn {
+  display: none;
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  background: #e74b3c;
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 22px;
+  text-align: center;
+  cursor: pointer;
+  z-index: 40;
+  padding: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  touch-action: manipulation;
+}
+
+.text-box.selected .text-box-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.text-box-delete-btn:hover,
+.text-box-delete-btn:focus-visible {
+  background: #c93125;
+  outline: none;
 }
 
 /* ── Desktop (>768 px) ──

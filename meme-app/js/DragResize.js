@@ -70,6 +70,10 @@ MemeGen.DragResize = (function () {
         return;
       }
 
+      if (target.closest('.text-box-delete-btn')) {
+        return;
+      }
+
       // Only drag boxes that are already selected.
       if (!textBox.selected) {
         return;

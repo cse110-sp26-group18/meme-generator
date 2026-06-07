@@ -87,17 +87,21 @@
           aria-expanded="false"
           title="Get AI meme suggestions"
         >🐼</button>
-        <!-- Font settings: gear opens a dropdown of fonts; choosing one sets
-             the font for every text box, current and future (app.js wiring). -->
+      </div>
+
+      <div id="canvas-container" class="canvas-container">
+        <!-- Font picker: pill anchored just above the canvas's top-left corner.
+             Opens a dropdown of fonts; choosing one sets the font for every
+             text box, current and future (app.js wiring). -->
         <div class="font-settings" id="font-settings">
           <button
             type="button"
             id="font-settings-btn"
             class="font-settings-btn"
-            aria-label="Font settings"
+            aria-label="Choose a font"
             aria-haspopup="true"
             aria-expanded="false"
-          >⚙</button>
+          >Font</button>
           <ul
             id="font-settings-menu"
             class="font-settings-menu"
@@ -106,9 +110,6 @@
             hidden
           ></ul>
         </div>
-      </div>
-
-      <div id="canvas-container" class="canvas-container">
         <div class="canvas-frame">
           <canvas id="meme-canvas"></canvas>
           <div class="placeholder" id="placeholder">Click here or drag &amp; drop an image to get started</div>
@@ -190,29 +191,6 @@
           <p id="desktop-ai-status" class="ai-status" role="status" aria-live="polite"></p>
           <div id="desktop-ai-results" class="ai-results"></div>
         </section>
-      </div>
-
-      <!-- Fonts row — replaces the old Scan Text affordance. The button is
-           the dropdown trigger formerly known as #font-settings-btn (gear
-           in the top row), now relabeled "Fonts" and moved below the
-           canvas. The wrapper keeps its `font-settings` class so the
-           absolutely-positioned dropdown menu anchors to the button. -->
-      <div class="fonts-row font-settings" id="font-settings">
-        <button
-          type="button"
-          id="font-settings-btn"
-          class="fonts-btn"
-          aria-label="Font settings"
-          aria-haspopup="true"
-          aria-expanded="false"
-        >Fonts</button>
-        <ul
-          id="font-settings-menu"
-          class="font-settings-menu"
-          role="menu"
-          aria-label="Choose a font"
-          hidden
-        ></ul>
       </div>
 
       <p class="hint" id="hint" hidden>Click on the image to add text</p>

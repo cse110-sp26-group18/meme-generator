@@ -6,6 +6,21 @@
   <title>Meme Generator</title>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Luckiest+Guy&family=Montserrat:wght@400;700&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
+  <!-- Apply theme synchronously before the body paints, so dark-mode users
+       don't see a flash of light theme on first load (FOUC). The full
+       ThemeToggle module re-applies this on DOMContentLoaded; this tiny
+       script just sets the attribute early. -->
+  <script>
+    (function () {
+      try {
+        var stored = window.localStorage.getItem('mg.theme');
+        var initial = (stored === 'light' || stored === 'dark')
+          ? stored
+          : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', initial);
+      } catch (e) { /* localStorage blocked — fall back to default light */ }
+    })();
+  </script>
 </head>
 <body>
   <header>
@@ -16,10 +31,43 @@
       aria-label="Back to home"
       hidden
     >←</button>
-
-    <h1>Meme Generator</h1>
-
-    
+    <button
+      type="button"
+      id="search-icon-btn"
+      class="search-icon-btn"
+      aria-label="Open meme template search"
+      aria-controls="meme-search"
+      aria-expanded="false"
+    >🔍</button>
+    <h1 class="app-title">
+      <img src="assets/mememaxxing-logo.png" alt="MemeMaxxing" class="app-logo">
+    </h1>
+    <!-- Theme toggle (#89). Pill-shaped switch with ☀️ and 🌙; clicking
+         slides the thumb between them and flips the data-theme attribute
+         on <html>. Persisted in localStorage. -->
+    <button
+      type="button"
+      id="theme-toggle"
+      class="theme-toggle"
+      aria-label="Toggle dark mode"
+      aria-pressed="false"
+      title="Toggle dark mode"
+    >
+      <span class="theme-toggle-track" aria-hidden="true">
+        <span class="theme-toggle-icon theme-toggle-icon--light">☀️</span>
+        <span class="theme-toggle-icon theme-toggle-icon--dark">🌙</span>
+        <span class="theme-toggle-thumb"></span>
+      </span>
+    </button>
+    <!-- Settings gear (Screen 13). Inert in this version; behavior TBD. -->
+    <button
+      type="button"
+      id="settings-btn"
+      class="settings-btn"
+      aria-label="Settings (coming soon)"
+      aria-disabled="true"
+      title="Settings coming soon"
+    >⚙</button>
   </header>
 
   <main>
@@ -29,9 +77,7 @@
           Upload
           <input type="file" id="image-input" accept="image/*" hidden>
         </label>
-
         <button id="download-btn" disabled>Download</button>
-
         <button
           type="button"
           id="desktop-ai-btn"
@@ -41,6 +87,25 @@
           aria-expanded="false"
           title="Get AI meme suggestions"
         >🐼</button>
+        <!-- Font settings: gear opens a dropdown of fonts; choosing one sets
+             the font for every text box, current and future (app.js wiring). -->
+        <div class="font-settings" id="font-settings">
+          <button
+            type="button"
+            id="font-settings-btn"
+            class="font-settings-btn"
+            aria-label="Font settings"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >⚙</button>
+          <ul
+            id="font-settings-menu"
+            class="font-settings-menu"
+            role="menu"
+            aria-label="Choose a font"
+            hidden
+          ></ul>
+        </div>
       </div>
 
       <div id="canvas-container" class="canvas-container">
@@ -48,6 +113,17 @@
           <canvas id="meme-canvas"></canvas>
           <div class="placeholder" id="placeholder">Click here or drag &amp; drop an image to get started</div>
         </div>
+        <!-- Copy-to-clipboard button. Lives inside #canvas-container so it
+             positions to the canvas area top-right. Disabled until an
+             image is loaded (matches Download / Share). -->
+        <button
+          type="button"
+          id="copy-btn"
+          class="copy-btn"
+          aria-label="Copy meme to clipboard"
+          title="Copy meme"
+          disabled
+        ><img src="assets/copy-icon.png" alt="" width="27" height="27" draggable="false"></button>
 
         <!-- Desktop AI panel: lives inside the canvas container only -->
         <section
@@ -169,8 +245,9 @@
           aria-label="Close browse memes"
           hidden
         >←</button>
-
-        <h2 class="meme-search-title">Meme Generator</h2>
+        <h1 class="app-title">
+          <img src="assets/mememaxxing-logo.png" alt="MemeMaxxing" class="app-logo">
+        </h1>
       </div>
 
       <input
@@ -268,16 +345,15 @@
       <div id="mobile-ai-results" class="ai-results"></div>
     </section>
   </main>
-
+  <script src="js/ThemeToggle.js"></script>
   <script src="js/LayoutManager.js"></script>
   <script src="js/ImageLoader.js"></script>
+  <script src="js/FileValidator.js"></script>
   <script src="js/TextBox.js"></script>
   <script src="js/DragResize.js"></script>
   <script src="js/TextBoxManager.js"></script>
   <script src="js/Exporter.js"></script>
   <script src="js/MemeSearch.js"></script>
-  <script src="js/GeminiClient.js"></script>
-  <script src="js/AISuggestions.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

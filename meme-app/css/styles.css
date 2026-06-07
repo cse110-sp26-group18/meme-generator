@@ -20,6 +20,88 @@
   --delete-red: #E74B3C;
 }
 
+/* Dark theme (#89). Same variable names; the values flip so the rest of the
+ * stylesheet "just works" — no rule changes needed. Surfaces become deep
+ * navy/forest, text becomes off-white, accents are lifted versions of the
+ * forest greens for adequate contrast.
+ *
+ * --dark-forest is overloaded in the existing stylesheet: it serves both as
+ * an accent (borders, header h1) AND as a panel background (.meme-search,
+ * .editor-library-preview). The mid-green value below works for both
+ * roles in dark mode — visible enough as an accent against --cream-bg, but
+ * not so light that the panels look like light-mode bleed-through
+ * (addresses Aila's review on PR #90). */
+[data-theme="dark"] {
+  --cream-bg: #0F1A23;
+  --forest-green: #6BA77C;
+  --dark-forest: #6BA77C;
+  --deep-green: #0A1116;
+  --soft-green-outline: #4A6852;
+  --off-white: #16242E;
+  --soft-gray: #1F3340;
+  --dark-text: #E8EDE4;
+  --muted-text: #9BA89E;
+  --delete-red: #FF6B5B;
+}
+
+.app-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.app-logo {
+  height: 44px;
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.meme-search-header .app-title {
+  justify-content: center;
+  width: 100%;
+}
+
+header .app-logo {
+  height: 65px;
+  width: auto;
+  display: block;
+}
+
+.meme-search-header .app-logo {
+  height: 56px;
+  width: auto;
+  display: block;
+}
+
+/* Smooth fade between themes. Limited to color properties on a handful of
+ * common surfaces so the transition is felt but doesn't slow down hover
+ * animations or layout changes. */
+body,
+header,
+header h1,
+main,
+.canvas-container,
+.meme-search,
+.editor-panel,
+.text-box textarea,
+.text-box-toolbar,
+.upload-btn,
+#download-btn,
+#share-btn,
+#scan-text-btn,
+.search-icon-btn,
+.settings-btn,
+.font-settings-btn,
+.font-settings-menu,
+.font-settings-item,
+.ai-mode-toggle,
+.theme-toggle,
+.theme-toggle-track,
+.theme-toggle-thumb {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
 html,
 body {
   max-width: 100%;
@@ -132,78 +214,6 @@ main {
 #download-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
-
-/* ── Font settings (⚙ right of Download) ─────────────────────────────────── */
-/* Relative wrapper so the dropdown anchors to the gear button. */
-.font-settings {
-  position: relative;
-  display: inline-flex;
-}
-
-.font-settings-btn {
-  width: 2.5rem;
-  height: 2.5rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  color: var(--dark-forest);
-  border: 2px solid var(--dark-forest);
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 2rem;
-  line-height: 1;
-  padding: 0;
-  transition: background 0.2s, color 0.2s;
-}
-
-.font-settings-btn:hover,
-.font-settings-btn[aria-expanded="true"] {
-  background: var(--forest-green);
-  color: var(--off-white);
-}
-
-/* Dropdown anchored to the gear; absolutely positioned so it overlays the
-   layout below instead of pushing the controls row taller. */
-.font-settings-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 20;
-  margin: 0;
-  padding: 4px;
-  list-style: none;
-  min-width: 11rem;
-  max-height: 60vh;
-  overflow-y: auto;
-  background: var(--off-white);
-  border: 1px solid var(--soft-green-outline);
-  border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(16, 40, 25, 0.18);
-}
-
-.font-settings-menu[hidden] {
-  display: none;
-}
-
-.font-settings-item {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 0.5rem 0.75rem;
-  background: transparent;
-  color: var(--dark-text);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-}
-
-.font-settings-item:hover,
-.font-settings-item:focus {
-  background: var(--soft-gray);
-  outline: none;
 }
 
 /* Share button — hidden by default; JS reveals it on mobile/tablet only. */
@@ -331,7 +341,6 @@ main {
   cursor: default;
   border-color: var(--dark-forest);
   min-width: 0;
-  
   min-height: 0;
   /* Clip the loaded canvas inside the rounded forest-green border. Without
    * this, box-sizing: border-box + the inline width set by ImageLoader
@@ -358,6 +367,62 @@ main {
   display: block;
   overflow: hidden;
   border-radius: inherit;
+}
+
+/* Copy-to-clipboard button — small, semi-transparent pill at the canvas
+ * area's top-right. #canvas-container already has position: relative, so
+ * the absolute coords here are container-local. z-index sits above the
+ * canvas frame but below the AI panel (z:60+) so it never blocks the
+ * AI dialog. Resting opacity is reduced so it doesn't compete with the
+ * meme; hover/focus restores full opacity for accessibility. */
+.copy-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 3.1875rem;
+  height: 3.1875rem;
+  border-radius: 999px;
+  border: 1px solid var(--forest-green);
+  background: rgba(255, 255, 255, 0.72);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.78;
+  z-index: 50;
+  box-shadow: 0 1px 4px rgba(15, 43, 26, 0.18);
+  transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s, background 0.15s;
+}
+
+.copy-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.copy-btn:not(:disabled):hover,
+.copy-btn:not(:disabled):focus-visible {
+  opacity: 1;
+  background: var(--off-white);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(15, 43, 26, 0.28);
+  outline: none;
+}
+
+.copy-btn:not(:disabled):active {
+  transform: translateY(0);
+}
+
+/* During an active move-handle drag, take the copy button out of the
+ * hit-test so it can't intercept the pointer when the dragged text box
+ * passes underneath. body.is-moving-text-box is toggled on by
+ * DragResize.js's pointerdown/up cycle. visibility + opacity make the
+ * removal obvious; pointer-events is the load-bearing part. The button
+ * returns to its resting style the moment the drag ends. */
+body.is-moving-text-box .copy-btn {
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
 }
 
 #meme-canvas {
@@ -453,7 +518,7 @@ main {
 }
 
 .text-box.selected .text-box-toolbar {
-  display: flex;
+  display: none;
 }
 
 .text-box-toolbar select {
@@ -510,6 +575,7 @@ main {
   z-index: 25;
 }
 
+/* Show the resize handles when the text box is selected. */
 .text-box.selected .resize-handle {
   display: block;
 }
@@ -538,19 +604,22 @@ main {
   cursor: se-resize;
 }
 
-/* Move handle */
-/* .text-box-toolbar .move-handle {
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-  color: var(--off-white);
-  border-color: var(--off-white);
+.text-box.selected {
+  cursor: move;
 }
 
-/* .text-box-toolbar .move-handle:active {
-  cursor: grabbing;
-  background: var(--off-white);
-  color: var(--dark-forest);
+.text-box.selected textarea {
+  cursor: move;
+}
+
+.text-box.selected textarea:focus {
+  cursor: text;
+}
+
+.text-box-toolbar,
+.text-box-toolbar *,
+.resize-handle {
+  touch-action: none;
 }
 
 /* Visual separator between toolbar groups */
@@ -773,8 +842,8 @@ main {
   outline: none;
 }
 
-/* AI panda — bottom-left of the browse panel, mirrors the upload + button
- * at bottom-right. Click to open the AI suggestions panel. */
+/* AI panda placeholder — bottom-left of the browse panel, mirrors the
+ * upload + button at bottom-right. Inert in this version (aria-disabled). */
 .ai-panda-btn {
   display: none;
   position: absolute;
@@ -785,7 +854,7 @@ main {
   border-radius: 50%;
   background: var(--forest-green);
   color: var(--off-white);
-  border: 2px solid var(--off-white);
+  border: none;
   font-size: 1.5rem;
   line-height: 1;
   align-items: center;
@@ -804,6 +873,7 @@ main {
 
 .ai-panda-btn:active {
   transform: scale(0.96);
+}
 }
 
 /* Desktop AI button — sits in the top .controls row next to Upload/Download.
@@ -964,13 +1034,72 @@ main {
   outline: none;
 }
 
+/* Theme toggle (#89): pill-shaped sliding switch with ☀️ and 🌙.
+ * Sits at the right edge of the header just before the settings gear.
+ * Claims the margin-left: auto slot so the right-aligned cluster starts
+ * here. The thumb slides via translateX when [data-theme="dark"]. */
+.theme-toggle {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.theme-toggle-track {
+  position: relative;
+  display: inline-flex;
+  width: 3.5rem;
+  height: 1.75rem;
+  background: var(--soft-gray);
+  border: 1.5px solid var(--soft-green-outline);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.theme-toggle-icon {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  line-height: 1;
+  z-index: 1;
+  position: relative;
+  pointer-events: none;
+}
+
+.theme-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
+  height: calc(100% - 4px);
+  background: var(--off-white);
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+[data-theme="dark"] .theme-toggle-thumb {
+  transform: translateX(100%);
+}
+
+.theme-toggle:hover .theme-toggle-track,
+.theme-toggle:focus-visible .theme-toggle-track {
+  border-color: var(--dark-forest);
+  outline: none;
+}
+
 /* Settings gear button (Screen 13). Same circular shape as the legacy
- * search-icon-btn; pushed to the right of the header by margin-left: auto. */
+ * search-icon-btn; the theme toggle now claims the margin-left: auto slot,
+ * so the gear sits naturally to the toggle's right. */
 .settings-btn {
   width: 2.5rem;
   height: 2.5rem;
   flex: 0 0 auto;
-  margin-left: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1199,13 +1328,7 @@ main {
     padding: 0.75rem 1rem;
     text-align: center;
   }
-  #download-btn {
-    display: none;
-  }
 
-  #share-btn {
-    display: inline-block;
-  }
   /* Hide the top Upload / Download row on mobile. */
   .controls {
     display: none;
@@ -1244,34 +1367,17 @@ main {
     font-size: 1.4rem;
   }
 
- .canvas-container {
+  .canvas-container {
     min-width: 0;
     width: 100%;
     max-width: 100%;
   }
 
-  /* When an image is loaded on mobile, force CSS to control the visual
-  * size instead of stale inline JS dimensions from desktop/tablet loads. */
-  .canvas-container.has-image {
-    --canvas-max-h: min(60vh, 70rem);
-    width: min(100%, 70rem, calc(var(--canvas-max-h) * var(--canvas-ratio-num, 1))) ;
-    max-width: 100% !important;
-    max-height: var(--canvas-max-h);
-    height: auto !important;
-    aspect-ratio: var(--canvas-aspect-ratio, 1 / 1);
-    align-self: center;
-  }
-
-    .canvas-container.has-image .canvas-frame {
+  #meme-canvas {
     width: 100%;
-    height: 100%;
+    height: auto;
   }
 
-  .canvas-container.has-image #meme-canvas {
-    width: 100% !important;
-    height: 100% !important;
-    display: block;
-  }
   .placeholder {
     font-size: 1rem;
     text-align: center;
@@ -1290,6 +1396,34 @@ main {
    * replace it. */
   .text-box.selected .text-box-toolbar {
     display: none;
+  }
+
+  .text-box-delete-btn {
+    display: none;
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1px solid #fff8e8;
+    background: #143d22;
+    color: #fff8e8;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    cursor: pointer;
+    z-index: 20;
+    padding: 0;
+  }
+
+  .text-box.selected .text-box-delete-btn {
+    display: block;
+  }
+
+  .text-box-delete-btn:hover {
+    background: #0d2c19;
   }
 
   /* Show the mobile X delete button when a text box is selected. */
@@ -1380,6 +1514,40 @@ main {
   }
 }
 
+.text-box-delete-btn {
+  display: none;
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  background: #e74b3c;
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 22px;
+  text-align: center;
+  cursor: pointer;
+  z-index: 40;
+  padding: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  touch-action: manipulation;
+}
+
+.text-box.selected .text-box-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.text-box-delete-btn:hover,
+.text-box-delete-btn:focus-visible {
+  background: #c93125;
+  outline: none;
+}
+
 /* ── Desktop (>768 px) ──
  * Two-column layout: editor panel on the left, meme search panel on the
  * right, separated by a draggable resizer (LayoutManager.js). */
@@ -1430,11 +1598,19 @@ main {
   }
 
   /* Left editor panel.
-   * position: relative so the absolutely-positioned #desktop-ai-btn (top
-   * left of the canvas area) anchors to the panel instead of the page. */
+   * overflow: visible keeps the panel from owning a scrollbar — any
+   * extra height flows up to <body>, which is the existing page
+   * scroller. This is deliberate: when the panel managed its own
+   * overflow, a textbox move-handle drag could push the selected
+   * toolbar past the panel's edge, the browser flipped the panel's
+   * scrollbar on/off mid-drag, and the resulting inner-width shift
+   * jumped the drag math. With overflow: visible the panel never
+   * toggles, so move math (container.offsetWidth/Height) stays stable.
+   * position + low z-index put the panel UNDER the right-side library
+   * so any toolbar that visually crosses the panel edge is covered. */
   .editor-panel {
     flex: 1;
-    overflow: auto;
+    overflow: visible;
     padding: 2rem;
     display: flex;
     flex-direction: column;
@@ -1464,6 +1640,8 @@ main {
     overflow-y: auto;
     flex-shrink: 0;
     display: flex !important;
+    position: relative;
+    z-index: 100;
   }
 
   /* Canvas container fills the editor panel on desktop instead of staying
@@ -1481,29 +1659,17 @@ main {
   /* Once an image is loaded JS sets explicit pixel dimensions; the
    * minimum height is no longer needed and max-width prevents wide images
    * from overflowing the panel. */
-    .canvas-container.has-image {
-    --canvas-max-h: min(72vh, 70rem);
-    aspect-ratio: var(--canvas-aspect-ratio, 1 / 1);
-    width: min(100%, 70rem, calc(var(--canvas-max-h) * var(--canvas-ratio-num, 1))) !important;
-    max-width: calc(100% - 4rem);
-    max-height: var(--canvas-max-h);
-    height: auto !important;
+  .canvas-container.has-image {
     min-height: 0;
-    align-self: center;
+    max-width: 100%;
+    width: auto;
   }
 
-  .canvas-frame {
-    width: 100%;
-    height: 100%;
-  }
-
-  #meme-canvas {
-    width: 100% !important;
-    height: 100% !important;
-    display: block;
-  }
-
-  /* Draggable vertical resizer between the two panels. */
+  /* Draggable vertical resizer between the two panels.
+   * position: relative + z-index: 101 places the handle above both the
+   * editor panel (z:1) and the meme-search library (z:100), so the
+   * resize-grip stays grabbable even when a toolbar visually extends
+   * underneath the library. */
   .resizer {
     display: block;
     width: 8px;
@@ -1511,7 +1677,8 @@ main {
     cursor: col-resize;
     transition: background-color 0.2s;
     flex-shrink: 0;
-    z-index: 99;
+    position: relative;
+    z-index: 101;
     border-left: 1px solid rgba(0, 0, 0, 0.04);
     border-right: 1px solid rgba(0, 0, 0, 0.04);
   }
@@ -1521,31 +1688,9 @@ main {
     background-color: var(--forest-green);
   }
 
-    .meme-search {
-    container-type: inline-size;
-  }
-
   .meme-search-results {
-    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
     gap: 10px !important;
-  }
-
-  @container (min-width: 16rem) {
-    .meme-search-results {
-      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    }
-  }
-
-  @container (min-width: 24rem) {
-    .meme-search-results {
-      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    }
-  }
-
-  @container (min-width: 32rem) {
-    .meme-search-results {
-      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-    }
   }
 }
 

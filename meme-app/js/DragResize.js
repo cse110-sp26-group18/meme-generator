@@ -14,28 +14,87 @@ MemeGen.DragResize = (function () {
   function attach(textBox) {
     var el = textBox.el;
     var container = textBox.container;
-    var moveBtn = textBox.moveBtn;
-
     var resizing = false;
     var resizeCorner = null;
     var startX, startY, startLeft, startTop, startWidth, startHeight;
 
+    //delete??
     // --- Move via dedicated handle using pointer capture ---
-    moveBtn.addEventListener('pointerdown', function (e) {
-      // setPointerCapture routes all subsequent pointer events for this
-      // pointerId to moveBtn, even when the cursor leaves the element —
-      // this keeps the drag live when the user moves the mouse quickly.
-      moveBtn.setPointerCapture(e.pointerId);
+    // body.is-moving-text-box is a per-drag flag that lets CSS take any
+    // overlay (e.g. the copy button at the canvas's top-right) out of
+    // the hit-test while the drag is live. Without it, the overlay
+    // intercepts the pointer the moment the text box passes underneath
+    // and the move stutters or stops.
+    // function endMoveDrag(e) {
+    //   if (e && e.pointerId !== undefined && moveBtn.hasPointerCapture(e.pointerId)) {
+    //     moveBtn.releasePointerCapture(e.pointerId);
+    //   }
+    //   document.body.classList.remove('is-moving-text-box');
+    // }
+
+    el.addEventListener('pointercancel', function (e) {
+      if (el.hasPointerCapture(e.pointerId)) {
+        el.releasePointerCapture(e.pointerId);
+      }
+    });
+
+    // --- Move selected textbox directly, like Google Slides ---
+    // body.is-moving-text-box lets CSS disable overlays during drag so
+    // they do not intercept the pointer and make movement stutter.
+    var moving = false;
+
+    function endMoveDrag(e) {
+      if (e && e.pointerId !== undefined && el.hasPointerCapture(e.pointerId)) {
+        el.releasePointerCapture(e.pointerId);
+      }
+
+      moving = false;
+      document.body.classList.remove('is-moving-text-box');
+
+      // Keep the box anchored correctly if the canvas/layout resizes later.
+      if (typeof textBox.captureRelativeState === 'function') {
+        textBox.captureRelativeState();
+      }
+    }
+
+    el.addEventListener('pointerdown', function (e) {
+      var target = e.target;
+
+      // Resize handles should resize, not move.
+      if (target.classList.contains('resize-handle')) {
+        return;
+      }
+
+      // Toolbar controls should not move the textbox.
+      if (target.closest('.text-box-toolbar')) {
+        return;
+      }
+
+      if (target.closest('.text-box-delete-btn')) {
+        return;
+      }
+
+      // Only drag boxes that are already selected.
+      if (!textBox.selected) {
+        return;
+      }
+
+      moving = true;
+      el.setPointerCapture(e.pointerId);
+
       startX = e.clientX;
       startY = e.clientY;
       startLeft = el.offsetLeft;
       startTop = el.offsetTop;
+
+      document.body.classList.add('is-moving-text-box');
     });
 
-    moveBtn.addEventListener('pointermove', function (e) {
-      // hasPointerCapture guards against spurious pointermove events that
-      // fire before setPointerCapture takes effect.
-      if (!moveBtn.hasPointerCapture(e.pointerId)) return;
+    el.addEventListener('pointermove', function (e) {
+      if (!moving || !el.hasPointerCapture(e.pointerId)) {
+        return;
+      }
+
       var dx = e.clientX - startX;
       var dy = e.clientY - startY;
 
@@ -49,46 +108,9 @@ MemeGen.DragResize = (function () {
       el.style.top = newTop + 'px';
     });
 
-    moveBtn.addEventListener('pointerup', function (e) {
-      if (moveBtn.hasPointerCapture(e.pointerId)) {
-        // Release capture so the browser resumes normal pointer event routing.
-        moveBtn.releasePointerCapture(e.pointerId);
-      }
-      // Record the new position relative to the container so the box
-      // stays anchored when CSS later resizes the canvas (viewport / library).
-      if (typeof textBox.captureRelativeState === 'function') textBox.captureRelativeState();
-    });
-
-    el.addEventListener('pointercancel', function (e) {
-      if (el.hasPointerCapture(e.pointerId)) {
-        el.releasePointerCapture(e.pointerId);
-      }
-    });
-
-    // --- Move via dedicated handle using pointer capture ---
-    // moveBtn.addEventListener('pointerdown', function (e) {
-    //   moveBtn.setPointerCapture(e.pointerId);
-    //   startX = e.clientX;
-    //   startY = e.clientY;
-    //   startLeft = el.offsetLeft;
-    //   startTop = el.offsetTop;
-    // });
-
-    // moveBtn.addEventListener('pointermove', function (e) {
-    //   if (!moveBtn.hasPointerCapture(e.pointerId)) return;
-    //   var dx = e.clientX - startX;
-    //   var dy = e.clientY - startY;
-    //   var newLeft = Math.max(0, Math.min(startLeft + dx, container.offsetWidth - el.offsetWidth));
-    //   var newTop  = Math.max(0, Math.min(startTop  + dy, container.offsetHeight - el.offsetHeight));
-    //   el.style.left = newLeft + 'px';
-    //   el.style.top  = newTop  + 'px';
-    // });
-
-    // moveBtn.addEventListener('pointerup', function (e) {
-    //   if (moveBtn.hasPointerCapture(e.pointerId)) {
-    //     moveBtn.releasePointerCapture(e.pointerId);
-    //   }
-    // });
+    el.addEventListener('pointerup', endMoveDrag);
+    el.addEventListener('pointercancel', endMoveDrag);
+    el.addEventListener('lostpointercapture', endMoveDrag);
 
     // --- Resize via corner handles using mouse events ---
     // Mouse events (rather than pointer events) are used here because resize
@@ -198,10 +220,6 @@ MemeGen.DragResize = (function () {
     });
 
     document.addEventListener('mouseup', function () {
-      if (resizing) {
-        // Box size changed via corner resize — refresh image-relative ratios.
-        if (typeof textBox.captureRelativeState === 'function') textBox.captureRelativeState();
-      }
       resizing = false;
       resizeCorner = null;
     });
@@ -374,10 +392,6 @@ MemeGen.DragResize = (function () {
         if (typeof textBox.showQuickActions === 'function') {
           textBox.showQuickActions();
         }
-      } else if (holdMoved) {
-        // Hold-to-move drag just ended — refresh image-relative ratios so
-        // the box stays anchored when CSS later resizes the canvas.
-        if (typeof textBox.captureRelativeState === 'function') textBox.captureRelativeState();
       }
       resetHold();
     });

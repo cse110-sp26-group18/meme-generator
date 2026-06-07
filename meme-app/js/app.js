@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', function () {
   var downloadBtn = document.getElementById('download-btn');
   var shareBtn = document.getElementById('share-btn');
   var copyBtn = document.getElementById('copy-btn');
-  var scanTextBtn = document.getElementById('scan-text-btn');
   var searchIconBtn = document.getElementById('search-icon-btn');
   var memeSearchSection = document.getElementById('meme-search');
   var memeSearchCloseBtn = document.getElementById('meme-search-close');
@@ -38,7 +37,42 @@ document.addEventListener('DOMContentLoaded', function () {
     document.body.classList.remove('browse-open');
   }
 
-  MemeGen.ImageLoader.init(canvas, function (width, height) {
+  // OCR regions below this confidence are dropped as likely noise.
+  var MIN_OCR_CONFIDENCE = 60;
+
+  /**
+   * Runs OCR on the current canvas and marks each confident detection with a
+   *   clickable dashed region (TextBoxManager.showDetectedRegions). Clicking a
+   *   region is what converts it into an editable text box and covers the
+   *   original text — the scan itself leaves the image untouched. A brief
+   *   "Detecting text…" message shows in #hint while OCR runs.
+   */
+  function autoScanText() {
+    if (!MemeGen.TextRecognizer) return;
+
+    var prevHint = hint.textContent;
+    hint.textContent = 'Detecting text…';
+    hint.hidden = false;
+
+    function restoreHint() {
+      hint.textContent = prevHint;
+    }
+
+    MemeGen.TextRecognizer.detectText(MemeGen.ImageLoader.getCanvas())
+      .then(function (regions) {
+        var filtered = regions.filter(function (r) {
+          return r.confidence > MIN_OCR_CONFIDENCE;
+        });
+        MemeGen.TextBoxManager.showDetectedRegions(filtered);
+        restoreHint();
+      })
+      .catch(function (err) {
+        console.error('OCR failed:', err);
+        restoreHint();
+      });
+  }
+
+  MemeGen.ImageLoader.init(canvas, function (width, height, source) {
     container.style.width = width + 'px';
     container.style.height = height + 'px';
     container.classList.add('has-image');
@@ -47,9 +81,6 @@ document.addEventListener('DOMContentLoaded', function () {
     downloadBtn.disabled = false;
     if (copyBtn) copyBtn.disabled = false;
     if (shareBtn && MemeGen.Exporter.isMobileOrTablet()) shareBtn.disabled = false;
-    // An image is now on the canvas, so OCR has something to scan — enable
-    // the Scan Text button (wired further below).
-    if (scanTextBtn) scanTextBtn.disabled = false;
     MemeGen.TextBoxManager.setImageLoaded(true);
     // Clear any "Loading…" message left over from the meme-search flow.
     var s = document.getElementById('meme-search-status');
@@ -64,6 +95,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // up-front so the user sees the "Loading…" state against the editor;
     // calling again here is idempotent and covers the plain upload path.)
     showEditorView();
+
+    // Auto-detect text on uploaded images only. Templates from the library are
+    // skipped — their captions are usually empty placeholders the user fills in.
+    if (source === 'upload') {
+      autoScanText();
+    }
   });
 
   MemeGen.TextBoxManager.init(container, canvas);
@@ -246,42 +283,6 @@ document.addEventListener('DOMContentLoaded', function () {
     memeSearchCloseBtn.addEventListener('click', function () {
       memeSearchSection.classList.remove('is-open');
       if (searchIconBtn) searchIconBtn.setAttribute('aria-expanded', 'false');
-    });
-  }
-
-  // Scan Text → run OCR on the current canvas, then turn each confident
-  // detection into an editable text box with the original text covered
-  // beneath an inpaint blend (see TextBoxManager.loadDetectedBoxes).
-  // Regions below this confidence are dropped as likely OCR noise.
-  var MIN_OCR_CONFIDENCE = 60;
-
-  if (scanTextBtn) {
-    scanTextBtn.addEventListener('click', function () {
-      if (!MemeGen.TextRecognizer) return;
-
-      // OCR runs for several seconds; disable the button so repeat clicks
-      // can't spawn concurrent jobs that freeze the tab and duplicate boxes.
-      var originalText = scanTextBtn.textContent;
-      scanTextBtn.disabled = true;
-      scanTextBtn.textContent = 'Detecting…';
-
-      function restore() {
-        scanTextBtn.disabled = false;
-        scanTextBtn.textContent = originalText;
-      }
-
-      MemeGen.TextRecognizer.detectText(MemeGen.ImageLoader.getCanvas())
-        .then(function (regions) {
-          var filtered = regions.filter(function (r) {
-            return r.confidence > MIN_OCR_CONFIDENCE;
-          });
-          MemeGen.TextBoxManager.loadDetectedBoxes(filtered);
-          restore();
-        })
-        .catch(function (err) {
-          console.error('OCR failed:', err);
-          restore();
-        });
     });
   }
 

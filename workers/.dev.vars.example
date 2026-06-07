@@ -1,7 +1,0 @@
-# Example local-dev secrets for `wrangler dev`.
-#
-# Copy this file to `.dev.vars` (which is gitignored) and paste your real key.
-# NEVER commit `.dev.vars`. In production the key is set with:
-#   wrangler secret put GEMINI_API_KEY
-#
-GEMINI_API_KEY="your-gemini-api-key-here"

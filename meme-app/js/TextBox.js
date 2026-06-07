@@ -6,24 +6,6 @@ MemeGen.TextBox = (function () {
   var FONT_SIZE_MIN  = 8;
   var FONT_SIZE_MAX  = 120;
 
-  // Single source of truth for the font list — shared by each text box's own
-  // dropdown (below) and the global font-settings menu in app.js, so the two
-  // never drift out of sync. Exposed as MemeGen.TextBox.FONTS.
-  var FONTS = [
-    { label: 'Impact',       value: 'Impact' },
-    // ── Meme-style display fonts used by the "fonts" cycle button in app.js.
-    // Loaded via Google Fonts in index.html; browsers without network
-    // access fall back to the system default sans-serif.
-    { label: 'Anton',        value: 'Anton' },
-    { label: 'Bangers',      value: 'Bangers' },
-    { label: 'Luckiest Guy', value: 'Luckiest Guy' },
-    { label: 'Oswald',       value: 'Oswald' },
-    { label: 'Arial',        value: 'Arial' },
-    { label: 'Comic Sans', value: "'Comic Sans MS', cursive" },
-    { label: 'Helvetica', value: 'Helvetica, Arial, sans-serif' },
-    { label: 'Montserrat', value: "'Montserrat', sans-serif" }
-  ];
-
   /**
    * @constructor
    * @param {number} x - initial left offset in px relative to the container
@@ -45,12 +27,6 @@ MemeGen.TextBox = (function () {
     this._handleKeyDown = null;
     this.onDelete = null;
     this.onSelect = null;
-    // Image-relative position/size ratios, populated by captureRelativeState
-    // every time the box is placed / moved / resized. ResizeObserver in
-    // app.js calls TextBoxManager.syncTextBoxesToCanvas → applyRelativeState
-    // on each box so positions follow the container when CSS scales the
-    // canvas with the viewport / library panel.
-    this.relativeState = null;
 
     this._buildDOM();
     this._bindEvents();
@@ -114,8 +90,22 @@ MemeGen.TextBox = (function () {
     // Font family dropdown
     var fontSelect = document.createElement('select');
     fontSelect.className = 'font-select';
+    var fonts = [
+      { label: 'Impact',       value: 'Impact' },
+      // ── Meme-style display fonts used by the "fonts" cycle button in app.js.
+      // Loaded via Google Fonts in index.html; browsers without network
+      // access fall back to the system default sans-serif.
+      { label: 'Anton',        value: 'Anton' },
+      { label: 'Bangers',      value: 'Bangers' },
+      { label: 'Luckiest Guy', value: 'Luckiest Guy' },
+      { label: 'Oswald',       value: 'Oswald' },
+      { label: 'Arial',        value: 'Arial' },
+      { label: 'Comic Sans', value: "'Comic Sans MS', cursive" },
+      { label: 'Helvetica', value: 'Helvetica, Arial, sans-serif' },
+      { label: 'Montserrat', value: "'Montserrat', sans-serif" }
+    ];
 
-    FONTS.forEach(function (f) {
+    fonts.forEach(function (f) {
       var opt = document.createElement('option');
       opt.value = f.value;
       opt.textContent = f.label;
@@ -377,21 +367,6 @@ MemeGen.TextBox = (function () {
   };
 
   /**
-   * Programmatically sets the font family. Updates this.fontFamily, the
-   *   textarea inline style, and the per-box dropdown so its selected value
-   *   stays in sync. Mirrors the fontSelect 'change' handler — used by the
-   *   global font-settings menu to re-font every box at once.
-   * @param {string} value - a font value from MemeGen.TextBox.FONTS
-   */
-  TextBox.prototype.setFontFamily = function (value) {
-    this.fontFamily = value;
-    this.textarea.style.fontFamily = value;
-    if (this.fontSelect) {
-      this.fontSelect.value = value;
-    }
-  };
-
-  /**
    * Single source of truth for font size changes. Updates this.fontSize,
    *   the textarea inline style, and the toolbar display. Called from
    *   DragResize during resize and from the A+/A− click handlers.
@@ -415,9 +390,6 @@ MemeGen.TextBox = (function () {
   TextBox.prototype._fitBoxToFontSize = function () {
     var newHeight = Math.max(40, Math.round(this.fontSize * 2.5));
     this.el.style.height = newHeight + 'px';
-    // Box height changed via A+/A− or pinch-resize — refresh ratios so the
-    // next viewport/library resize re-applies the new proportional height.
-    this.captureRelativeState();
   };
 
   /**
@@ -540,7 +512,6 @@ MemeGen.TextBox = (function () {
    *   fontFamily, fontSize, and borderEnabled
    */
   TextBox.prototype.getState = function () {
-    const c = this.container;
     return {
       x: this.el.offsetLeft,
       y: this.el.offsetTop,
@@ -549,59 +520,8 @@ MemeGen.TextBox = (function () {
       text: this.textarea.value,
       fontFamily: this.fontFamily,
       fontSize: this.fontSize,       // explicit state — read by Exporter directly
-      borderEnabled: this.borderEnabled,
-      // Responsive-export hints. When the canvas BITMAP size (canvas.width)
-      // differs from the container DISPLAY size, Exporter scales x/y/width/
-      // fontSize by canvas.width / containerWidth so text lands at the same
-      // visual position on the exported PNG as on screen. Defaults to 0
-      // when the container isn't measurable (jsdom test stubs); Exporter
-      // treats that as "scale = 1" for backward-compat.
-      containerWidth:  c ? c.offsetWidth  || 0 : 0,
-      containerHeight: c ? c.offsetHeight || 0 : 0
+      borderEnabled: this.borderEnabled
     };
-  };
-
-  /**
-   * Reads the box's current pixel position/size against the container's
-   * current display dimensions and stores image-relative ratios on
-   * `this.relativeState`. Called after every user-initiated move / resize
-   * / create so the latest authoritative position is recorded.
-   * No-op if the container hasn't been measured yet (offsetWidth = 0).
-   */
-  TextBox.prototype.captureRelativeState = function () {
-    const c = this.container;
-    if (!c) return;
-    const cw = c.offsetWidth;
-    const ch = c.offsetHeight;
-    if (!cw || !ch) return;
-    this.relativeState = {
-      xRatio:      this.el.offsetLeft   / cw,
-      yRatio:      this.el.offsetTop    / ch,
-      widthRatio:  this.el.offsetWidth  / cw,
-      heightRatio: this.el.offsetHeight / ch
-    };
-  };
-
-  /**
-   * Reapplies the stored ratios × current container display size, so the
-   * box visually tracks the canvas when CSS resizes it (viewport change /
-   * desktop library panel drag). Triggers fitToText so the font scales
-   * proportionally with the new box dimensions. No-op without ratios or
-   * a measurable container.
-   */
-  TextBox.prototype.applyRelativeState = function () {
-    const r = this.relativeState;
-    if (!r) return;
-    const c = this.container;
-    if (!c) return;
-    const cw = c.offsetWidth;
-    const ch = c.offsetHeight;
-    if (!cw || !ch) return;
-    this.el.style.left   = (r.xRatio      * cw) + 'px';
-    this.el.style.top    = (r.yRatio      * ch) + 'px';
-    this.el.style.width  = (r.widthRatio  * cw) + 'px';
-    this.el.style.height = (r.heightRatio * ch) + 'px';
-    if (typeof this.fitToText === 'function') this.fitToText();
   };
 
   TextBox.prototype.keepInsideContainer = function () {
@@ -614,9 +534,6 @@ MemeGen.TextBox = (function () {
     this.el.style.left = newLeft + 'px';
     this.el.style.top = newTop + 'px';
   };
-
-  // Static font list — read by app.js to build the global font-settings menu.
-  TextBox.FONTS = FONTS;
 
   return TextBox;
 })();

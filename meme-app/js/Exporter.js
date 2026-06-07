@@ -50,60 +50,60 @@ MemeGen.Exporter = (function () {
    * export is complete
    */
   function getMemeBlob(canvas, ctx, image, textBoxes, callback) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Checks image parameter to prevent ctx.drawImage from throwing a TypeError and crashing the application.
+    if (!image) { if (callback) callback(null); return; }
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-  // Prevent ctx.drawImage from throwing when no image is loaded.
-  if (!image) {
-    if (callback) callback(null);
-    return;
-  }
+    textBoxes.forEach(function (tb) {
+      var state = tb.getState();
+      if (!state.text.trim()) return;
 
-  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      // save() pushes the current canvas state (font, styles, transforms)
+      // onto a stack; restore() pops it after each text box so settings
+      // from one box don't bleed into the next.
+      ctx.save();
 
-  textBoxes.forEach(function (tb) {
-    var state = tb.getState();
-    if (!state.text.trim()) return;
+      var padding = 6;
+      var boxInnerWidth = state.width - padding * 2;
+      // Use the font size the user sees in the editor, not a re-derived formula.
+      // state.fontSize is kept in sync by TextBox.applyFontSize(), so the
+      // exported PNG always matches what was visible on screen.
+      var fontSize = state.fontSize;
+      var fontFamily = state.fontFamily || 'Impact';
 
-    ctx.save();
+      ctx.font = fontSize + 'px ' + fontFamily;
+      // 'top' baseline anchors text at the top of the em box, matching the
+      // CSS top-offset positioning used by the live textarea overlays.
+      ctx.textBaseline = 'top';
+      // 'round' join prevents sharp miter spikes at stroke corners, which
+      // are especially visible on bold fonts at large sizes.
+      ctx.lineJoin = 'round';
 
-    // Responsive scaling: text box state is stored in display pixels.
-    // The canvas bitmap may be larger than the displayed canvas, so scale
-    // display coordinates into bitmap coordinates for export.
-    var scaleX = state.containerWidth > 0 ? canvas.width / state.containerWidth : 1;
-    var scaleY = state.containerHeight > 0 ? canvas.height / state.containerHeight : 1;
-    var scale = (scaleX + scaleY) / 2;
+      var lines = wrapText(ctx, state.text, boxInnerWidth);
+      var lineHeight = fontSize * 1.2;
 
-    var padding = 6 * scale;
-    var boxInnerWidth = (state.width * scaleX) - padding * 2;
-    var fontSize = state.fontSize * scale;
-    var fontFamily = state.fontFamily || 'Impact';
+      lines.forEach(function (line, i) {
+        var textX = state.x + padding;
+        var textY = state.y + padding + i * lineHeight;
 
-    ctx.font = fontSize + 'px ' + fontFamily;
-    ctx.textBaseline = 'top';
-    ctx.lineJoin = 'round';
+        if (state.borderEnabled) {
+          ctx.strokeStyle = 'black';
+          ctx.lineWidth = Math.max(2, fontSize / 10);
+          ctx.strokeText(line, textX, textY);
+        }
 
-    var lines = wrapText(ctx, state.text, boxInnerWidth);
-    var lineHeight = fontSize * 1.2;
+        ctx.fillStyle = 'white';
+        ctx.fillText(line, textX, textY);
+      });
 
-    lines.forEach(function (line, i) {
-      var textX = state.x * scaleX + padding;
-      var textY = state.y * scaleY + padding + i * lineHeight;
-
-      if (state.borderEnabled) {
-        ctx.strokeStyle = 'black';
-        ctx.lineWidth = Math.max(2, fontSize / 10);
-        ctx.strokeText(line, textX, textY);
-      }
-
-      ctx.fillStyle = 'white';
-      ctx.fillText(line, textX, textY);
+      ctx.restore();
     });
 
-    ctx.restore();
-  });
-
-  canvas.toBlob(callback, 'image/png');
-}
+    // toBlob() is asynchronous — the callback fires once the browser has
+    // finished encoding the canvas contents as a PNG Blob.
+    canvas.toBlob(callback, 'image/png');
+  }
 
   function exportMeme(canvas, ctx, image, textBoxes, callback) {
     getMemeBlob(canvas, ctx, image, textBoxes, function (blob) {
@@ -169,10 +169,72 @@ MemeGen.Exporter = (function () {
     });
   }
 
+  /**
+   * Browser support probe for image clipboard copy. Both
+   * navigator.clipboard.write AND the ClipboardItem constructor must
+   * exist — Safari has had clipboard.write but no ClipboardItem in
+   * older versions, and Firefox shipped ClipboardItem behind a flag for
+   * a stretch. Checking both is the safest gate before attempting copy.
+   */
+  function canCopyImageToClipboard() {
+    return !!(
+      typeof navigator !== 'undefined' &&
+      navigator.clipboard &&
+      typeof navigator.clipboard.write === 'function' &&
+      typeof ClipboardItem === 'function'
+    );
+  }
+
+  /**
+   * Renders the meme PNG via the SAME pipeline as exportMeme / shareMeme
+   *   (getMemeBlob) and writes the resulting blob to the system clipboard.
+   *   On success or any failure, the callback receives `(err)` — `null` on
+   *   success, an Error on any failure path. The callback is OPTIONAL so
+   *   the function can be called fire-and-forget.
+   * @param {HTMLCanvasElement} canvas
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {HTMLImageElement} image
+   * @param {MemeGen.TextBox[]} textBoxes
+   * @param {function} [callback]
+   */
+  function copyMeme(canvas, ctx, image, textBoxes, callback) {
+    function done(err) {
+      if (typeof callback === 'function') callback(err || null);
+    }
+
+    // Gate first so we never burn a render when copy is impossible.
+    if (!canCopyImageToClipboard()) {
+      done(new Error('Image clipboard copy is not supported in this browser.'));
+      return;
+    }
+
+    try {
+      var blobPromise = new Promise(function (resolve, reject) {
+        getMemeBlob(canvas, ctx, image, textBoxes, function (blob) {
+          if (!blob) {
+            reject(new Error('Could not create meme image.'));
+          } else {
+            resolve(blob);
+          }
+        });
+      });
+
+      var item = new ClipboardItem({ 'image/png': blobPromise });
+      // calling the line in Safari results in a NotAllowedError because the browser considers the user gesture context to be lost
+      navigator.clipboard.write([item])
+        .then(function () { done(null); })
+        .catch(function (err) { done(err); });
+    } catch (err) {
+      done(err);
+    }
+  }
+
     return {
     exportMeme: exportMeme,
     getMemeBlob: getMemeBlob,
     shareMeme: shareMeme,
+    copyMeme: copyMeme,
+    canCopyImageToClipboard: canCopyImageToClipboard,
     isMobileOrTablet: isMobileOrTablet,
     canUseNativeShare: canUseNativeShare,
     wrapText: wrapText

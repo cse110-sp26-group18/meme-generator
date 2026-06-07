@@ -69,13 +69,9 @@ MemeGen.ImageLoader = (function () {
 
         canvas.width = width;
         canvas.height = height;
-        // Clear any stale inline display dimensions from a previous load so
-        // CSS (mobile 60vh / desktop 72vh + aspect-ratio) controls the
-        // visible canvas size. removeProperty expects the CSS property NAME
-        // as a STRING — passing the numeric `width`/`height` variables silently
-        // no-ops, leaving stale inline values in place.
-        canvas.style.removeProperty('width');
-        canvas.style.removeProperty('height');
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
+
         ctx.drawImage(img, 0, 0, width, height);
 
         if (onLoadCallback) {

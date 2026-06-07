@@ -21,6 +21,18 @@ MemeGen.DragResize = (function () {
     var startX, startY, startLeft, startTop, startWidth, startHeight;
 
     // --- Move via dedicated handle using pointer capture ---
+    // body.is-moving-text-box is a per-drag flag that lets CSS take any
+    // overlay (e.g. the copy button at the canvas's top-right) out of
+    // the hit-test while the drag is live. Without it, the overlay
+    // intercepts the pointer the moment the text box passes underneath
+    // and the move stutters or stops.
+    function endMoveDrag(e) {
+      if (e && e.pointerId !== undefined && moveBtn.hasPointerCapture(e.pointerId)) {
+        moveBtn.releasePointerCapture(e.pointerId);
+      }
+      document.body.classList.remove('is-moving-text-box');
+    }
+
     moveBtn.addEventListener('pointerdown', function (e) {
       // setPointerCapture routes all subsequent pointer events for this
       // pointerId to moveBtn, even when the cursor leaves the element —
@@ -30,6 +42,7 @@ MemeGen.DragResize = (function () {
       startY = e.clientY;
       startLeft = el.offsetLeft;
       startTop = el.offsetTop;
+      document.body.classList.add('is-moving-text-box');
     });
 
     moveBtn.addEventListener('pointermove', function (e) {
@@ -50,11 +63,18 @@ MemeGen.DragResize = (function () {
     });
 
     moveBtn.addEventListener('pointerup', function (e) {
-      if (moveBtn.hasPointerCapture(e.pointerId)) {
-        // Release capture so the browser resumes normal pointer event routing.
-        moveBtn.releasePointerCapture(e.pointerId);
-      }
+      endMoveDrag(e);
+      // Record the new position relative to the container so the box
+      // stays anchored when CSS later resizes the canvas (viewport / library).
+      if (typeof textBox.captureRelativeState === 'function') textBox.captureRelativeState();
     });
+
+    // pointercancel on the move handle covers interrupted drags (incoming
+    // call, OS gesture, scroll-out) so the body flag never gets stuck.
+    moveBtn.addEventListener('pointercancel', endMoveDrag);
+    // Some browsers also fire pointerleave instead of pointercancel when
+    // capture is lost — same cleanup either way.
+    moveBtn.addEventListener('lostpointercapture', endMoveDrag);
 
     el.addEventListener('pointercancel', function (e) {
       if (el.hasPointerCapture(e.pointerId)) {

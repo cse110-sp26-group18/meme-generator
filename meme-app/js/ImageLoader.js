@@ -8,6 +8,9 @@ MemeGen.ImageLoader = (function () {
   var canvas = null;
   var ctx = null;
   var onLoadCallback = null;
+  // Where the current image came from: 'upload' (file picker / drag-drop) or
+  // 'template' (meme library). OCR auto-scan runs for uploads only.
+  var imageSource = 'upload';
 
   /**
    * @param {HTMLCanvasElement} canvasEl - the canvas element images are drawn onto
@@ -53,8 +56,12 @@ MemeGen.ImageLoader = (function () {
 
   /**
    * @param {File|Blob} file - image file or blob to read and draw onto the canvas
+   * @param {string} [source='upload'] - origin of the image, either 'upload'
+   *   (file picker / drag-drop) or 'template' (meme library). Passed to the
+   *   load callback so callers can run OCR auto-scan for uploads only.
    */
-  function loadFromFile(file) {
+  function loadFromFile(file, source) {
+    imageSource = source || 'upload';
     // FileReader asynchronously converts the File/Blob to a base64 data URL —
     // the only way to get a same-origin URL for a local file that can be
     // drawn to canvas without tainting it and blocking PNG export.
@@ -75,7 +82,7 @@ MemeGen.ImageLoader = (function () {
         ctx.drawImage(img, 0, 0, width, height);
 
         if (onLoadCallback) {
-          onLoadCallback(width, height);
+          onLoadCallback(width, height, imageSource);
         }
       };
       // e.target.result is the data URL produced by readAsDataURL below.

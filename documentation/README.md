@@ -11,16 +11,16 @@ This file tracks what happens during each iteration of the project. It includes 
 
 ### `documentation/workflow.md`
 
-This file explains how we organize ideas, make project decisions, and move from planning to implementation. This makes it easy to understand how the team works, how contributation are made, and how new devs can be integrated in the project.    
+This file explains how we organize ideas, make project decisions, and move from planning to implementation. This makes it easy to understand how the team works, how contributions are made, and how new devs can be integrated in the project.    
 - ***This is a good first step for new developers joining the team.***
 
-### `brainstorimg/`
+### `brainstorming/`
 
-- `designs` This folder is home to the inital UI designs created by the team 
-- `internal-library` This folder is home to initial planning on how the interal library of meme templates would be managed and accessed in the repo/app. 
+- `designs` This folder is home to the initial UI designs created by the team 
+- `internal-library` This folder is home to initial planning on how the internal library of meme templates would be managed and accessed in the repo/app. 
 
 ### `final-design`
-This folder contains images of the finalized UI design, along side of the possile states of the webapp. It can be served as a reference for devs and customers. 
+This folder contains images of the finalized UI design, alongside of the possible states of the webapp. It can be served as a reference for devs and customers. 
 
 
 

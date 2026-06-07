@@ -97,7 +97,7 @@ This release represented a major feature expansion. The meme generator evolved f
 
 #### What Worked
 * Internal and external meme library systems were successfully implemented separately. 
-* Search functionality for meme templates was introduced and inital efforts and direction for AI usage in this scope. 
+* Search functionality for meme templates was introduced, and along with initial efforts and direction for AI usage in this scope. 
 * Text auto-sizing improvements reduced usability and UI issues.
 * Mobile responsiveness work began and produced a functional mobile version.
 * Early AI-assisted features such as caption suggestions and text recognition prototypes were developed, although they are not yet fully integrated or functional as we would hope them to be.
@@ -106,7 +106,7 @@ This release represented a major feature expansion. The meme generator evolved f
 #### What Did Not Work
 * Search functionality only supported meme titles and not emotions, tags, or descriptions.
 * Empty text boxes are not automatically removed.
-* Text visibility issues still occurrs during certain resize operations.
+* Text visibility issues still occurs during certain resize operations.
 * Unsupported image file types fail silently without user feedback.
 * Downloaded images appear lower quality than the editor preview.
 * AI text recognition and removal functionality are still incomplete.
@@ -131,9 +131,9 @@ Constraints given by CLAUDE.md file
 
 ### Version Summary
 
-After talking with stake holders and users, the importance of a clean UI became the highest priority of this sprint.Version 0.4.0 focused on refining the user experience, improving cross-platform support, and integrating AI-driven functionality into the interface. The team invested heavily in UI brainstorming, and redesigning efforts for both desktop and mobile devices while continuing to improve text editing behavior, template organization, and AI-assisted meme generation workflows.
+After talking with stakeholders and users, the importance of a clean UI became the highest priority of this sprint. Version 0.4.0 focused on refining the user experience, improving cross-platform support, and integrating AI-driven functionality into the interface. The team invested heavily in UI brainstorming, and redesigning efforts for both desktop and mobile devices while continuing to improve text editing behavior, template organization, and AI-assisted meme generation workflows.
 
-This release emphasized usability over feature quantity. Instead of introducing any more features, the team has decided to value quality of quantity and focus the reminaining time on making what we currently have fully functional.
+This release emphasized usability over feature quantity. Instead of introducing any more features, the team has decided to value quality over quantity and focus the remaining time on making what we currently have fully functional.
 
 #### What Worked
 * Text visibility issues during editing are mainly resolved.
@@ -153,7 +153,7 @@ This release emphasized usability over feature quantity. Instead of introducing 
 
 #### Next Steps for Future Versions
 * Fully implement AI text detection and text removal workflows.
-* Expand AI meme generation to desktop devices in accordance to the design discussed with team and stakeholders.
+* Expand AI meme generation to desktop devices in accordance with the design discussed with team and stakeholders.
 * Add automated image tagging and smarter search for the meme library.
 * Implement graceful handling of unsupported file types.
 * Complete remaining UI features such as settings and copy-to-clipboard support.

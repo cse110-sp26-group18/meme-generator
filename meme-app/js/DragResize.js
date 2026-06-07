@@ -14,78 +14,83 @@ MemeGen.DragResize = (function () {
   function attach(textBox) {
     var el = textBox.el;
     var container = textBox.container;
-    var moveBtn = textBox.moveBtn;
+    var moveBtn = textBox.moveBtn; //DELETE THIS
 
     var resizing = false;
     var resizeCorner = null;
     var startX, startY, startLeft, startTop, startWidth, startHeight;
 
-    // --- Move via dedicated handle using pointer capture ---
-    moveBtn.addEventListener('pointerdown', function (e) {
-      // setPointerCapture routes all subsequent pointer events for this
-      // pointerId to moveBtn, even when the cursor leaves the element —
-      // this keeps the drag live when the user moves the mouse quickly.
-      moveBtn.setPointerCapture(e.pointerId);
-      startX = e.clientX;
-      startY = e.clientY;
-      startLeft = el.offsetLeft;
-      startTop = el.offsetTop;
-    });
-
-    moveBtn.addEventListener('pointermove', function (e) {
-      // hasPointerCapture guards against spurious pointermove events that
-      // fire before setPointerCapture takes effect.
-      if (!moveBtn.hasPointerCapture(e.pointerId)) return;
-      var dx = e.clientX - startX;
-      var dy = e.clientY - startY;
-
-      var maxLeft = Math.max(0, container.offsetWidth - el.offsetWidth);
-      var maxTop = Math.max(0, container.offsetHeight - el.offsetHeight);
-
-      var newLeft = Math.max(0, Math.min(startLeft + dx, maxLeft));
-      var newTop = Math.max(0, Math.min(startTop + dy, maxTop));
-
-      el.style.left = newLeft + 'px';
-      el.style.top = newTop + 'px';
-    });
-
-    moveBtn.addEventListener('pointerup', function (e) {
-      if (moveBtn.hasPointerCapture(e.pointerId)) {
-        // Release capture so the browser resumes normal pointer event routing.
-        moveBtn.releasePointerCapture(e.pointerId);
-      }
-    });
-
+    
     el.addEventListener('pointercancel', function (e) {
       if (el.hasPointerCapture(e.pointerId)) {
         el.releasePointerCapture(e.pointerId);
       }
     });
 
-    // --- Move via dedicated handle using pointer capture ---
-    // moveBtn.addEventListener('pointerdown', function (e) {
-    //   moveBtn.setPointerCapture(e.pointerId);
-    //   startX = e.clientX;
-    //   startY = e.clientY;
-    //   startLeft = el.offsetLeft;
-    //   startTop = el.offsetTop;
-    // });
+    // --- Move selected textbox directly, like Google Slides ---
+    let moving = false;
 
-    // moveBtn.addEventListener('pointermove', function (e) {
-    //   if (!moveBtn.hasPointerCapture(e.pointerId)) return;
-    //   var dx = e.clientX - startX;
-    //   var dy = e.clientY - startY;
-    //   var newLeft = Math.max(0, Math.min(startLeft + dx, container.offsetWidth - el.offsetWidth));
-    //   var newTop  = Math.max(0, Math.min(startTop  + dy, container.offsetHeight - el.offsetHeight));
-    //   el.style.left = newLeft + 'px';
-    //   el.style.top  = newTop  + 'px';
-    // });
+    el.addEventListener('pointerdown', function (e) {
+      const target = e.target;
 
-    // moveBtn.addEventListener('pointerup', function (e) {
-    //   if (moveBtn.hasPointerCapture(e.pointerId)) {
-    //     moveBtn.releasePointerCapture(e.pointerId);
-    //   }
-    // });
+      // Resize handles should resize, not move.
+      if (target.classList.contains('resize-handle')) {
+        return;
+      }
+
+      // Toolbar controls should not move the textbox.
+      if (target.closest('.text-box-toolbar')) {
+        return;
+      }
+
+      // Only drag boxes that are already selected.
+      if (!textBox.selected) {
+        return;
+      }
+
+      moving = true;
+
+      el.setPointerCapture(e.pointerId);
+
+      startX = e.clientX;
+      startY = e.clientY;
+      startLeft = el.offsetLeft;
+      startTop = el.offsetTop;
+    });
+
+    el.addEventListener('pointermove', function (e) {
+      if (!moving || !el.hasPointerCapture(e.pointerId)) {
+        return;
+      }
+
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+
+      const maxLeft = Math.max(0, container.offsetWidth - el.offsetWidth);
+      const maxTop = Math.max(0, container.offsetHeight - el.offsetHeight);
+
+      const newLeft = Math.max(0, Math.min(startLeft + dx, maxLeft));
+      const newTop = Math.max(0, Math.min(startTop + dy, maxTop));
+
+      el.style.left = `${newLeft}px`;
+      el.style.top = `${newTop}px`;
+    });
+
+    el.addEventListener('pointerup', function (e) {
+      if (el.hasPointerCapture(e.pointerId)) {
+        el.releasePointerCapture(e.pointerId);
+      }
+
+      moving = false;
+    });
+
+    el.addEventListener('pointercancel', function (e) {
+      if (el.hasPointerCapture(e.pointerId)) {
+        el.releasePointerCapture(e.pointerId);
+      }
+
+      moving = false;
+    });
 
     // --- Resize via corner handles using mouse events ---
     // Mouse events (rather than pointer events) are used here because resize

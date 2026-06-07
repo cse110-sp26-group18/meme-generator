@@ -208,21 +208,25 @@ MemeGen.Exporter = (function () {
       return;
     }
 
-    getMemeBlob(canvas, ctx, image, textBoxes, function (blob) {
-      if (!blob) {
-        done(new Error('Could not create meme image.'));
-        return;
-      }
+    try {
+      var blobPromise = new Promise(function (resolve, reject) {
+        getMemeBlob(canvas, ctx, image, textBoxes, function (blob) {
+          if (!blob) {
+            reject(new Error('Could not create meme image.'));
+          } else {
+            resolve(blob);
+          }
+        });
+      });
 
-      try {
-        var item = new ClipboardItem({ 'image/png': blob });
-        navigator.clipboard.write([item])
-          .then(function () { done(null); })
-          .catch(function (err) { done(err); });
-      } catch (err) {
-        done(err);
-      }
-    });
+      var item = new ClipboardItem({ 'image/png': blobPromise });
+      // calling the line in Safari results in a NotAllowedError because the browser considers the user gesture context to be lost
+      navigator.clipboard.write([item])
+        .then(function () { done(null); })
+        .catch(function (err) { done(err); });
+    } catch (err) {
+      done(err);
+    }
   }
 
     return {

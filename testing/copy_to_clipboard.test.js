@@ -58,10 +58,25 @@ function mockToBlobSync(canvas) {
 }
 
 function installClipboardMocks() {
-  const writeSpy = jest.fn().mockResolvedValue(undefined);
+  const writeSpy = jest.fn().mockImplementation(function (items) {
+    try {
+      const promises = [];
+      items.forEach(function (item) {
+        Object.keys(item.parts).forEach(function (type) {
+          const val = item.parts[type];
+          if (val instanceof Promise) {
+            promises.push(val);
+          }
+        });
+      });
+      return Promise.all(promises).then(function () { return undefined; });
+    } catch (err) {
+      return Promise.reject(err);
+    }
+  });
   const itemCtor = jest.fn(function (parts) { this.parts = parts; });
   // Make ClipboardItem constructable with `new` AND inspectable as a fn.
-  Object.defineProperty(global, 'ClipboardItem', {
+  Object.defineProperty(global, 'ClipboardItem', { 
     configurable: true,
     writable: true,
     value: itemCtor
@@ -154,13 +169,16 @@ describe('Exporter.copyMeme', () => {
       expect(err).toBeNull();
       expect(itemCtor).toHaveBeenCalledTimes(1);
       const arg = itemCtor.mock.calls[0][0];
-      expect(arg['image/png']).toBeInstanceOf(Blob);
-      expect(writeSpy).toHaveBeenCalledTimes(1);
-      expect(Array.isArray(writeSpy.mock.calls[0][0])).toBe(true);
-      done();
+      expect(arg['image/png']).toBeInstanceOf(Promise);
+      arg['image/png'].then((blob) => {
+        expect(blob).toBeInstanceOf(Blob);
+        expect(writeSpy).toHaveBeenCalledTimes(1);
+        expect(Array.isArray(writeSpy.mock.calls[0][0])).toBe(true);
+        done();
+      });
     });
   });
-
+  
   it('blob-failure path: calls callback with Error when no image is loaded', (done) => {
     installClipboardMocks();
     const canvas = makeCanvas();

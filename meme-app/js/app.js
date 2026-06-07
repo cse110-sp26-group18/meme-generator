@@ -240,7 +240,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   if (copyBtn) {
-    copyBtn.addEventListener('click', function () {
+    copyBtn.addEventListener('click', function () { 
       var image = MemeGen.ImageLoader.getImage();
       var ctx = MemeGen.ImageLoader.getContext();
       var textBoxes = MemeGen.TextBoxManager.getAll();
@@ -248,6 +248,7 @@ document.addEventListener('DOMContentLoaded', function () {
       textBoxes.forEach(function (tb) { tb.deselect(); });
 
       MemeGen.Exporter.copyMeme(canvas, ctx, image, textBoxes, function (err) {
+        MemeGen.ImageLoader.redraw();
         if (err) {
           // Browsers without clipboard image support land here. Point the
           // user at Download — that path works everywhere.
@@ -256,13 +257,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         showCopyStatus('Copied meme to clipboard');
       });
-
-      // Redraw a beat later so the editor's selection UI re-appears on
-      // the canvas after the clean export-render — matches the Share
-      // path's timing.
-      setTimeout(function () {
-        MemeGen.ImageLoader.redraw();
-      }, 100);
     });
   }
 

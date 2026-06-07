@@ -47,9 +47,9 @@ MemeGen.TextBox = (function () {
     // dataset writes a data-textbox-id HTML attribute, usable as a DOM hook
     // for tests and for disambiguating which box triggered an event.
     el.dataset.textboxId = this.id;
-
     var toolbar = document.createElement('div');
     toolbar.className = 'text-box-toolbar';
+    
 
     // Separator
     var sep = document.createElement('span');
@@ -111,15 +111,16 @@ MemeGen.TextBox = (function () {
     borderBtn.className = 'border-toggle';
     borderBtn.textContent = 'Border: ON';
     toolbar.appendChild(borderBtn);
+    el.appendChild(toolbar);
 
     // Delete
     var deleteBtn = document.createElement('button');
-    deleteBtn.className = 'delete-btn';
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'text-box-delete-btn';
     deleteBtn.textContent = '×';
     deleteBtn.title = 'Delete text box';
-    toolbar.appendChild(deleteBtn);
-
-    el.appendChild(toolbar);
+    deleteBtn.setAttribute('aria-label', 'Delete text box');
+    el.appendChild(deleteBtn);
 
     var textarea = document.createElement('textarea');
     textarea.className = 'text-content';
@@ -161,15 +162,6 @@ MemeGen.TextBox = (function () {
 
     el.appendChild(quickMenu);
 
-    // Mobile-only X delete button — shown on the right of selected text boxes
-    // on mobile. Replaces the need for the bottom toolbar just for deletion.
-    var mobileDeleteBtn = document.createElement('button');
-    mobileDeleteBtn.type = 'button';
-    mobileDeleteBtn.className = 'mobile-delete-btn';
-    mobileDeleteBtn.textContent = '×';
-    mobileDeleteBtn.setAttribute('aria-label', 'Delete text box');
-    el.appendChild(mobileDeleteBtn);
-
     this.el = el;
     this.textarea = textarea;
     this.fontSelect = fontSelect;
@@ -183,7 +175,6 @@ MemeGen.TextBox = (function () {
     this.qEditBtn = qEditBtn;
     this.qBorderBtn = qBorderBtn;
     this.qDeleteBtn = qDeleteBtn;
-    this.mobileDeleteBtn = mobileDeleteBtn;
 
     this.container.appendChild(el);
 
@@ -216,9 +207,21 @@ MemeGen.TextBox = (function () {
       }
     });
 
-    this.deleteBtn.addEventListener('click', function () {
-      self.destroy();
+    this.deleteBtn.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
     });
+
+  this.deleteBtn.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  });
+
+  this.deleteBtn.addEventListener('click', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    self.destroy();
+  });
 
     this.textarea.addEventListener('input', function () {
       // The box is the fixed boundary; keep the text fitting inside it by
@@ -311,11 +314,6 @@ MemeGen.TextBox = (function () {
       self.hideQuickActions();
     });
     this.qDeleteBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      self.destroy();
-    });
-
-    this.mobileDeleteBtn.addEventListener('click', function (e) {
       e.stopPropagation();
       self.destroy();
     });

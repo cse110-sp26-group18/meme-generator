@@ -13,6 +13,9 @@ MemeGen.TextBoxManager = (function () {
   var container = null;
   var canvas = null;
   var imageLoaded = false;
+  // Bumped on every new image load and reset so restore callbacks captured for
+  // an older image can't re-create that image's markers onto a newer one.
+  var imageSessionId = 0;
 
   /**
    * @param {HTMLElement} containerEl - the canvas container that receives
@@ -97,8 +100,10 @@ MemeGen.TextBoxManager = (function () {
   function setImageLoaded(loaded) {
     imageLoaded = loaded;
     // A freshly loaded image has no detected text yet — drop covers and markers
-    // left over from a previous image so they don't bleed onto the new one.
+    // left over from a previous image so they don't bleed onto the new one, and
+    // invalidate any pending restore callbacks from the previous image.
     if (loaded) {
+      imageSessionId++;
       coverRegions = [];
       clearDetectedRegions();
     }
@@ -148,11 +153,14 @@ MemeGen.TextBoxManager = (function () {
    * @returns {MemeGen.TextBox} the created text box
    */
   function createBoxFromRegion(region, onRestore) {
+    // Snapshot the current image session so a delete on this box can't re-show a
+    // marker after the user has already loaded a different image.
+    var sessionAtCreation = imageSessionId;
     // canvas.width tracks the displayed size in this app, so the source→display
     // scale is ~1, but compute it explicitly so the boxes still line up if that
-    // ever changes.
-    var scaleX = canvas.offsetWidth  / canvas.width;
-    var scaleY = canvas.offsetHeight / canvas.height;
+    // ever changes. Guard against a 0-sized canvas to avoid NaN scales.
+    var scaleX = canvas.width  > 0 ? canvas.offsetWidth  / canvas.width  : 1;
+    var scaleY = canvas.height > 0 ? canvas.offsetHeight / canvas.height : 1;
 
     var cover = {
       x: region.x,
@@ -186,8 +194,11 @@ MemeGen.TextBoxManager = (function () {
         var idx = textBoxes.indexOf(box);
         if (idx !== -1) textBoxes.splice(idx, 1);
         renderCanvas();
-        // Re-show the dashed marker so the now-restored text stays clickable.
-        if (typeof onRestore === 'function') onRestore();
+        // Re-show the dashed marker so the now-restored text stays clickable —
+        // but only while we're still on the same image the box was created for.
+        if (imageSessionId === sessionAtCreation && typeof onRestore === 'function') {
+          onRestore();
+        }
       };
     }(cover));
 
@@ -213,8 +224,8 @@ MemeGen.TextBoxManager = (function () {
    * @returns {HTMLElement} the marker element
    */
   function addRegionMarker(region) {
-    var scaleX = canvas.offsetWidth  / canvas.width;
-    var scaleY = canvas.offsetHeight / canvas.height;
+    var scaleX = canvas.width  > 0 ? canvas.offsetWidth  / canvas.width  : 1;
+    var scaleY = canvas.height > 0 ? canvas.offsetHeight / canvas.height : 1;
 
     var marker = document.createElement('div');
     marker.className = 'ocr-region-marker';
@@ -254,7 +265,7 @@ MemeGen.TextBoxManager = (function () {
    *   regions - detected regions in canvas-pixel space (see TextRecognizer)
    */
   function showDetectedRegions(regions) {
-    if (!container || !canvas) return;
+    if (!container || !canvas || !Array.isArray(regions)) return;
     // A new scan supersedes any markers still on screen from a prior scan.
     clearDetectedRegions();
 
@@ -374,6 +385,8 @@ MemeGen.TextBoxManager = (function () {
     coverRegions = [];
     clearDetectedRegions();
     imageLoaded = false;
+    // Invalidate any restore callbacks still holding the prior session id.
+    imageSessionId++;
   }
 
   function deselectOrDeleteSelectedTextBox() {

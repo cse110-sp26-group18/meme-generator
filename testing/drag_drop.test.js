@@ -20,7 +20,6 @@ function buildDom() {
       Upload Image
       <input type="file" id="image-input" accept="image/*" hidden>
     </label>
-    <button id="detect-text-btn" disabled>Detect Text</button>
     <button id="download-btn" disabled>Download Meme</button>
     <div id="canvas-container" class="canvas-container">
       <canvas id="meme-canvas"></canvas>

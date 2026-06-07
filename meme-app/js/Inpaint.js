@@ -1,6 +1,14 @@
 var MemeGen = window.MemeGen || {};
 
 MemeGen.Inpaint = (function () {
+  // A neutral mid-gray border line of `count` RGBA pixels, used when a region is
+  // flush against the canvas on both opposing sides and no real border exists.
+  function neutralLine(count) {
+    var line = new Uint8ClampedArray(count * 4);
+    for (var i = 0; i < line.length; i++) line[i] = 128;
+    return line;
+  }
+
   // Cover a rectangular region by blending the pixels that surround it, so the
   // patch matches the background instead of showing as a flat solid block.
   //
@@ -16,28 +24,38 @@ MemeGen.Inpaint = (function () {
     var h = Math.round(region.height);
     if (w <= 0 || h <= 0) return;
 
-    // Sample the border lines just outside the region, clamped to the canvas on
-    // every side so the read never goes out of bounds — an out-of-bounds read
-    // returns transparent black and bleeds black edges into the blend.
-    var topY    = Math.max(0, y - 1);
-    var bottomY = Math.min(ctx.canvas.height - 1, y + h);
-    var leftX   = Math.max(0, x - 1);
-    var rightX  = Math.min(ctx.canvas.width - 1, x + w);
+    // Sample each border line just *outside* the region. When the region is
+    // flush against a canvas edge there is no outside pixel there — clamping
+    // back into the region would sample the very text we're covering and bleed
+    // it into the blend. So only read a border that genuinely exists, fall back
+    // to the opposite border when one side is missing, and use neutral gray if
+    // both opposing borders are unavailable.
+    var hasTop    = y - 1 >= 0;
+    var hasBottom = y + h < ctx.canvas.height;
+    var hasLeft   = x - 1 >= 0;
+    var hasRight  = x + w < ctx.canvas.width;
 
     // A tainted canvas (e.g. a CORS-restricted meme template) makes getImageData
     // throw a SecurityError. Fall back to a soft gray fill instead of crashing.
     var topRow, bottomRow, leftCol, rightCol;
     try {
-      topRow    = ctx.getImageData(x, topY, w, 1).data;
-      bottomRow = ctx.getImageData(x, bottomY, w, 1).data;
-      leftCol   = ctx.getImageData(leftX, y, 1, h).data;
-      rightCol  = ctx.getImageData(rightX, y, 1, h).data;
+      topRow    = hasTop    ? ctx.getImageData(x, y - 1, w, 1).data : null;
+      bottomRow = hasBottom ? ctx.getImageData(x, y + h, w, 1).data : null;
+      leftCol   = hasLeft   ? ctx.getImageData(x - 1, y, 1, h).data : null;
+      rightCol  = hasRight  ? ctx.getImageData(x + w, y, 1, h).data : null;
     } catch (e) {
       console.warn('Inpaint failed (canvas may be tainted):', e);
       ctx.fillStyle = 'rgba(128, 128, 128, 0.5)';
       ctx.fillRect(x, y, w, h);
       return;
     }
+
+    // Mirror a present border onto its missing opposite; if neither exists, use
+    // a neutral gray line so the blend stays well-defined.
+    if (!topRow)    topRow    = bottomRow || neutralLine(w);
+    if (!bottomRow) bottomRow = topRow;
+    if (!leftCol)   leftCol   = rightCol || neutralLine(h);
+    if (!rightCol)  rightCol  = leftCol;
 
     var out = ctx.createImageData(w, h);
     var data = out.data;

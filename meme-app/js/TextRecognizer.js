@@ -68,7 +68,12 @@ MemeGen.TextRecognizer = (function () {
     off.width = Math.round(w * scale);
     off.height = Math.round(h * scale);
 
+    // getContext can return null in headless/low-memory environments; bail out
+    // with an un-enhanced canvas rather than crashing on a null context.
     var ctx = off.getContext('2d');
+    if (!ctx) {
+      return { canvas: off, scale: scale };
+    }
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(source, 0, 0, off.width, off.height);
@@ -173,6 +178,12 @@ MemeGen.TextRecognizer = (function () {
   }
 
   function detectText(source) {
+    // A null/undefined source (e.g. ImageLoader.getCanvas() before an image is
+    // loaded) would throw inside preprocess; reject up front instead.
+    if (!source) {
+      return Promise.reject(new Error('Invalid or missing source element for text recognition.'));
+    }
+
     var T = (typeof window !== 'undefined' && window.Tesseract) || (typeof Tesseract !== 'undefined' ? Tesseract : null);
     if (!T || typeof T.recognize !== 'function') {
       return Promise.reject(new Error('Tesseract is not loaded — include tesseract.min.js before TextRecognizer.js'));
@@ -194,6 +205,12 @@ MemeGen.TextRecognizer = (function () {
         // block margin, wider than and left of the visible text).
         splitLineByGaps(line).forEach(function (seg) {
           var box = seg.box || {};
+          // Skip segments with incomplete boxes — dividing undefined by `s`
+          // yields NaN coordinates that break downstream rendering.
+          if (box.x0 === undefined || box.y0 === undefined ||
+              box.x1 === undefined || box.y1 === undefined) {
+            return;
+          }
           regions.push({
             text: sanitizeText(seg.text),
             x: Math.round(box.x0 / s),

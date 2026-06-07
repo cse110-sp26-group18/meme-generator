@@ -39,6 +39,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // OCR regions below this confidence are dropped as likely noise.
   var MIN_OCR_CONFIDENCE = 60;
+  // Identifies the most recent scan so results from a superseded upload (OCR is
+  // async — the user may upload a new image before the previous scan finishes)
+  // can be ignored instead of drawn onto the newer image.
+  var currentScanId = 0;
 
   /**
    * Runs OCR on the current canvas and marks each confident detection with a
@@ -50,16 +54,25 @@ document.addEventListener('DOMContentLoaded', function () {
   function autoScanText() {
     if (!MemeGen.TextRecognizer) return;
 
-    var prevHint = hint.textContent;
-    hint.textContent = 'Detecting text…';
-    hint.hidden = false;
+    currentScanId++;
+    var scanId = currentScanId;
+
+    var prevHint = hint ? hint.textContent : '';
+    if (hint) {
+      hint.textContent = 'Detecting text…';
+      hint.hidden = false;
+    }
 
     function restoreHint() {
-      hint.textContent = prevHint;
+      if (hint && currentScanId === scanId) {
+        hint.textContent = prevHint;
+      }
     }
 
     MemeGen.TextRecognizer.detectText(MemeGen.ImageLoader.getCanvas())
       .then(function (regions) {
+        // A newer upload has started its own scan — drop these stale results.
+        if (currentScanId !== scanId) return;
         var filtered = regions.filter(function (r) {
           return r.confidence > MIN_OCR_CONFIDENCE;
         });
@@ -67,6 +80,7 @@ document.addEventListener('DOMContentLoaded', function () {
         restoreHint();
       })
       .catch(function (err) {
+        if (currentScanId !== scanId) return;
         console.error('OCR failed:', err);
         restoreHint();
       });

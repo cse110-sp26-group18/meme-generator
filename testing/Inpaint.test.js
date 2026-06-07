@@ -68,17 +68,40 @@ describe('Inpaint.coverRegion', () => {
     expect(ctx.fillRect).not.toHaveBeenCalled();
   });
 
-  test('clamps the bottom/right sample reads to the canvas bounds', () => {
+  test('skips the off-canvas borders for a flush region (no text bleed)', () => {
     const ctx = makeUniformCtx(0, 0, 0);
     ctx.canvas = { width: 100, height: 100 };
-    // Region flush against the bottom-right corner: y+h=100 and x+w=100 would be
-    // off-canvas; reads must clamp to 99 so getImageData never goes out of bounds.
+    // Region flush against the bottom-right corner: the bottom (y+h=100) and
+    // right (x+w=100) borders don't exist. They must NOT be read — clamping them
+    // back to 99 would sample the region's own (text) pixels and bleed them into
+    // the blend. Only the existing top (y-1) and left (x-1) borders are read.
     MemeGen.Inpaint.coverRegion(ctx, { x: 90, y: 90, width: 10, height: 10 });
 
+    // Two reads only: top row (x, y-1) and left column (x-1, y).
+    expect(ctx.getImageData).toHaveBeenCalledTimes(2);
     const ys = ctx.getImageData.mock.calls.map(c => c[1]);
     const xs = ctx.getImageData.mock.calls.map(c => c[0]);
-    expect(Math.max(...ys)).toBe(99); // bottomY clamped from 100 → 99
-    expect(Math.max(...xs)).toBe(99); // rightX clamped from 100 → 99
+    // No read ever touches the region itself or beyond the canvas edge.
+    expect(Math.max(...ys)).toBe(90);  // left column read at y=90
+    expect(Math.max(...xs)).toBe(90);  // top row read at x=90
+    expect(ctx.getImageData).toHaveBeenCalledWith(90, 89, 10, 1); // top border
+    expect(ctx.getImageData).toHaveBeenCalledWith(89, 90, 1, 10); // left border
+  });
+
+  test('a flush region still blends to the surround color via mirroring', () => {
+    const ctx = makeUniformCtx(120, 60, 200);
+    ctx.canvas = { width: 100, height: 100 };
+    // Bottom/right borders are missing but mirror from top/left, so a uniform
+    // surround still collapses to that exact color.
+    MemeGen.Inpaint.coverRegion(ctx, { x: 90, y: 90, width: 8, height: 8 });
+
+    const data = ctx.putImageData.mock.calls[0][0].data;
+    for (let i = 0; i < data.length; i += 4) {
+      expect(data[i]).toBe(120);
+      expect(data[i + 1]).toBe(60);
+      expect(data[i + 2]).toBe(200);
+      expect(data[i + 3]).toBe(255);
+    }
   });
 
   test('falls back to a soft gray fill when the canvas is tainted', () => {

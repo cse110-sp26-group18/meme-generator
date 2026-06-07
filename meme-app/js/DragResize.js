@@ -6,10 +6,10 @@ MemeGen.DragResize = (function () {
 
   /**
    * Attaches move and resize event listeners to a TextBox instance. Move is
-   *   handled via pointer capture on the move handle; resize is handled via
-   *   mouse events on the corner handles.
+   * handled via pointer capture on the move handle; resize is handled via
+   * mouse events on the corner handles.
    * @param {MemeGen.TextBox} textBox - the text box instance to make
-   *   draggable and resizable
+   * draggable and resizable
    */
   function attach(textBox) {
     var el = textBox.el;
@@ -20,18 +20,27 @@ MemeGen.DragResize = (function () {
     var resizeCorner = null;
     var startX, startY, startLeft, startTop, startWidth, startHeight;
 
-    
-    el.addEventListener('pointercancel', function (e) {
-      if (el.hasPointerCapture(e.pointerId)) {
+    // --- Move selected textbox directly, like Google Slides ---\
+    // body.is-moving-text-box lets CSS disable overlays during drag so
+    // they do not intercept the pointer and make movement stutter.
+    var moving = false;
+
+    function endMoveDrag(e) {
+      if (e && e.pointerId !== undefined && el.hasPointerCapture(e.pointerId)) {
         el.releasePointerCapture(e.pointerId);
       }
-    });
 
-    // --- Move selected textbox directly, like Google Slides ---
-    let moving = false;
+      moving = false;
+      document.body.classList.remove('is-moving-text-box');
+
+      // Keep the box anchored correctly if the canvas/layout resizes later.
+      if (typeof textBox.captureRelativeState === 'function') {
+        textBox.captureRelativeState();
+      }
+    }
 
     el.addEventListener('pointerdown', function (e) {
-      const target = e.target;
+      var target = e.target;
 
       // Resize handles should resize, not move.
       if (target.classList.contains('resize-handle')) {
@@ -49,13 +58,14 @@ MemeGen.DragResize = (function () {
       }
 
       moving = true;
-
       el.setPointerCapture(e.pointerId);
 
       startX = e.clientX;
       startY = e.clientY;
       startLeft = el.offsetLeft;
       startTop = el.offsetTop;
+
+      document.body.classList.add('is-moving-text-box');
     });
 
     el.addEventListener('pointermove', function (e) {
@@ -76,13 +86,16 @@ MemeGen.DragResize = (function () {
       el.style.top = `${newTop}px`;
     });
 
-    el.addEventListener('pointerup', function (e) {
-      if (el.hasPointerCapture(e.pointerId)) {
-        el.releasePointerCapture(e.pointerId);
-      }
+    el.addEventListener('pointerup', endMoveDrag);
+    el.addEventListener('pointercancel', endMoveDrag);
+    el.addEventListener('lostpointercapture', endMoveDrag);
 
-      moving = false;
-    });
+    // pointercancel on the move handle covers interrupted drags (incoming
+    // call, OS gesture, scroll-out) so the body flag never gets stuck.
+    moveBtn.addEventListener('pointercancel', endMoveDrag);
+    // Some browsers also fire pointerleave instead of pointercancel when
+    // capture is lost — same cleanup either way.
+    moveBtn.addEventListener('lostpointercapture', endMoveDrag);
 
     el.addEventListener('pointercancel', function (e) {
       if (el.hasPointerCapture(e.pointerId)) {
@@ -206,7 +219,7 @@ MemeGen.DragResize = (function () {
 
     // --- Pinch-to-resize (touch shortcut) ---
     // Two-finger pinch on the selected text box scales the font size via the
-    // same applyFontSize path used by the A−/A+ buttons and corner-resize
+    // same applyFontSize path used by the A− / A+ buttons and corner-resize
     // drag — so export, the live editor, and the toolbar size display all
     // stay in sync automatically. Single-finger touches inside the textarea
     // are untouched so typing still works.
@@ -259,7 +272,7 @@ MemeGen.DragResize = (function () {
     // Replaces the mobile Move button. State machine on a single touch:
     //   1. touchstart on .text-box (not on toolbar / handles / focused
     //      textarea / quick-action menu) starts a HOLD_MS timer.
-    //   2. Movement >DRAG_THRESHOLD_PX BEFORE the timer fires cancels the
+    //   2. Movement > DRAG_THRESHOLD_PX BEFORE the timer fires cancels the
     //      gesture entirely (user is scrolling).
     //   3. When the timer fires we set holdComplete and add .hold-active
     //      for visual confirmation.

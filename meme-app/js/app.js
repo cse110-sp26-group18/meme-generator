@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var imageInput = document.getElementById('image-input');
   var downloadBtn = document.getElementById('download-btn');
   var shareBtn = document.getElementById('share-btn');
+  var copyBtn = document.getElementById('copy-btn');
   var scanTextBtn = document.getElementById('scan-text-btn');
   var searchIconBtn = document.getElementById('search-icon-btn');
   var memeSearchSection = document.getElementById('meme-search');
@@ -15,8 +16,6 @@ document.addEventListener('DOMContentLoaded', function () {
   var mobileHomePlusBtn = document.getElementById('mobile-home-plus-btn');
   var browseMemesBtn = document.getElementById('browse-memes-btn');
   var fontsBtn = document.getElementById('fonts-btn');
-  var fontSettingsBtn = document.getElementById('font-settings-btn');
-  var fontSettingsMenu = document.getElementById('font-settings-menu');
   var aiPandaBtn = document.getElementById('ai-panda-btn');
   var placeholder = document.getElementById('placeholder');
   var hint = document.getElementById('hint');
@@ -46,6 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
     placeholder.hidden = true;
     hint.hidden = false;
     downloadBtn.disabled = false;
+    if (copyBtn) copyBtn.disabled = false;
     if (shareBtn && MemeGen.Exporter.isMobileOrTablet()) shareBtn.disabled = false;
     // Scan Text stays disabled in this version — see the inert button
     // contract below. Do NOT enable it when an image loads.
@@ -53,9 +53,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // Clear any "Loading…" message left over from the meme-search flow.
     var s = document.getElementById('meme-search-status');
     if (s) s.textContent = '';
-    var ai = document.getElementById('ai-status');
-    if (ai && /^Loading /.test(ai.textContent)) ai.textContent = '';
-
     // Close the legacy slide-up overlay variant if it was left open.
     if (memeSearchSection) {
       memeSearchSection.classList.remove('is-open');
@@ -66,14 +63,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // up-front so the user sees the "Loading…" state against the editor;
     // calling again here is idempotent and covers the plain upload path.)
     showEditorView();
-
-    // If an AI suggestion is pending its captions, populate text boxes now
-    // that the canvas is sized. Deferred one tick so layout fully commits.
-    if (MemeGen.pendingAICaptions && Array.isArray(MemeGen.pendingAICaptions)) {
-      var caps = MemeGen.pendingAICaptions;
-      MemeGen.pendingAICaptions = null;
-      setTimeout(function () { populatePresetCaptions(container, caps); }, 0);
-    }
   });
 
   MemeGen.TextBoxManager.init(container, canvas);
@@ -200,6 +189,46 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Copy meme PNG to the clipboard. Mirrors download/share: pull the
+  // ImageLoader image + ctx, snapshot the live text boxes, deselect them
+  // so selection borders aren't baked into the render, hand off to
+  // Exporter.copyMeme (which goes through the same getMemeBlob pipeline
+  // as Download/Share), then redraw the editor view so the selection UI
+  // returns. Copy success / failure feed back through the #hint element
+  // so the user sees the outcome without a layout shift.
+  function showCopyStatus(message) {
+    if (!hint) return;
+    var prevText = hint.textContent;
+    var prevHidden = hint.hidden;
+    hint.textContent = message;
+    hint.hidden = false;
+    setTimeout(function () {
+      hint.textContent = prevText;
+      hint.hidden = prevHidden;
+    }, 2500);
+  }
+
+  if (copyBtn) {
+    copyBtn.addEventListener('click', function () { 
+      var image = MemeGen.ImageLoader.getImage();
+      var ctx = MemeGen.ImageLoader.getContext();
+      var textBoxes = MemeGen.TextBoxManager.getAll();
+
+      textBoxes.forEach(function (tb) { tb.deselect(); });
+
+      MemeGen.Exporter.copyMeme(canvas, ctx, image, textBoxes, function (err) {
+        MemeGen.ImageLoader.redraw();
+        if (err) {
+          // Browsers without clipboard image support land here. Point the
+          // user at Download — that path works everywhere.
+          showCopyStatus('Copy is not supported in this browser. Try Download instead.');
+          return;
+        }
+        showCopyStatus('Copied meme to clipboard');
+      });
+    });
+  }
+
   // Header search icon → toggle the meme-search overlay on mobile. Desktop
   // CSS keeps the section visible inline regardless, so this is purely
   // a mobile affordance, but the class toggle is harmless on desktop.
@@ -286,66 +315,6 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
       boxes.forEach(cycleFontForTextBox);
-    });
-  }
-
-  // ── Font settings dropdown (⚙ right of Download) ──
-  // The gear opens a dropdown built from the shared MemeGen.TextBox.FONTS
-  // list. Choosing a font calls TextBoxManager.setFontForAll, which re-fonts
-  // every existing box AND stores it as the default so future boxes match —
-  // i.e. the choice applies to all text, current and future.
-  if (fontSettingsBtn && fontSettingsMenu && MemeGen.TextBox && MemeGen.TextBox.FONTS) {
-    // Build the menu items once from the shared font list.
-    MemeGen.TextBox.FONTS.forEach(function (f) {
-      var li = document.createElement('li');
-      li.setAttribute('role', 'none');
-
-      var item = document.createElement('button');
-      item.type = 'button';
-      item.className = 'font-settings-item';
-      item.setAttribute('role', 'menuitem');
-      item.dataset.fontValue = f.value;
-      item.textContent = f.label;
-      // Preview each option in its own font so the choice is visible up-front.
-      item.style.fontFamily = f.value;
-
-      li.appendChild(item);
-      fontSettingsMenu.appendChild(li);
-    });
-
-    function openFontMenu() {
-      fontSettingsMenu.hidden = false;
-      fontSettingsBtn.setAttribute('aria-expanded', 'true');
-    }
-    function closeFontMenu() {
-      fontSettingsMenu.hidden = true;
-      fontSettingsBtn.setAttribute('aria-expanded', 'false');
-    }
-
-    fontSettingsBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      if (fontSettingsMenu.hidden) {
-        openFontMenu();
-      } else {
-        closeFontMenu();
-      }
-    });
-
-    fontSettingsMenu.addEventListener('click', function (e) {
-      var item = e.target.closest('.font-settings-item');
-      if (!item) return;
-      MemeGen.TextBoxManager.setFontForAll(item.dataset.fontValue);
-      closeFontMenu();
-    });
-
-    // Click anywhere outside the menu (or press Escape) closes it.
-    document.addEventListener('click', function (e) {
-      if (fontSettingsMenu.hidden) return;
-      if (fontSettingsBtn.contains(e.target) || fontSettingsMenu.contains(e.target)) return;
-      closeFontMenu();
-    });
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && !fontSettingsMenu.hidden) closeFontMenu();
     });
   }
 
@@ -555,6 +524,16 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         });
       }
+    });
+  }
+
+  // ── Theme toggle (#89) ───────────────────────────────────────────────────
+  // Wires the header pill so clicking it flips data-theme on <html> and
+  // saves the choice. ThemeToggle.init also applies the stored or system
+  // preference on first paint.
+  if (MemeGen.ThemeToggle) {
+    MemeGen.ThemeToggle.init({
+      toggle: document.getElementById('theme-toggle')
     });
   }
 });

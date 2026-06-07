@@ -46,3 +46,4 @@ require('../meme-app/js/Exporter.js');
 require('../meme-app/js/MemeSearch.js');
 require('../meme-app/js/GeminiClient.js');
 require('../meme-app/js/AISuggestions.js');
+require('../meme-app/js/ThemeToggle.js');

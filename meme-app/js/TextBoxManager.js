@@ -5,10 +5,6 @@ MemeGen.TextBoxManager = (function () {
   var container = null;
   var canvas = null;
   var imageLoaded = false;
-  // Global font applied to every text box. Changed via the font-settings menu
-  // (setFontForAll); newly created boxes adopt it so the choice sticks for
-  // future text too. Defaults to the same 'Impact' each TextBox starts with.
-  var defaultFontFamily = 'Impact';
 
   /**
    * @param {HTMLElement} containerEl - the canvas container that receives
@@ -115,10 +111,6 @@ MemeGen.TextBoxManager = (function () {
 
     MemeGen.DragResize.attach(tb);
 
-    // Adopt the current global font so newly added text matches the last
-    // choice made in the font-settings menu.
-    tb.setFontFamily(defaultFontFamily);
-
     textBoxes.push(tb);
     deselectAll();
 
@@ -131,56 +123,6 @@ MemeGen.TextBoxManager = (function () {
 
     tb.select();
     tb.focusTextarea();
-  }
-
-  /**
-   * Batch-create text boxes from a list of {x, y, text} items.
-   * Unlike createTextBox, this does NOT auto-select or focus any box — useful
-   * when populating multiple boxes at once (e.g. from an AI suggestion) so the
-   * user is not yanked into editing one of them.
-   *
-   * Returns the array of created TextBox instances.
-   */
-  function createBatch(items) {
-    if (!Array.isArray(items)) return [];
-
-    var created = [];
-    items.forEach(function (item) {
-      var tb = new MemeGen.TextBox(0, 0, container);
-
-      tb.onDelete = function (box) {
-        var idx = textBoxes.indexOf(box);
-        if (idx !== -1) textBoxes.splice(idx, 1);
-      };
-
-      tb.onSelect = function (box) {
-        deselectAll();
-        box.select();
-      };
-
-      MemeGen.DragResize.attach(tb);
-      textBoxes.push(tb);
-
-      // Set text + run fit-to-text BEFORE clamping so the clamp math uses
-      // the box's post-fit dimensions, not the default 200×60 placeholder.
-      if (typeof item.text === 'string' && item.text.length > 0) {
-        tb.textarea.value = item.text;
-        tb.textarea.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-
-      var x = typeof item.x === 'number' ? item.x : 0;
-      var y = typeof item.y === 'number' ? item.y : 0;
-      var clampedX = Math.max(0, Math.min(x, container.offsetWidth  - tb.el.offsetWidth));
-      var clampedY = Math.max(0, Math.min(y, container.offsetHeight - tb.el.offsetHeight));
-      tb.el.style.left = clampedX + 'px';
-      tb.el.style.top  = clampedY + 'px';
-
-      created.push(tb);
-    });
-
-    // Leave every box deselected so no textarea steals focus.
-    deselectAll();
-    return created;
   }
 
   /**
@@ -221,19 +163,6 @@ MemeGen.TextBoxManager = (function () {
     return textBoxes[textBoxes.length - 1] || null;
   }
 
-  /**
-   * Sets the global font and applies it to every existing text box. New boxes
-   *   created afterwards also adopt it (see createTextBox), so the choice
-   *   covers both current and future text.
-   * @param {string} value - a font value from MemeGen.TextBox.FONTS
-   */
-  function setFontForAll(value) {
-    defaultFontFamily = value;
-    textBoxes.forEach(function (tb) {
-      tb.setFontFamily(value);
-    });
-  }
-
   function getSelectedTextBox() {
     return textBoxes.find(function (tb) {
       return tb.selected;
@@ -250,7 +179,6 @@ MemeGen.TextBoxManager = (function () {
     });
     textBoxes = [];
     imageLoaded = false;
-    defaultFontFamily = 'Impact';
   }
 
   function deselectOrDeleteSelectedTextBox() {
@@ -274,8 +202,6 @@ MemeGen.TextBoxManager = (function () {
     setImageLoaded: setImageLoaded,
     getAll: getAll,
     createTextBoxAt: createTextBoxAt,
-    setFontForAll: setFontForAll,
-    createBatch: createBatch,
     reset: reset
   };
 })();

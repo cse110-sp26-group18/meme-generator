@@ -20,6 +20,58 @@
   --delete-red: #E74B3C;
 }
 
+/* Dark theme (#89). Same variable names; the values flip so the rest of the
+ * stylesheet "just works" — no rule changes needed. Surfaces become deep
+ * navy/forest, text becomes off-white, accents are lifted versions of the
+ * forest greens for adequate contrast.
+ *
+ * --dark-forest is overloaded in the existing stylesheet: it serves both as
+ * an accent (borders, header h1) AND as a panel background (.meme-search,
+ * .editor-library-preview). The mid-green value below works for both
+ * roles in dark mode — visible enough as an accent against --cream-bg, but
+ * not so light that the panels look like light-mode bleed-through
+ * (addresses Aila's review on PR #90). */
+[data-theme="dark"] {
+  --cream-bg: #0F1A23;
+  --forest-green: #6BA77C;
+  --dark-forest: #6BA77C;
+  --deep-green: #0A1116;
+  --soft-green-outline: #4A6852;
+  --off-white: #16242E;
+  --soft-gray: #1F3340;
+  --dark-text: #E8EDE4;
+  --muted-text: #9BA89E;
+  --delete-red: #FF6B5B;
+}
+
+/* Smooth fade between themes. Limited to color properties on a handful of
+ * common surfaces so the transition is felt but doesn't slow down hover
+ * animations or layout changes. */
+body,
+header,
+header h1,
+main,
+.canvas-container,
+.meme-search,
+.editor-panel,
+.text-box textarea,
+.text-box-toolbar,
+.upload-btn,
+#download-btn,
+#share-btn,
+#scan-text-btn,
+.search-icon-btn,
+.settings-btn,
+.font-settings-btn,
+.font-settings-menu,
+.font-settings-item,
+.ai-mode-toggle,
+.theme-toggle,
+.theme-toggle-track,
+.theme-toggle-thumb {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
 html,
 body {
   max-width: 100%;
@@ -132,78 +184,6 @@ main {
 #download-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
-
-/* ── Font settings (⚙ right of Download) ─────────────────────────────────── */
-/* Relative wrapper so the dropdown anchors to the gear button. */
-.font-settings {
-  position: relative;
-  display: inline-flex;
-}
-
-.font-settings-btn {
-  width: 2.5rem;
-  height: 2.5rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  color: var(--dark-forest);
-  border: 2px solid var(--dark-forest);
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 2rem;
-  line-height: 1;
-  padding: 0;
-  transition: background 0.2s, color 0.2s;
-}
-
-.font-settings-btn:hover,
-.font-settings-btn[aria-expanded="true"] {
-  background: var(--forest-green);
-  color: var(--off-white);
-}
-
-/* Dropdown anchored to the gear; absolutely positioned so it overlays the
-   layout below instead of pushing the controls row taller. */
-.font-settings-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 20;
-  margin: 0;
-  padding: 4px;
-  list-style: none;
-  min-width: 11rem;
-  max-height: 60vh;
-  overflow-y: auto;
-  background: var(--off-white);
-  border: 1px solid var(--soft-green-outline);
-  border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(16, 40, 25, 0.18);
-}
-
-.font-settings-menu[hidden] {
-  display: none;
-}
-
-.font-settings-item {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 0.5rem 0.75rem;
-  background: transparent;
-  color: var(--dark-text);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-}
-
-.font-settings-item:hover,
-.font-settings-item:focus {
-  background: var(--soft-gray);
-  outline: none;
 }
 
 /* Share button — hidden by default; JS reveals it on mobile/tablet only. */
@@ -357,6 +337,62 @@ main {
   display: block;
   overflow: hidden;
   border-radius: inherit;
+}
+
+/* Copy-to-clipboard button — small, semi-transparent pill at the canvas
+ * area's top-right. #canvas-container already has position: relative, so
+ * the absolute coords here are container-local. z-index sits above the
+ * canvas frame but below the AI panel (z:60+) so it never blocks the
+ * AI dialog. Resting opacity is reduced so it doesn't compete with the
+ * meme; hover/focus restores full opacity for accessibility. */
+.copy-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 3.1875rem;
+  height: 3.1875rem;
+  border-radius: 999px;
+  border: 1px solid var(--forest-green);
+  background: rgba(255, 255, 255, 0.72);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.78;
+  z-index: 50;
+  box-shadow: 0 1px 4px rgba(15, 43, 26, 0.18);
+  transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s, background 0.15s;
+}
+
+.copy-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.copy-btn:not(:disabled):hover,
+.copy-btn:not(:disabled):focus-visible {
+  opacity: 1;
+  background: var(--off-white);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(15, 43, 26, 0.28);
+  outline: none;
+}
+
+.copy-btn:not(:disabled):active {
+  transform: translateY(0);
+}
+
+/* During an active move-handle drag, take the copy button out of the
+ * hit-test so it can't intercept the pointer when the dragged text box
+ * passes underneath. body.is-moving-text-box is toggled on by
+ * DragResize.js's pointerdown/up cycle. visibility + opacity make the
+ * removal obvious; pointer-events is the load-bearing part. The button
+ * returns to its resting style the moment the drag ends. */
+body.is-moving-text-box .copy-btn {
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
 }
 
 #meme-canvas {
@@ -772,8 +808,8 @@ main {
   outline: none;
 }
 
-/* AI panda — bottom-left of the browse panel, mirrors the upload + button
- * at bottom-right. Click to open the AI suggestions panel. */
+/* AI panda placeholder — bottom-left of the browse panel, mirrors the
+ * upload + button at bottom-right. Inert in this version (aria-disabled). */
 .ai-panda-btn {
   display: none;
   position: absolute;
@@ -784,7 +820,7 @@ main {
   border-radius: 50%;
   background: var(--forest-green);
   color: var(--off-white);
-  border: 2px solid var(--off-white);
+  border: none;
   font-size: 1.5rem;
   line-height: 1;
   align-items: center;
@@ -792,17 +828,8 @@ main {
   padding: 0;
   z-index: 5;
   box-shadow: 0 2px 8px rgba(15, 43, 26, 0.5);
-  cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.15s;
-}
-
-.ai-panda-btn:hover {
-  transform: scale(1.06);
-  box-shadow: 0 4px 12px rgba(15, 43, 26, 0.65);
-}
-
-.ai-panda-btn:active {
-  transform: scale(0.96);
+  cursor: default;
+  opacity: 0.85;
 }
 
 /* Mobile back-to-editor button — sits at the top-left of the home view
@@ -895,13 +922,72 @@ main {
   outline: none;
 }
 
+/* Theme toggle (#89): pill-shaped sliding switch with ☀️ and 🌙.
+ * Sits at the right edge of the header just before the settings gear.
+ * Claims the margin-left: auto slot so the right-aligned cluster starts
+ * here. The thumb slides via translateX when [data-theme="dark"]. */
+.theme-toggle {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.theme-toggle-track {
+  position: relative;
+  display: inline-flex;
+  width: 3.5rem;
+  height: 1.75rem;
+  background: var(--soft-gray);
+  border: 1.5px solid var(--soft-green-outline);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.theme-toggle-icon {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  line-height: 1;
+  z-index: 1;
+  position: relative;
+  pointer-events: none;
+}
+
+.theme-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
+  height: calc(100% - 4px);
+  background: var(--off-white);
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+[data-theme="dark"] .theme-toggle-thumb {
+  transform: translateX(100%);
+}
+
+.theme-toggle:hover .theme-toggle-track,
+.theme-toggle:focus-visible .theme-toggle-track {
+  border-color: var(--dark-forest);
+  outline: none;
+}
+
 /* Settings gear button (Screen 13). Same circular shape as the legacy
- * search-icon-btn; pushed to the right of the header by margin-left: auto. */
+ * search-icon-btn; the theme toggle now claims the margin-left: auto slot,
+ * so the gear sits naturally to the toggle's right. */
 .settings-btn {
   width: 2.5rem;
   height: 2.5rem;
   flex: 0 0 auto;
-  margin-left: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1224,7 +1310,7 @@ main {
     height: 3.5rem;
     background: var(--forest-green);
     color: var(--off-white);
-    border: 2px solid var(--off-white);
+    border: none;
     font-size: 1.75rem;
     font-weight: 700;
     border-radius: 50%;
@@ -1320,21 +1406,36 @@ main {
     gap: 0 !important;
   }
 
-  /* Left editor panel. */
+  /* Left editor panel.
+   * overflow: visible keeps the panel from owning a scrollbar — any
+   * extra height flows up to <body>, which is the existing page
+   * scroller. This is deliberate: when the panel managed its own
+   * overflow, a textbox move-handle drag could push the selected
+   * toolbar past the panel's edge, the browser flipped the panel's
+   * scrollbar on/off mid-drag, and the resulting inner-width shift
+   * jumped the drag math. With overflow: visible the panel never
+   * toggles, so move math (container.offsetWidth/Height) stays stable.
+   * position + low z-index put the panel UNDER the right-side library
+   * so any toolbar that visually crosses the panel edge is covered. */
   .editor-panel {
     flex: 1;
-    overflow: auto;
+    overflow: visible;
     padding: 2rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 16px;
+    position: relative;
+    z-index: 1;
   }
 
   /* Right meme search panel — display: flex !important overrides mobile
    * display: none so it stays permanently visible on desktop.
    * min-width allows the grid to shrink to 1 card; max-width lets the user
-   * drag up to 75 % of the viewport (LayoutManager enforces the same limit). */
+   * drag up to 75 % of the viewport (LayoutManager enforces the same limit).
+   * position + high z-index put the library above the editor so a
+   * selected text-box-toolbar that extends rightward past the canvas
+   * is visually covered by the library instead of overlapping it. */
   .meme-search {
     width: 380px;
     min-width: 160px;
@@ -1345,6 +1446,8 @@ main {
     overflow-y: auto;
     flex-shrink: 0;
     display: flex !important;
+    position: relative;
+    z-index: 100;
   }
 
   /* Canvas container fills the editor panel on desktop instead of staying
@@ -1368,7 +1471,11 @@ main {
     width: auto;
   }
 
-  /* Draggable vertical resizer between the two panels. */
+  /* Draggable vertical resizer between the two panels.
+   * position: relative + z-index: 101 places the handle above both the
+   * editor panel (z:1) and the meme-search library (z:100), so the
+   * resize-grip stays grabbable even when a toolbar visually extends
+   * underneath the library. */
   .resizer {
     display: block;
     width: 8px;
@@ -1376,7 +1483,8 @@ main {
     cursor: col-resize;
     transition: background-color 0.2s;
     flex-shrink: 0;
-    z-index: 99;
+    position: relative;
+    z-index: 101;
     border-left: 1px solid rgba(0, 0, 0, 0.04);
     border-right: 1px solid rgba(0, 0, 0, 0.04);
   }
@@ -1412,234 +1520,5 @@ main {
    * A- / A+ still work. */
   .text-box-toolbar .font-size-display {
     display: none;
-  }
-}
-
-/* ── AI Suggestions ──────────────────────────────────────────────────────── */
-
-/* Panel that opens when the 🐼 panda button is clicked. Modal-like overlay
- * floating above the editor; click ×, or the panda again, to close. */
-.ai-suggestions-panel {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(560px, calc(100vw - 32px));
-  max-height: calc(100vh - 64px);
-  overflow-y: auto;
-  padding: 20px;
-  background: var(--off-white);
-  border: 1px solid var(--soft-green-outline);
-  border-radius: 10px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  z-index: 1000;
-}
-
-/* The `display: flex` above wins over the browser's default [hidden] rule, so
- * the panel would render even with the `hidden` attribute set. Re-assert it
- * explicitly so toggling .hidden in JS actually hides the panel. */
-.ai-suggestions-panel[hidden] {
-  display: none;
-}
-
-.ai-suggestions-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.ai-close-btn {
-  background: transparent;
-  border: none;
-  color: var(--soft-green-outline);
-  font-size: 1.6rem;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0 6px;
-  border-radius: 4px;
-}
-
-.ai-close-btn:hover {
-  color: var(--forest-green);
-  background: rgba(47, 79, 53, 0.1);
-}
-
-.ai-suggestions,
-.ai-suggestions-panel {
-  width: 100%;
-}
-
-.ai-suggestions {
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid var(--soft-green-outline);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.ai-suggestions-title {
-  font-size: 1.1rem;
-  color: var(--forest-green);
-  font-weight: 600;
-}
-
-.ai-get-btn,
-.ai-generate-btn {
-  align-self: flex-start;
-  padding: 10px 20px;
-  background: var(--forest-green);
-  color: var(--off-white);
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 600;
-  transition: background 0.2s, opacity 0.2s;
-}
-
-.ai-get-btn:hover,
-.ai-generate-btn:hover:not(:disabled) {
-  background: var(--deep-green);
-}
-
-.ai-generate-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.ai-form,
-.ai-key-form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.ai-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.ai-label {
-  color: var(--forest-green);
-  font-size: 0.9rem;
-}
-
-.ai-input {
-  width: 100%;
-  padding: 10px 14px;
-  background: var(--cream-bg);
-  color: var(--forest-green);
-  border: 1px solid var(--soft-green-outline);
-  border-radius: 6px;
-  font-size: 1rem;
-  outline: none;
-  transition: border-color 0.15s;
-}
-
-.ai-input:focus {
-  border-color: #e94560;
-}
-
-.ai-note {
-  color: var(--soft-green-outline);
-  font-size: 0.8rem;
-}
-
-.ai-note a {
-  color: var(--forest-green);
-}
-
-.ai-status {
-  color: var(--soft-green-outline);
-  font-size: 0.9rem;
-  min-height: 1.2em;
-}
-
-.ai-change-key {
-  align-self: flex-start;
-  color: var(--forest-green);
-  font-size: 0.85rem;
-  text-decoration: underline;
-}
-
-.ai-results {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
-}
-
-.ai-result-card {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
-  padding: 8px;
-  background: var(--cream-bg);
-  border: 1px solid var(--soft-green-outline);
-  border-radius: 6px;
-  cursor: pointer;
-  color: var(--forest-green);
-  font-family: inherit;
-  text-align: left;
-  transition: border-color 0.15s, transform 0.1s;
-}
-
-.ai-result-card:hover {
-  border-color: #e94560;
-}
-
-.ai-result-card:active {
-  transform: scale(0.98);
-}
-
-.ai-result-card img {
-  width: 100%;
-  height: 120px;
-  object-fit: contain;
-  background: var(--off-white);
-  border-radius: 4px;
-}
-
-.ai-result-name {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #fff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.ai-caption-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.ai-caption-list li {
-  font-size: 0.8rem;
-  color: var(--forest-green);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* On narrow screens, single-column AI results so captions stay readable. */
-@media (max-width: 480px) {
-  .ai-results {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  .ai-result-card img {
-    height: 140px;
   }
 }

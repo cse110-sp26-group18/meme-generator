@@ -397,7 +397,7 @@ MemeGen.DragResize = (function () {
     });
 
     // In order to handle an interrupted touch gesture (i.e. incoming call, scrolling out of bounds, or system alert), the pinch state can get stuck, leaving the text box in a .hold-active state, preventing futher interactions. This resets the hold and pinch states to make gesture handling more robust.
-    el.addEventListener('touchcancel', function (e) {
+    el.addEventListener('touchcancel', function () {
       resetHold();
       pinchActive = false;
       pinchStartDist = 0;

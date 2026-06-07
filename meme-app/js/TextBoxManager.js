@@ -142,9 +142,12 @@ MemeGen.TextBoxManager = (function () {
    *   Called when the user clicks a detected-region marker.
    * @param {{text:string,x:number,y:number,width:number,height:number}} region
    *   - a detected region in canvas-pixel space (see TextRecognizer)
+   * @param {function} [onRestore] - called after the box is deleted and its
+   *   cover removed; used to re-show the region marker so the restored text
+   *   stays clickable.
    * @returns {MemeGen.TextBox} the created text box
    */
-  function createBoxFromRegion(region) {
+  function createBoxFromRegion(region, onRestore) {
     // canvas.width tracks the displayed size in this app, so the source→display
     // scale is ~1, but compute it explicitly so the boxes still line up if that
     // ever changes.
@@ -183,6 +186,8 @@ MemeGen.TextBoxManager = (function () {
         var idx = textBoxes.indexOf(box);
         if (idx !== -1) textBoxes.splice(idx, 1);
         renderCanvas();
+        // Re-show the dashed marker so the now-restored text stays clickable.
+        if (typeof onRestore === 'function') onRestore();
       };
     }(cover));
 
@@ -199,6 +204,48 @@ MemeGen.TextBoxManager = (function () {
   }
 
   /**
+   * Adds a single clickable dashed marker over a detected region. Clicking it
+   *   removes the marker and converts the region into an editable text box; if
+   *   that box is later deleted, the marker is re-added so the restored text
+   *   stays clickable.
+   * @param {{text:string,x:number,y:number,width:number,height:number}} region
+   *   - a detected region in canvas-pixel space (see TextRecognizer)
+   * @returns {HTMLElement} the marker element
+   */
+  function addRegionMarker(region) {
+    var scaleX = canvas.offsetWidth  / canvas.width;
+    var scaleY = canvas.offsetHeight / canvas.height;
+
+    var marker = document.createElement('div');
+    marker.className = 'ocr-region-marker';
+    marker.title = 'Click to edit this text';
+    marker.style.left   = Math.round(region.x * scaleX) + 'px';
+    marker.style.top    = Math.round(region.y * scaleY) + 'px';
+    marker.style.width  = Math.round(region.width  * scaleX) + 'px';
+    marker.style.height = Math.round(region.height * scaleY) + 'px';
+
+    marker.addEventListener('click', function (e) {
+      e.stopPropagation();
+      // Remove this marker, then turn the region into an editable text box.
+      var mi = regionMarkers.indexOf(marker);
+      if (mi !== -1) regionMarkers.splice(mi, 1);
+      marker.remove();
+
+      // Re-show the marker if the box is later deleted, so the region stays
+      // clickable after the original text is restored.
+      var tb = createBoxFromRegion(region, function () {
+        addRegionMarker(region);
+      });
+      deselectAll();
+      if (tb) tb.select();
+    });
+
+    container.appendChild(marker);
+    regionMarkers.push(marker);
+    return marker;
+  }
+
+  /**
    * Marks OCR-detected text regions with clickable dashed outlines without
    *   touching the image. The original text stays visible; only when the user
    *   clicks a marker does it convert into an editable text box with the
@@ -211,34 +258,9 @@ MemeGen.TextBoxManager = (function () {
     // A new scan supersedes any markers still on screen from a prior scan.
     clearDetectedRegions();
 
-    var scaleX = canvas.offsetWidth  / canvas.width;
-    var scaleY = canvas.offsetHeight / canvas.height;
-
     regions.forEach(function (region) {
       if (!isMeaningfulRegion(region)) return;
-
-      var marker = document.createElement('div');
-      marker.className = 'ocr-region-marker';
-      marker.title = 'Click to edit this text';
-      marker.style.left   = Math.round(region.x * scaleX) + 'px';
-      marker.style.top    = Math.round(region.y * scaleY) + 'px';
-      marker.style.width  = Math.round(region.width  * scaleX) + 'px';
-      marker.style.height = Math.round(region.height * scaleY) + 'px';
-
-      marker.addEventListener('click', function (e) {
-        e.stopPropagation();
-        // Remove this marker, then turn the region into an editable text box.
-        var mi = regionMarkers.indexOf(marker);
-        if (mi !== -1) regionMarkers.splice(mi, 1);
-        marker.remove();
-
-        var tb = createBoxFromRegion(region);
-        deselectAll();
-        if (tb) tb.select();
-      });
-
-      container.appendChild(marker);
-      regionMarkers.push(marker);
+      addRegionMarker(region);
     });
   }
 

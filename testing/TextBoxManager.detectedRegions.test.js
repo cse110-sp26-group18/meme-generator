@@ -158,4 +158,25 @@ describe('TextBoxManager — detected region markers', () => {
 
     expect(MemeGen.TextBoxManager.getCoverRegions()).toHaveLength(0);
   });
+
+  test('deleting a clicked-into box re-shows its marker, and it is clickable again', () => {
+    MemeGen.TextBoxManager.showDetectedRegions(mockRegions);
+    container.querySelector('.ocr-region-marker').dispatchEvent(new Event('click', { bubbles: true }));
+    // One marker consumed by the click; one box created.
+    expect(container.querySelectorAll('.ocr-region-marker').length).toBe(1);
+    expect(MemeGen.TextBoxManager.getAll().length).toBe(1);
+
+    // Delete the box → its marker should come back (2 markers again, 0 boxes).
+    MemeGen.TextBoxManager.getAll()[0].deleteBtn.click();
+    expect(container.querySelectorAll('.ocr-region-marker').length).toBe(2);
+    expect(MemeGen.TextBoxManager.getAll().length).toBe(0);
+
+    // The restored marker is clickable again → re-creates the box.
+    const restored = Array.from(container.querySelectorAll('.ocr-region-marker'))
+      .find((m) => m.style.left === '5px'); // region[0] x=10→5px
+    restored.dispatchEvent(new Event('click', { bubbles: true }));
+    const boxes = container.querySelectorAll('.text-box');
+    expect(boxes.length).toBe(1);
+    expect(boxes[0].querySelector('textarea').value).toBe('HELLO');
+  });
 });

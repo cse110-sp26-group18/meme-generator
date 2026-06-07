@@ -370,14 +370,11 @@ main {
   position: absolute;
   top: 0.75rem;
   right: 0.75rem;
-  width: 2.125rem;
-  height: 2.125rem;
+  width: 3.1875rem;
+  height: 3.1875rem;
   border-radius: 999px;
   border: 1px solid var(--forest-green);
   background: rgba(255, 255, 255, 0.72);
-  color: var(--forest-green);
-  font-size: 0.95rem;
-  line-height: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;

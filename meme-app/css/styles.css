@@ -216,6 +216,79 @@ main {
   cursor: not-allowed;
 }
 
+/* ── Font picker (pill above the canvas's top-left corner) ───────────────── */
+/* Anchored to the canvas-container (position: relative). `bottom: 100%` lifts
+   the pill just above the box's top edge so it never overlaps the image. */
+.font-settings {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 8px;
+  z-index: 30;
+  display: inline-flex;
+}
+
+/* Forest-green pill matching the Upload / Download buttons. */
+.font-settings-btn {
+  padding: 0.625rem 1.5rem;
+  background: var(--forest-green);
+  color: var(--off-white);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1;
+  transition: background 0.2s;
+}
+
+.font-settings-btn:hover,
+.font-settings-btn[aria-expanded="true"] {
+  background: var(--dark-forest);
+}
+
+/* Dropdown anchored to the pill; opens downward over the canvas, left-aligned
+   with the button so it stays inside the box. */
+.font-settings-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  min-width: 11rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--off-white);
+  border: 1px solid var(--soft-green-outline);
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(16, 40, 25, 0.18);
+}
+
+.font-settings-menu[hidden] {
+  display: none;
+}
+
+.font-settings-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  color: var(--dark-text);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.font-settings-item:hover,
+.font-settings-item:focus {
+  background: var(--soft-gray);
+  outline: none;
+}
+
 /* Share button — hidden by default; JS reveals it on mobile/tablet only. */
 #share-btn {
   display: none;

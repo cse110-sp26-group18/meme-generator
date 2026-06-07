@@ -50,60 +50,60 @@ MemeGen.Exporter = (function () {
    * export is complete
    */
   function getMemeBlob(canvas, ctx, image, textBoxes, callback) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Checks image parameter to prevent ctx.drawImage from throwing a TypeError and crashing the application.
+    if (!image) { if (callback) callback(null); return; }
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-  // Prevent ctx.drawImage from throwing when no image is loaded.
-  if (!image) {
-    if (callback) callback(null);
-    return;
-  }
+    textBoxes.forEach(function (tb) {
+      var state = tb.getState();
+      if (!state.text.trim()) return;
 
-  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      // save() pushes the current canvas state (font, styles, transforms)
+      // onto a stack; restore() pops it after each text box so settings
+      // from one box don't bleed into the next.
+      ctx.save();
 
-  textBoxes.forEach(function (tb) {
-    var state = tb.getState();
-    if (!state.text.trim()) return;
+      var padding = 6;
+      var boxInnerWidth = state.width - padding * 2;
+      // Use the font size the user sees in the editor, not a re-derived formula.
+      // state.fontSize is kept in sync by TextBox.applyFontSize(), so the
+      // exported PNG always matches what was visible on screen.
+      var fontSize = state.fontSize;
+      var fontFamily = state.fontFamily || 'Impact';
 
-    ctx.save();
+      ctx.font = fontSize + 'px ' + fontFamily;
+      // 'top' baseline anchors text at the top of the em box, matching the
+      // CSS top-offset positioning used by the live textarea overlays.
+      ctx.textBaseline = 'top';
+      // 'round' join prevents sharp miter spikes at stroke corners, which
+      // are especially visible on bold fonts at large sizes.
+      ctx.lineJoin = 'round';
 
-    // Responsive scaling: text box state is stored in display pixels.
-    // The canvas bitmap may be larger than the displayed canvas, so scale
-    // display coordinates into bitmap coordinates for export.
-    var scaleX = state.containerWidth > 0 ? canvas.width / state.containerWidth : 1;
-    var scaleY = state.containerHeight > 0 ? canvas.height / state.containerHeight : 1;
-    var scale = (scaleX + scaleY) / 2;
+      var lines = wrapText(ctx, state.text, boxInnerWidth);
+      var lineHeight = fontSize * 1.2;
 
-    var padding = 6 * scale;
-    var boxInnerWidth = (state.width * scaleX) - padding * 2;
-    var fontSize = state.fontSize * scale;
-    var fontFamily = state.fontFamily || 'Impact';
+      lines.forEach(function (line, i) {
+        var textX = state.x + padding;
+        var textY = state.y + padding + i * lineHeight;
 
-    ctx.font = fontSize + 'px ' + fontFamily;
-    ctx.textBaseline = 'top';
-    ctx.lineJoin = 'round';
+        if (state.borderEnabled) {
+          ctx.strokeStyle = 'black';
+          ctx.lineWidth = Math.max(2, fontSize / 10);
+          ctx.strokeText(line, textX, textY);
+        }
 
-    var lines = wrapText(ctx, state.text, boxInnerWidth);
-    var lineHeight = fontSize * 1.2;
+        ctx.fillStyle = 'white';
+        ctx.fillText(line, textX, textY);
+      });
 
-    lines.forEach(function (line, i) {
-      var textX = state.x * scaleX + padding;
-      var textY = state.y * scaleY + padding + i * lineHeight;
-
-      if (state.borderEnabled) {
-        ctx.strokeStyle = 'black';
-        ctx.lineWidth = Math.max(2, fontSize / 10);
-        ctx.strokeText(line, textX, textY);
-      }
-
-      ctx.fillStyle = 'white';
-      ctx.fillText(line, textX, textY);
+      ctx.restore();
     });
 
-    ctx.restore();
-  });
-
-  canvas.toBlob(callback, 'image/png');
-}
+    // toBlob() is asynchronous — the callback fires once the browser has
+    // finished encoding the canvas contents as a PNG Blob.
+    canvas.toBlob(callback, 'image/png');
+  }
 
   function exportMeme(canvas, ctx, image, textBoxes, callback) {
     getMemeBlob(canvas, ctx, image, textBoxes, function (blob) {

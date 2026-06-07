@@ -6,6 +6,10 @@ MemeGen.TextBoxManager = (function () {
   // behind a background-matched inpaint blend. Re-applied on every render and at
   // export so the original text stays covered beneath the editable boxes.
   var coverRegions = [];
+  // Dashed marker elements drawn over OCR-detected text regions before the user
+  // clicks them. Clicking a marker removes it and converts that region into an
+  // editable text box (createBoxFromRegion). Cleared on each new image load.
+  var regionMarkers = [];
   var container = null;
   var canvas = null;
   var imageLoaded = false;
@@ -92,9 +96,12 @@ MemeGen.TextBoxManager = (function () {
    */
   function setImageLoaded(loaded) {
     imageLoaded = loaded;
-    // A freshly loaded image has no detected text yet — drop covers left over
-    // from a previous image so they don't bleed onto the new one.
-    if (loaded) coverRegions = [];
+    // A freshly loaded image has no detected text yet — drop covers and markers
+    // left over from a previous image so they don't bleed onto the new one.
+    if (loaded) {
+      coverRegions = [];
+      clearDetectedRegions();
+    }
   }
 
   /**
@@ -114,74 +121,136 @@ MemeGen.TextBoxManager = (function () {
   }
 
   /**
-   * Turns OCR regions into editable text boxes. Each region's original pixels
-   *   are hidden behind an inpaint cover and replaced by a text box pre-filled
-   *   with the recognized text. Deleting a box restores the covered pixels.
-   * @param {Array<{text:string,x:number,y:number,width:number,height:number}>}
-   *   regions - detected regions in canvas-pixel space (see TextRecognizer)
+   * Returns true if an OCR region has enough real content to be worth showing.
+   *   Require 3+ alphanumerics for plain text (filters stray single-letter OCR
+   *   noise), but keep short numeric labels like "2%", "55", or "0.1%" — any
+   *   region containing a digit.
+   * @param {{text:string}} region - a detected region
+   * @returns {boolean}
    */
-  function loadDetectedBoxes(regions) {
+  function isMeaningfulRegion(region) {
+    var text = region.text || '';
+    var alnum = (text.match(/[a-zA-Z0-9]/g) || []).length;
+    var hasDigit = /[0-9]/.test(text);
+    return alnum >= 3 || hasDigit;
+  }
+
+  /**
+   * Converts a single OCR region into an editable text box: hides the original
+   *   pixels behind an inpaint cover (the "mutation") and adds a text box
+   *   pre-filled with the recognized text. Deleting the box restores the pixels.
+   *   Called when the user clicks a detected-region marker.
+   * @param {{text:string,x:number,y:number,width:number,height:number}} region
+   *   - a detected region in canvas-pixel space (see TextRecognizer)
+   * @returns {MemeGen.TextBox} the created text box
+   */
+  function createBoxFromRegion(region) {
     // canvas.width tracks the displayed size in this app, so the source→display
     // scale is ~1, but compute it explicitly so the boxes still line up if that
     // ever changes.
     var scaleX = canvas.offsetWidth  / canvas.width;
     var scaleY = canvas.offsetHeight / canvas.height;
 
-    regions.forEach(function (region) {
-      // Skip regions with no real content. Require 3+ alphanumerics for plain
-      // text (filters stray single-letter OCR noise), but keep short numeric
-      // labels like "2%", "55", or "0.1%" — any region containing a digit.
-      var text = region.text || '';
-      var alnum = (text.match(/[a-zA-Z0-9]/g) || []).length;
-      var hasDigit = /[0-9]/.test(text);
-      if (alnum < 3 && !hasDigit) return;
+    var cover = {
+      x: region.x,
+      y: region.y,
+      width: region.width,
+      height: region.height
+    };
+    coverRegions.push(cover);
 
-      var cover = {
-        x: region.x,
-        y: region.y,
-        width: region.width,
-        height: region.height
+    var tb = new MemeGen.TextBox(
+      region.x * scaleX,
+      region.y * scaleY,
+      container
+    );
+
+    // Detected boxes hug the recognized text. Clear the default min-width/
+    // height (meant to keep manually-created boxes grabbable) so short labels
+    // like "2%" don't balloon past the actual text.
+    tb.el.style.minWidth  = '0px';
+    tb.el.style.minHeight = '0px';
+    tb.el.style.width  = Math.round(region.width  * scaleX) + 'px';
+    tb.el.style.height = Math.round(region.height * scaleY) + 'px';
+    tb.textarea.value  = region.text;
+    tb.applyFontSize(Math.round(region.height * scaleY * 0.4));
+
+    tb.onDelete = (function (c) {
+      return function (box) {
+        // Drop the cover so the original pixels are restored on re-render.
+        var ci = coverRegions.indexOf(c);
+        if (ci !== -1) coverRegions.splice(ci, 1);
+        var idx = textBoxes.indexOf(box);
+        if (idx !== -1) textBoxes.splice(idx, 1);
+        renderCanvas();
       };
-      coverRegions.push(cover);
+    }(cover));
 
-      var tb = new MemeGen.TextBox(
-        region.x * scaleX,
-        region.y * scaleY,
-        container
-      );
+    tb.onSelect = function (box) {
+      deselectAll();
+      box.select();
+    };
 
-      // Detected boxes hug the recognized text. Clear the default min-width/
-      // height (meant to keep manually-created boxes grabbable) so short labels
-      // like "2%" don't balloon past the actual text.
-      tb.el.style.minWidth  = '0px';
-      tb.el.style.minHeight = '0px';
-      tb.el.style.width  = Math.round(region.width  * scaleX) + 'px';
-      tb.el.style.height = Math.round(region.height * scaleY) + 'px';
-      tb.textarea.value  = region.text;
-      tb.applyFontSize(Math.round(region.height * scaleY * 0.4));
-
-      tb.onDelete = (function (c) {
-        return function (box) {
-          // Drop the cover so the original pixels are restored on re-render.
-          var ci = coverRegions.indexOf(c);
-          if (ci !== -1) coverRegions.splice(ci, 1);
-          var idx = textBoxes.indexOf(box);
-          if (idx !== -1) textBoxes.splice(idx, 1);
-          renderCanvas();
-        };
-      }(cover));
-
-      tb.onSelect = function (box) {
-        deselectAll();
-        box.select();
-      };
-
-      MemeGen.DragResize.attach(tb);
-      textBoxes.push(tb);
-    });
+    MemeGen.DragResize.attach(tb);
+    textBoxes.push(tb);
 
     renderCanvas();
-    deselectAll();
+    return tb;
+  }
+
+  /**
+   * Marks OCR-detected text regions with clickable dashed outlines without
+   *   touching the image. The original text stays visible; only when the user
+   *   clicks a marker does it convert into an editable text box with the
+   *   original text covered (createBoxFromRegion). Noise regions are skipped.
+   * @param {Array<{text:string,x:number,y:number,width:number,height:number}>}
+   *   regions - detected regions in canvas-pixel space (see TextRecognizer)
+   */
+  function showDetectedRegions(regions) {
+    if (!container || !canvas) return;
+    // A new scan supersedes any markers still on screen from a prior scan.
+    clearDetectedRegions();
+
+    var scaleX = canvas.offsetWidth  / canvas.width;
+    var scaleY = canvas.offsetHeight / canvas.height;
+
+    regions.forEach(function (region) {
+      if (!isMeaningfulRegion(region)) return;
+
+      var marker = document.createElement('div');
+      marker.className = 'ocr-region-marker';
+      marker.title = 'Click to edit this text';
+      marker.style.left   = Math.round(region.x * scaleX) + 'px';
+      marker.style.top    = Math.round(region.y * scaleY) + 'px';
+      marker.style.width  = Math.round(region.width  * scaleX) + 'px';
+      marker.style.height = Math.round(region.height * scaleY) + 'px';
+
+      marker.addEventListener('click', function (e) {
+        e.stopPropagation();
+        // Remove this marker, then turn the region into an editable text box.
+        var mi = regionMarkers.indexOf(marker);
+        if (mi !== -1) regionMarkers.splice(mi, 1);
+        marker.remove();
+
+        var tb = createBoxFromRegion(region);
+        deselectAll();
+        if (tb) tb.select();
+      });
+
+      container.appendChild(marker);
+      regionMarkers.push(marker);
+    });
+  }
+
+  /**
+   * Removes every detected-region marker from the DOM. Called on new image
+   *   loads and reset so markers never bleed across images.
+   */
+  function clearDetectedRegions() {
+    regionMarkers.forEach(function (marker) {
+      marker.remove();
+    });
+    regionMarkers = [];
   }
 
   /**
@@ -281,6 +350,7 @@ MemeGen.TextBoxManager = (function () {
     });
     textBoxes = [];
     coverRegions = [];
+    clearDetectedRegions();
     imageLoaded = false;
   }
 
@@ -305,7 +375,9 @@ MemeGen.TextBoxManager = (function () {
     setImageLoaded: setImageLoaded,
     getAll: getAll,
     createTextBoxAt: createTextBoxAt,
-    loadDetectedBoxes: loadDetectedBoxes,
+    createBoxFromRegion: createBoxFromRegion,
+    showDetectedRegions: showDetectedRegions,
+    clearDetectedRegions: clearDetectedRegions,
     renderCanvas: renderCanvas,
     getCoverRegions: getCoverRegions,
     reset: reset

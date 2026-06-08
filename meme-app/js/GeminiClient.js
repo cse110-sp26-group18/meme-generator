@@ -70,7 +70,7 @@ MemeGen.GeminiClient = (function () {
   function getApiKey() {
     try {
       return window.localStorage.getItem(STORAGE_KEY);
-    } catch (e) {
+    } catch {
       return null;
     }
   }
@@ -80,11 +80,11 @@ MemeGen.GeminiClient = (function () {
     if (!trimmed) return;
     // Private-browsing / cookie-blocked contexts throw on Storage writes.
     // Match getApiKey's defensive shape — best-effort, no surfacing.
-    try { window.localStorage.setItem(STORAGE_KEY, trimmed); } catch (e) {}
+    try { window.localStorage.setItem(STORAGE_KEY, trimmed); } catch { /* ignore */ }
   }
 
   function clearApiKey() {
-    try { window.localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    try { window.localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
   }
 
   function hasApiKey() {

@@ -45,12 +45,6 @@ MemeGen.TextBox = (function () {
     this._handleKeyDown = null;
     this.onDelete = null;
     this.onSelect = null;
-    // Image-relative position/size ratios, populated by captureRelativeState
-    // every time the box is placed / moved / resized. ResizeObserver in
-    // app.js calls TextBoxManager.syncTextBoxesToCanvas → applyRelativeState
-    // on each box so positions follow the container when CSS scales the
-    // canvas with the viewport / library panel.
-    this.relativeState = null;
 
     this._buildDOM();
     this._bindEvents();
@@ -71,17 +65,9 @@ MemeGen.TextBox = (function () {
     // dataset writes a data-textbox-id HTML attribute, usable as a DOM hook
     // for tests and for disambiguating which box triggered an event.
     el.dataset.textboxId = this.id;
-
     var toolbar = document.createElement('div');
     toolbar.className = 'text-box-toolbar';
-
-    // ✥ Move — kept in DOM for desktop drag and existing tests; hidden on
-    // mobile via CSS (the whole toolbar is display:none on mobile).
-    var moveBtn = document.createElement('button');
-    moveBtn.className = 'move-handle';
-    moveBtn.textContent = '✥ Move';
-    moveBtn.title = 'Drag to move';
-    toolbar.appendChild(moveBtn);
+    
 
     // Separator
     var sep = document.createElement('span');
@@ -129,15 +115,16 @@ MemeGen.TextBox = (function () {
     borderBtn.className = 'border-toggle';
     borderBtn.textContent = 'Border: ON';
     toolbar.appendChild(borderBtn);
+    el.appendChild(toolbar);
 
     // Delete
     var deleteBtn = document.createElement('button');
-    deleteBtn.className = 'delete-btn';
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'text-box-delete-btn';
     deleteBtn.textContent = '×';
     deleteBtn.title = 'Delete text box';
-    toolbar.appendChild(deleteBtn);
-
-    el.appendChild(toolbar);
+    deleteBtn.setAttribute('aria-label', 'Delete text box');
+    el.appendChild(deleteBtn);
 
     var textarea = document.createElement('textarea');
     textarea.className = 'text-content';
@@ -179,21 +166,11 @@ MemeGen.TextBox = (function () {
 
     el.appendChild(quickMenu);
 
-    // Mobile-only X delete button — shown on the right of selected text boxes
-    // on mobile. Replaces the need for the bottom toolbar just for deletion.
-    var mobileDeleteBtn = document.createElement('button');
-    mobileDeleteBtn.type = 'button';
-    mobileDeleteBtn.className = 'mobile-delete-btn';
-    mobileDeleteBtn.textContent = '×';
-    mobileDeleteBtn.setAttribute('aria-label', 'Delete text box');
-    el.appendChild(mobileDeleteBtn);
-
     this.el = el;
     this.textarea = textarea;
     this.fontSelect = fontSelect;
     this.borderBtn = borderBtn;
     this.deleteBtn = deleteBtn;
-    this.moveBtn = moveBtn;
     this.fontSizeDecBtn = fontSizeDecBtn;
     this.fontSizeIncBtn = fontSizeIncBtn;
     this.fontSizeDisplay = fontSizeDisplay;
@@ -202,7 +179,6 @@ MemeGen.TextBox = (function () {
     this.qEditBtn = qEditBtn;
     this.qBorderBtn = qBorderBtn;
     this.qDeleteBtn = qDeleteBtn;
-    this.mobileDeleteBtn = mobileDeleteBtn;
 
     this.container.appendChild(el);
 
@@ -235,9 +211,21 @@ MemeGen.TextBox = (function () {
       }
     });
 
-    this.deleteBtn.addEventListener('click', function () {
-      self.destroy();
+    this.deleteBtn.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
     });
+
+  this.deleteBtn.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  });
+
+  this.deleteBtn.addEventListener('click', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    self.destroy();
+  });
 
     this.textarea.addEventListener('input', function () {
       // The box is the fixed boundary; keep the text fitting inside it by
@@ -334,11 +322,6 @@ MemeGen.TextBox = (function () {
       self.destroy();
     });
 
-    this.mobileDeleteBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      self.destroy();
-    });
-
     // Tap anywhere outside the menu closes it. Stored on the instance so
     // destroy() can detach it.
     this._outsideClickHandler = function (e) {
@@ -415,9 +398,6 @@ MemeGen.TextBox = (function () {
   TextBox.prototype._fitBoxToFontSize = function () {
     var newHeight = Math.max(40, Math.round(this.fontSize * 2.5));
     this.el.style.height = newHeight + 'px';
-    // Box height changed via A+/A− or pinch-resize — refresh ratios so the
-    // next viewport/library resize re-applies the new proportional height.
-    this.captureRelativeState();
   };
 
   /**
@@ -540,7 +520,6 @@ MemeGen.TextBox = (function () {
    *   fontFamily, fontSize, and borderEnabled
    */
   TextBox.prototype.getState = function () {
-    const c = this.container;
     return {
       x: this.el.offsetLeft,
       y: this.el.offsetTop,
@@ -549,59 +528,8 @@ MemeGen.TextBox = (function () {
       text: this.textarea.value,
       fontFamily: this.fontFamily,
       fontSize: this.fontSize,       // explicit state — read by Exporter directly
-      borderEnabled: this.borderEnabled,
-      // Responsive-export hints. When the canvas BITMAP size (canvas.width)
-      // differs from the container DISPLAY size, Exporter scales x/y/width/
-      // fontSize by canvas.width / containerWidth so text lands at the same
-      // visual position on the exported PNG as on screen. Defaults to 0
-      // when the container isn't measurable (jsdom test stubs); Exporter
-      // treats that as "scale = 1" for backward-compat.
-      containerWidth:  c ? c.offsetWidth  || 0 : 0,
-      containerHeight: c ? c.offsetHeight || 0 : 0
+      borderEnabled: this.borderEnabled
     };
-  };
-
-  /**
-   * Reads the box's current pixel position/size against the container's
-   * current display dimensions and stores image-relative ratios on
-   * `this.relativeState`. Called after every user-initiated move / resize
-   * / create so the latest authoritative position is recorded.
-   * No-op if the container hasn't been measured yet (offsetWidth = 0).
-   */
-  TextBox.prototype.captureRelativeState = function () {
-    const c = this.container;
-    if (!c) return;
-    const cw = c.offsetWidth;
-    const ch = c.offsetHeight;
-    if (!cw || !ch) return;
-    this.relativeState = {
-      xRatio:      this.el.offsetLeft   / cw,
-      yRatio:      this.el.offsetTop    / ch,
-      widthRatio:  this.el.offsetWidth  / cw,
-      heightRatio: this.el.offsetHeight / ch
-    };
-  };
-
-  /**
-   * Reapplies the stored ratios × current container display size, so the
-   * box visually tracks the canvas when CSS resizes it (viewport change /
-   * desktop library panel drag). Triggers fitToText so the font scales
-   * proportionally with the new box dimensions. No-op without ratios or
-   * a measurable container.
-   */
-  TextBox.prototype.applyRelativeState = function () {
-    const r = this.relativeState;
-    if (!r) return;
-    const c = this.container;
-    if (!c) return;
-    const cw = c.offsetWidth;
-    const ch = c.offsetHeight;
-    if (!cw || !ch) return;
-    this.el.style.left   = (r.xRatio      * cw) + 'px';
-    this.el.style.top    = (r.yRatio      * ch) + 'px';
-    this.el.style.width  = (r.widthRatio  * cw) + 'px';
-    this.el.style.height = (r.heightRatio * ch) + 'px';
-    if (typeof this.fitToText === 'function') this.fitToText();
   };
 
   TextBox.prototype.keepInsideContainer = function () {

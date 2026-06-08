@@ -1,6 +1,6 @@
 /**
  * font_settings.test.js
- * Verifies the global font-settings feature: a ⚙ dropdown that sets the font
+ * Verifies the global font-settings feature: a "font" dropdown that sets the font
  * for ALL text boxes — both the ones already on the canvas and any created
  * afterwards.
  *

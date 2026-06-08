@@ -1,9 +1,26 @@
 name: CI
 
 on:
+  # Skip the pipeline for documentation-only changes: a PR/push is ignored only
+  # when EVERY changed file matches a pattern below, so mixed docs+code changes
+  # still run. `main` has no required status checks, so skipped docs-only PRs are
+  # not blocked from merging. (If a required check is added later, switch to a
+  # path-filter guard job that always reports.)
   pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - 'documentation/**'
+      - 'meeting-notes/**'
+      - 'research/**'
+      - 'assets/**'
   push:
     branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'documentation/**'
+      - 'meeting-notes/**'
+      - 'research/**'
+      - 'assets/**'
 
 jobs:
   lint-and-test:
@@ -20,6 +37,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
 
       - name: Add ESLint problem matcher
         run: echo "::add-matcher::.github/eslint-problem-matcher.json"
@@ -38,3 +58,6 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Run end-to-end tests
+        run: npm run test:e2e

@@ -1,17 +1,9 @@
 .DS_Store
+.claude
 node_modules/
 coverage/
+playwright-report/
+test-results/
 .history/
 reference
 .vscode
-
-# Secrets - never commit. AI/API keys live in Cloudflare Worker secrets, not here.
-.env
-.env.*
-.dev.vars
-.dev.vars.*
-# ...but keep the committed template that documents the expected variables.
-!.dev.vars.example
-
-# Wrangler (Cloudflare Workers) local state
-.wrangler/

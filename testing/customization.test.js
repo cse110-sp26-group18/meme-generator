@@ -423,45 +423,40 @@ describe('Text Box — special character content', () => {
   });
 });
 
-// ── Floating X Delete Button ───────────────────────────────────────────────────
+// ── Mobile X Delete Button ───────────────────────────────────────────────────
 
-describe('Floating X delete button', () => {
+describe('Mobile X delete button', () => {
   let container;
   let textBox;
 
   beforeEach(() => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    textBox = new MemeGen.TextBox(100, 100, container);
+    container = makeContainer();
+    textBox = new MemeGen.TextBox(10, 10, container);
   });
 
   afterEach(() => {
-    document.body.removeChild(container);
+    if (container.parentNode) document.body.removeChild(container);
   });
 
-  it('has a .text-box-delete-btn element inside the text box', () => {
-    expect(textBox.el.querySelector('.text-box-delete-btn')).not.toBeNull();
+  it('has a .mobile-delete-btn element inside the text box', () => {
+    expect(textBox.el.querySelector('.mobile-delete-btn')).not.toBeNull();
   });
 
-  it('exposes deleteBtn on the instance', () => {
-    expect(textBox.deleteBtn).toBeDefined();
-    expect(textBox.deleteBtn.classList.contains('text-box-delete-btn')).toBe(true);
+  it('exposes mobileDeleteBtn on the instance', () => {
+    expect(textBox.mobileDeleteBtn).toBeDefined();
+    expect(textBox.mobileDeleteBtn.classList.contains('mobile-delete-btn')).toBe(true);
   });
 
-  it('clicking text-box-delete-btn removes the text box from the DOM', () => {
+  it('clicking mobile-delete-btn removes the text box from the DOM', () => {
     expect(container.contains(textBox.el)).toBe(true);
-
-    textBox.deleteBtn.click();
-
+    textBox.mobileDeleteBtn.click();
     expect(container.contains(textBox.el)).toBe(false);
   });
 
-  it('clicking text-box-delete-btn fires the onDelete callback', () => {
+  it('clicking mobile-delete-btn fires the onDelete callback', () => {
     const onDelete = jest.fn();
     textBox.onDelete = onDelete;
-
-    textBox.deleteBtn.click();
-
+    textBox.mobileDeleteBtn.click();
     expect(onDelete).toHaveBeenCalledWith(textBox);
   });
 });

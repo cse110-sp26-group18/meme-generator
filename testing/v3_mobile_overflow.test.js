@@ -195,15 +195,13 @@ describe('Toolbar visibility contract — selection state on text boxes', () => 
     expect(textBox.el.classList.contains('selected')).toBe(false);
   });
 
-  it('preserves toolbar controls for font and border while delete uses the floating X button', () => {
-    const toolbar = textBox.toolbar;
-
-    expect(toolbar).not.toBeNull();
+  it('the toolbar still contains every preserved control class so existing JS handlers (pinch, A-/A+, border, delete) keep working', () => {
+    const toolbar = textBox.el.querySelector('.text-box-toolbar');
+    expect(toolbar.querySelector('.move-handle')).not.toBeNull();
     expect(toolbar.querySelector('.font-size-btn')).not.toBeNull();
     expect(toolbar.querySelector('.font-size-display')).not.toBeNull();
     expect(toolbar.querySelector('.font-select')).not.toBeNull();
     expect(toolbar.querySelector('.border-toggle')).not.toBeNull();
-
-    expect(textBox.el.querySelector('.text-box-delete-btn')).not.toBeNull();
+    expect(toolbar.querySelector('.delete-btn')).not.toBeNull();
   });
 });

@@ -44,36 +44,6 @@
   --delete-red: #FF6B5B;
 }
 
-.app-title {
-  margin: 0;
-  display: flex;
-  align-items: center;
-}
-
-.app-logo {
-  height: 44px;
-  width: auto;
-  display: block;
-  object-fit: contain;
-}
-
-.meme-search-header .app-title {
-  justify-content: center;
-  width: 100%;
-}
-
-header .app-logo {
-  height: 65px;
-  width: auto;
-  display: block;
-}
-
-.meme-search-header .app-logo {
-  height: 56px;
-  width: auto;
-  display: block;
-}
-
 /* Smooth fade between themes. Limited to color properties on a handful of
  * common surfaces so the transition is felt but doesn't slow down hover
  * animations or layout changes. */
@@ -213,79 +183,6 @@ main {
 #download-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
-
-/* ── Font picker (pill above the canvas's top-left corner) ───────────────── */
-/* Anchored to the canvas-container (position: relative). `bottom: 100%` lifts
-   the pill just above the box's top edge so it never overlaps the image. */
-.font-settings {
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  margin-bottom: 8px;
-  z-index: 30;
-  display: inline-flex;
-}
-
-/* Forest-green pill matching the Upload / Download buttons. */
-.font-settings-btn {
-  padding: 0.625rem 1.5rem;
-  background: var(--forest-green);
-  color: var(--off-white);
-  border: none;
-  border-radius: 999px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 600;
-  line-height: 1;
-  transition: background 0.2s;
-}
-
-.font-settings-btn:hover,
-.font-settings-btn[aria-expanded="true"] {
-  background: var(--dark-forest);
-}
-
-/* Dropdown anchored to the pill; opens downward over the canvas, left-aligned
-   with the button so it stays inside the box. */
-.font-settings-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 30;
-  margin: 0;
-  padding: 4px;
-  list-style: none;
-  min-width: 11rem;
-  max-height: 60vh;
-  overflow-y: auto;
-  background: var(--off-white);
-  border: 1px solid var(--soft-green-outline);
-  border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(16, 40, 25, 0.18);
-}
-
-.font-settings-menu[hidden] {
-  display: none;
-}
-
-.font-settings-item {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 0.5rem 0.75rem;
-  background: transparent;
-  color: var(--dark-text);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-}
-
-.font-settings-item:hover,
-.font-settings-item:focus {
-  background: var(--soft-gray);
-  outline: none;
 }
 
 /* Share button — hidden by default; JS reveals it on mobile/tablet only. */
@@ -511,14 +408,13 @@ body.is-moving-text-box .copy-btn {
 
 .text-box.selected {
   z-index: 20;
-  border: 2px dashed;
 }
 
 .text-box textarea {
   width: 100%;
   height: 100%;
   background: transparent;
-  border: none;
+  border: 2px dashed rgba(15, 43, 26, 0.45);
   color: #fff;
   font-family: Impact, sans-serif;
   font-size: 24px;
@@ -545,7 +441,6 @@ body.is-moving-text-box .copy-btn {
 
 .text-box.selected textarea {
   border-color: var(--forest-green);
-  
 }
 
 /* Toolbar — dark forest panel with cream-outlined controls, matching the
@@ -569,7 +464,7 @@ body.is-moving-text-box .copy-btn {
 }
 
 .text-box.selected .text-box-toolbar {
-  display: none;
+  display: flex;
 }
 
 .text-box-toolbar select {
@@ -626,7 +521,6 @@ body.is-moving-text-box .copy-btn {
   z-index: 25;
 }
 
-/* Show the resize handles when the text box is selected. */
 .text-box.selected .resize-handle {
   display: block;
 }
@@ -655,22 +549,19 @@ body.is-moving-text-box .copy-btn {
   cursor: se-resize;
 }
 
-.text-box.selected {
-  cursor: move;
-}
-
-.text-box.selected textarea {
-  cursor: move;
-}
-
-.text-box.selected textarea:focus {
-  cursor: text;
-}
-
-.text-box-toolbar,
-.text-box-toolbar *,
-.resize-handle {
+/* Move handle */
+/* .text-box-toolbar .move-handle {
+  cursor: grab;
   touch-action: none;
+  user-select: none;
+  color: var(--off-white);
+  border-color: var(--off-white);
+}
+
+/* .text-box-toolbar .move-handle:active {
+  cursor: grabbing;
+  background: var(--off-white);
+  color: var(--dark-forest);
 }
 
 /* Visual separator between toolbar groups */
@@ -821,7 +712,6 @@ body.is-moving-text-box .copy-btn {
 }
 
 .meme-search-name {
-  display: none;
   font-size: 0.8rem;
   color: var(--off-white);
   white-space: nowrap;
@@ -913,86 +803,8 @@ body.is-moving-text-box .copy-btn {
   padding: 0;
   z-index: 5;
   box-shadow: 0 2px 8px rgba(15, 43, 26, 0.5);
-  cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.15s;
-}
-
-.ai-panda-btn:hover {
-  transform: scale(1.06);
-  box-shadow: 0 4px 12px rgba(15, 43, 26, 0.65);
-}
-
-.ai-panda-btn:active {
-  transform: scale(0.96);
-}
-}
-
-/* Desktop AI button — sits in the top .controls row next to Upload/Download.
- * Hidden by default; the desktop @media block lower in this file reveals it.
- * Previously floated at the editor panel's top-left edge; now an inline
- * control pill so the canvas alignment stays predictable. */
-.desktop-ai-btn {
-  display: none;
-  width: 3rem;
-  min-width: 3rem;
-  height: 3rem;
-  border-radius: 50%;
-  background: var(--forest-green);
-  color: var(--off-white);
-  border: 2px solid var(--off-white);
-  font-size: 1.4rem;
-  line-height: 1;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  box-shadow: 0 2px 8px rgba(15, 43, 26, 0.4);
-  cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.15s;
-}
-
-.desktop-ai-btn:hover {
-  transform: scale(1.06);
-  box-shadow: 0 4px 12px rgba(15, 43, 26, 0.55);
-}
-
-.desktop-ai-btn:active {
-  transform: scale(0.96);
-}
-
-/* Empty / loading / error message rendered into the desktop meme library
- * (#meme-search-results) when the user has flipped the panel into AI mode.
- * Spans the full grid width so it always sits centered inside the panel. */
-.ai-library-message {
-  grid-column: 1 / -1;
-  color: var(--off-white);
-  text-align: center;
-  padding: 1.5rem 1rem;
-  font-size: 0.95rem;
-  margin: 0;
-  opacity: 0.9;
-}
-
-/* "Back to templates" link rendered above the AI suggestion cards so the
- * user can return to the normal meme library at any time. */
-.ai-library-back {
-  grid-column: 1 / -1;
-  background: transparent;
-  color: var(--off-white);
-  border: 1.5px solid var(--off-white);
-  border-radius: 999px;
-  padding: 0.4rem 0.875rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  margin-bottom: 0.5rem;
-  transition: background 0.15s, color 0.15s;
-}
-
-.ai-library-back:hover,
-.ai-library-back:focus-visible {
-  background: var(--off-white);
-  color: var(--dark-forest);
-  outline: none;
+  cursor: default;
+  opacity: 0.85;
 }
 
 /* Mobile back-to-editor button — sits at the top-left of the home view
@@ -1170,45 +982,10 @@ body.is-moving-text-box .copy-btn {
   opacity: 0.5;
 }
 
-/* AI Mode toggle pill (#87). Header button that swaps the meme library for
- * the AI suggestions panel. Shown on both desktop and mobile (it replaced
- * the inert ⚙ settings button on mobile). */
-.ai-mode-toggle {
-  display: inline-block;
-  flex: 0 0 auto;
-  padding: 0.4rem 0.875rem;
-  background: transparent;
-  color: var(--dark-forest);
-  border: 2px solid var(--dark-forest);
-  border-radius: 999px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 600;
-  line-height: 1;
-}
-
-.ai-mode-toggle:hover,
-.ai-mode-toggle:focus-visible {
-  background: var(--dark-forest);
-  color: var(--off-white);
-  outline: none;
-}
-
-.ai-mode-toggle[aria-pressed="true"] {
-  background: var(--forest-green);
-  color: var(--off-white);
-  border-color: var(--forest-green);
-}
-
-/* "Fonts" pill row — the primary font-dropdown trigger sits below the
- * canvas on both desktop and mobile. Inline-flex so the wrapper shrinks
- * around the button; the parent (main / .editor-panel) already centers
- * children via align-items: center. Keeps `position: relative` from the
- * co-applied .font-settings class so the dropdown menu anchors to the
- * button instead of the page. */
+/* "fonts" pill — removed from mobile UI; fonts are accessible via the
+ * per-text-box dropdown on desktop. Hidden globally. */
 .fonts-row {
-  display: inline-flex;
-  align-self: center;
+  display: none;
 }
 
 .fonts-btn {
@@ -1365,17 +1142,7 @@ body.is-moving-text-box .copy-btn {
     text-align: center;
     flex: 1 1 auto;
   }
-  /* Mobile full-bleed positioning is scoped to the mobile panel only so the
-   * desktop panel (lives inside .canvas-container) is not overridden when
-   * the same .ai-suggestions-panel base class is loaded at narrow widths. */
-  .mobile-ai-panel {
-    position: fixed;
-    inset: 1rem;
-    width: auto;
-    max-height: calc(100vh - 2rem);
-    transform: none;
-    z-index: 1000;
-  }
+
   main {
     /* Extra bottom padding clears the fixed .bottom-actions row. */
     padding: 0 0.75rem 5rem;
@@ -1442,54 +1209,6 @@ body.is-moving-text-box .copy-btn {
     overflow: hidden;
   }
 
-  /* ── Mobile AI mode (#87) ──
-   * Mobile has no side-by-side panels, so AI mode slides the suggestions panel
-   * up as a bottom sheet that temporarily takes the place of the Browse Memes
-   * button row. Triggered by the header AI pill that replaced the ⚙ button. */
-  .ai-mode-toggle {
-    /* Compact so the pill fits the narrow header next to the theme toggle. */
-    padding: 0.35rem 0.625rem;
-    font-size: 0.75rem;
-  }
-
-  /* The panel lives inside .meme-search, which is display:none on mobile until
-   * Browse is open — and a display:none ancestor would keep the panel hidden.
-   * In AI mode, make .meme-search a transparent pass-through so the fixed
-   * bottom-sheet panel renders, while its own library children stay hidden. */
-  body.ai-mode .meme-search {
-    display: contents;
-  }
-
-  body.ai-mode .meme-search-header,
-  body.ai-mode #meme-search-input,
-  body.ai-mode #meme-search-status,
-  body.ai-mode #meme-search-results,
-  body.ai-mode #mobile-home-plus-btn {
-    display: none;
-  }
-
-  body.ai-mode #desktop-ai-suggestions-panel,
-  body.ai-mode #desktop-ai-suggestions-panel[hidden] {
-    display: flex !important; /* override .desktop-ai-panel's mobile display:none */
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    top: auto;
-    width: auto;
-    max-height: 75vh;
-    transform: none;
-    overflow-y: auto;
-    /* Bottom-sheet look: rounded top corners only, flush to screen edges. */
-    border-radius: 1.25rem 1.25rem 0 0;
-    z-index: 1001; /* above the browse overlay (50) and bottom-actions (10) */
-  }
-
-  /* While the AI sheet is up it replaces the Browse Memes / Share row. */
-  body.ai-mode .bottom-actions {
-    display: none;
-  }
-
   .meme-search-title {
     text-align: center;
     font-size: 1.4rem;
@@ -1514,44 +1233,13 @@ body.is-moving-text-box .copy-btn {
 
   /* Show the compact editor library preview on mobile in editor view. */
   .editor-library-preview {
-    display: none;
+    display: block;
   }
 
-  .text-box.menu-open .text-box-toolbar {
-    display: none;
-  }
   /* Hide the bottom text toolbar on mobile entirely — X button + gestures
    * replace it. */
   .text-box.selected .text-box-toolbar {
     display: none;
-  }
-
-  .text-box-delete-btn {
-    display: none;
-    position: absolute;
-    top: -10px;
-    right: -10px;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    border: 1px solid #fff8e8;
-    background: #143d22;
-    color: #fff8e8;
-    font-size: 16px;
-    font-weight: 700;
-    line-height: 18px;
-    text-align: center;
-    cursor: pointer;
-    z-index: 20;
-    padding: 0;
-  }
-
-  .text-box.selected .text-box-delete-btn {
-    display: block;
-  }
-
-  .text-box-delete-btn:hover {
-    background: #0d2c19;
   }
 
   /* Show the mobile X delete button when a text box is selected. */
@@ -1592,12 +1280,12 @@ body.is-moving-text-box .copy-btn {
     position: absolute;
     bottom: 1.25rem;
     right: 1.25rem;
-    width: 4rem;
-    height: 4rem;
+    width: 3.5rem;
+    height: 3.5rem;
     background: var(--forest-green);
     color: var(--off-white);
-    border: 2px solid var(--off-white);
-    font-size: 2rem;
+    border: none;
+    font-size: 1.75rem;
     font-weight: 700;
     border-radius: 50%;
     flex: none;
@@ -1642,40 +1330,6 @@ body.is-moving-text-box .copy-btn {
   }
 }
 
-.text-box-delete-btn {
-  display: none;
-  position: absolute;
-  top: -14px;
-  right: -14px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 2px solid #ffffff;
-  background: #e74b3c;
-  color: #ffffff;
-  font-size: 20px;
-  font-weight: 800;
-  line-height: 22px;
-  text-align: center;
-  cursor: pointer;
-  z-index: 40;
-  padding: 0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
-  touch-action: manipulation;
-}
-
-.text-box.selected .text-box-delete-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.text-box-delete-btn:hover,
-.text-box-delete-btn:focus-visible {
-  background: #c93125;
-  outline: none;
-}
-
 /* ── Desktop (>768 px) ──
  * Two-column layout: editor panel on the left, meme search panel on the
  * right, separated by a draggable resizer (LayoutManager.js). */
@@ -1709,6 +1363,7 @@ body.is-moving-text-box .copy-btn {
   .mobile-home-back-btn,
   .search-icon-btn,
   .bottom-actions,
+  .fonts-row,
   .settings-btn,
   .ai-panda-btn,
   .editor-library-preview {
@@ -1745,23 +1400,20 @@ body.is-moving-text-box .copy-btn {
     align-items: center;
     gap: 16px;
     position: relative;
-  }
-
-  /* Reveal the desktop AI button on wide viewports. Mobile keeps its
-   * `display: none` from the base rule so the panda inside Browse Memes
-   * stays the only mobile entry point. */
-  .desktop-ai-btn {
-    display: inline-flex;
+    z-index: 1;
   }
 
   /* Right meme search panel — display: flex !important overrides mobile
    * display: none so it stays permanently visible on desktop.
    * min-width allows the grid to shrink to 1 card; max-width lets the user
-   * drag up to 50 % of the viewport (LayoutManager enforces the same limit). */
+   * drag up to 75 % of the viewport (LayoutManager enforces the same limit).
+   * position + high z-index put the library above the editor so a
+   * selected text-box-toolbar that extends rightward past the canvas
+   * is visually covered by the library instead of overlapping it. */
   .meme-search {
     width: 380px;
     min-width: 160px;
-    max-width: 50vw;
+    max-width: 75vw;
     height: 100%;
     margin-top: 0 !important;
     border-radius: 0 !important;
@@ -1820,66 +1472,6 @@ body.is-moving-text-box .copy-btn {
     grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
     gap: 10px !important;
   }
-
-  /* ── Desktop AI mode (#87) ──
-   * When body.ai-mode is on, the right-side .meme-search panel swaps its
-   * library content for the inline AI suggestions panel. The layout is
-   * unchanged: the editor/canvas stays on the LEFT and the AI panel takes
-   * the RIGHT panel in place of the template library. */
-
-  /* Hide the library content so the AI panel can take over the right panel. */
-  body.ai-mode .meme-search-header,
-  body.ai-mode #meme-search-input,
-  body.ai-mode #meme-search-status,
-  body.ai-mode #meme-search-results {
-    display: none;
-  }
-
-  /* Force the AI panel visible (overrides [hidden]) and unwind the centered
-   * canvas-overlay positioning of .desktop-ai-panel so it lays out inline
-   * inside .meme-search instead of floating. */
-  body.ai-mode #desktop-ai-suggestions-panel,
-  body.ai-mode #desktop-ai-suggestions-panel[hidden] {
-    display: flex;
-    position: static;
-    top: auto;
-    left: auto;
-    transform: none;
-    width: auto;
-    max-height: none;
-    overflow: visible;
-    box-shadow: none;
-    border: none;
-    background: transparent;
-    padding: 0;
-    z-index: auto;
-  }
-
-  /* The header toggle controls visibility, so the modal close × is redundant. */
-  body.ai-mode #desktop-ai-suggestions-panel .ai-close-btn {
-    display: none;
-  }
-
-  /* The panel now sits on .meme-search's --dark-forest background, so switch
-   * the panel text from the default forest-green palette to light colors so
-   * it stays readable (matches how .meme-search styles its own content). */
-  body.ai-mode #desktop-ai-suggestions-panel .ai-suggestions-title,
-  body.ai-mode #desktop-ai-suggestions-panel .ai-label,
-  body.ai-mode #desktop-ai-suggestions-panel .ai-change-key,
-  body.ai-mode #desktop-ai-suggestions-panel .ai-note a {
-    color: var(--off-white);
-  }
-
-  body.ai-mode #desktop-ai-suggestions-panel .ai-note,
-  body.ai-mode #desktop-ai-suggestions-panel .ai-status {
-    color: var(--soft-gray);
-  }
-
-  /* In AI mode the canvas is a blank target for the chosen suggestion — hide
-   * the upload placeholder so it looks intentionally empty. */
-  body.ai-mode .canvas-container:not(.has-image) .placeholder {
-    display: none;
-  }
 }
 
 /* On very narrow screens (<=360 px) fall back to 2 columns. */
@@ -1902,267 +1494,5 @@ body.is-moving-text-box .copy-btn {
    * A- / A+ still work. */
   .text-box-toolbar .font-size-display {
     display: none;
-  }
-}
-
-/* ── AI Suggestions ──────────────────────────────────────────────────────── */
-/* ── AI Suggestions ──────────────────────────────────────────────────────── */
-.ai-suggestions-panel {
-  padding: 20px;
-  background: var(--off-white);
-  border: 1px solid var(--soft-green-outline);
-  border-radius: 1.5rem;
-  box-shadow: 0 8px 24px rgba(15, 43, 26, 0.25);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.ai-suggestions-panel[hidden] {
-  display: none;
-}
-
-.desktop-ai-panel {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  /* Sized to fit comfortably inside the canvas container even when the
-   * library has been dragged narrow. min() lets the panel shrink with the
-   * container while never blowing past 460px / 420px on wide screens. */
-  width: min(460px, calc(100% - 3rem));
-  max-height: min(420px, calc(100% - 3rem));
-  transform: translate(-50%, -50%);
-  overflow-y: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  z-index: 60;
-}
-
-.desktop-ai-panel::-webkit-scrollbar {
-  display: none;
-}
-
-.mobile-ai-panel {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  width: min(90vw, 34rem);
-  max-height: min(80vh, 38rem);
-  transform: translate(-50%, -50%);
-  overflow-y: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  z-index: 1000;
-}
-
-.mobile-ai-panel::-webkit-scrollbar {
-  display: none;
-}
-
-@media (max-width: 768px) {
-  .desktop-ai-panel {
-    display: none !important;
-  }
-}
-
-@media (min-width: 769px) {
-  .mobile-ai-panel {
-    display: none !important;
-  }
-}
-
-.ai-suggestions-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.ai-close-btn {
-  background: transparent;
-  border: none;
-  color: var(--soft-green-outline);
-  font-size: 1.6rem;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0 6px;
-  border-radius: 4px;
-}
-
-.ai-close-btn:hover {
-  color: var(--forest-green);
-  background: rgba(47, 79, 53, 0.1);
-}
-
-
-
-.ai-suggestions {
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid var(--soft-green-outline);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.ai-suggestions-title {
-  font-size: 1.1rem;
-  color: var(--forest-green);
-  font-weight: 600;
-}
-
-.ai-get-btn,
-.ai-generate-btn {
-  align-self: flex-start;
-  padding: 10px 20px;
-  background: var(--forest-green);
-  color: var(--off-white);
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 600;
-  transition: background 0.2s, opacity 0.2s;
-}
-
-.ai-get-btn:hover,
-.ai-generate-btn:hover:not(:disabled) {
-  background: var(--deep-green);
-}
-
-.ai-generate-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.ai-form,
-.ai-key-form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.ai-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.ai-label {
-  color: var(--forest-green);
-  font-size: 0.9rem;
-}
-
-.ai-input {
-  width: 100%;
-  padding: 10px 14px;
-  background: var(--cream-bg);
-  color: var(--forest-green);
-  border: 1px solid var(--soft-green-outline);
-  border-radius: 6px;
-  font-size: 1rem;
-  outline: none;
-  transition: border-color 0.15s;
-}
-
-.ai-input:focus {
-  border-color: #e94560;
-}
-
-.ai-note {
-  color: var(--soft-green-outline);
-  font-size: 0.8rem;
-}
-
-.ai-note a {
-  color: var(--forest-green);
-}
-
-.ai-status {
-  color: var(--soft-green-outline);
-  font-size: 0.9rem;
-  min-height: 1.2em;
-}
-
-.ai-change-key {
-  align-self: flex-start;
-  color: var(--forest-green);
-  font-size: 0.85rem;
-  text-decoration: underline;
-}
-
-.ai-results {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
-}
-
-.ai-result-card {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
-  padding: 8px;
-  background: var(--cream-bg);
-  border: 1px solid var(--soft-green-outline);
-  border-radius: 6px;
-  cursor: pointer;
-  color: var(--forest-green);
-  font-family: inherit;
-  text-align: left;
-  transition: border-color 0.15s, transform 0.1s;
-}
-
-.ai-result-card:hover {
-  border-color: #e94560;
-}
-
-.ai-result-card:active {
-  transform: scale(0.98);
-}
-
-.ai-result-card img {
-  width: 100%;
-  height: 120px;
-  object-fit: contain;
-  background: var(--off-white);
-  border-radius: 4px;
-}
-
-.ai-result-name {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #fff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.ai-caption-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.ai-caption-list li {
-  font-size: 0.8rem;
-  color: var(--forest-green);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* On narrow screens, single-column AI results so captions stay readable. */
-@media (max-width: 480px) {
-  .ai-results {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  .ai-result-card img {
-    height: 140px;
   }
 }

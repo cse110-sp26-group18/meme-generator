@@ -16,10 +16,6 @@ MemeGen.TextBoxManager = (function () {
   // Bumped on every new image load and reset so restore callbacks captured for
   // an older image can't re-create that image's markers onto a newer one.
   var imageSessionId = 0;
-  // Global font applied to every text box. Changed via the font-settings menu
-  // (setFontForAll); newly created boxes adopt it so the choice sticks for
-  // future text too. Defaults to the same 'Impact' each TextBox starts with.
-  var defaultFontFamily = 'Impact';
 
   /**
    * @param {HTMLElement} containerEl - the canvas container that receives
@@ -319,10 +315,6 @@ MemeGen.TextBoxManager = (function () {
 
     MemeGen.DragResize.attach(tb);
 
-    // Adopt the current global font so newly added text matches the last
-    // choice made in the font-settings menu.
-    tb.setFontFamily(defaultFontFamily);
-
     textBoxes.push(tb);
     deselectAll();
 
@@ -375,19 +367,6 @@ MemeGen.TextBoxManager = (function () {
     return textBoxes[textBoxes.length - 1] || null;
   }
 
-  /**
-   * Sets the global font and applies it to every existing text box. New boxes
-   *   created afterwards also adopt it (see createTextBox), so the choice
-   *   covers both current and future text.
-   * @param {string} value - a font value from MemeGen.TextBox.FONTS
-   */
-  function setFontForAll(value) {
-    defaultFontFamily = value;
-    textBoxes.forEach(function (tb) {
-      tb.setFontFamily(value);
-    });
-  }
-
   function getSelectedTextBox() {
     return textBoxes.find(function (tb) {
       return tb.selected;
@@ -408,7 +387,6 @@ MemeGen.TextBoxManager = (function () {
     imageLoaded = false;
     // Invalidate any restore callbacks still holding the prior session id.
     imageSessionId++;
-    defaultFontFamily = 'Impact';
   }
 
   function deselectOrDeleteSelectedTextBox() {
@@ -437,7 +415,6 @@ MemeGen.TextBoxManager = (function () {
     clearDetectedRegions: clearDetectedRegions,
     renderCanvas: renderCanvas,
     getCoverRegions: getCoverRegions,
-    setFontForAll: setFontForAll,
     reset: reset
   };
 })();

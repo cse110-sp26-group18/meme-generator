@@ -165,6 +165,38 @@ describe('tag-meme Worker — Gemini provider', () => {
     expect(body.tags[29]).toBe('tag29');
   });
 
+  it('preserves original Gemini tags before adding emotion expansions', async () => {
+    const tags = ['anxious'].concat(
+      Array.from({ length: 28 }, (_, i) => 'specific tag ' + i),
+      ['specific context']
+    );
+    const fetchImpl = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({
+        candidates: [
+          {
+            content: {
+              parts: [{ text: JSON.stringify({ tags }) }]
+            }
+          }
+        ]
+      })
+    });
+    const worker = loadWorker({ fetchImpl });
+
+    const response = await worker.fetch(
+      makeTagRequest({ id: '91538330', name: 'X, X Everywhere', imageUrl: 'https://example.com/everywhere.jpg' }),
+      { GEMINI_API_KEY: 'gemini-test-key' }
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.tags).toHaveLength(30);
+    expect(body.tags).toContain('specific context');
+    expect(body.tags).not.toContain('nervous');
+  });
+
   it('expands generated emotion tags with search-friendly synonyms', async () => {
     const fetchImpl = jest.fn().mockResolvedValue({
       ok: true,

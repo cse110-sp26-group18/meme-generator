@@ -409,6 +409,12 @@ MemeGen.MemeSearch = (function () {
   function buildImgflipMeme(raw, tags) {
     var list = Array.isArray(tags) ? tags : [];
     var aliases = getContextAliases(raw);
+    var searchText = buildSearchText({
+      name: raw.name,
+      source: 'imgflip',
+      tags: list,
+      aliases: aliases
+    });
     return {
       id: raw.id,
       name: raw.name,
@@ -416,12 +422,8 @@ MemeGen.MemeSearch = (function () {
       source: 'imgflip',
       tags: list,
       aliases: aliases,
-      searchText: buildSearchText({
-        name: raw.name,
-        source: 'imgflip',
-        tags: list,
-        aliases: aliases
-      })
+      searchText: searchText,
+      normalizedSearchText: normalizeQuery(searchText)
     };
   }
 
@@ -429,6 +431,7 @@ MemeGen.MemeSearch = (function () {
   // searchText bundles the extra metadata so internal templates can be matched
   // by character, emotion, or tag — not just by name.
   function toMeme(t) {
+    var searchText = buildSearchText(t);
     return {
       id: t.id,
       name: t.name,
@@ -436,7 +439,8 @@ MemeGen.MemeSearch = (function () {
       source: 'internal',
       tags: Array.isArray(t.tags) ? t.tags : [],
       aliases: Array.isArray(t.aliases) ? t.aliases : [],
-      searchText: buildSearchText(t)
+      searchText: searchText,
+      normalizedSearchText: normalizeQuery(searchText)
     };
   }
 
@@ -530,6 +534,7 @@ MemeGen.MemeSearch = (function () {
   // Defensive client-side cleanup of any tag list: lowercase, trimmed, short,
   // de-duplicated, capped. The Worker validates too, but we never trust input.
   function sanitizeTags(tags) {
+    if (!Array.isArray(tags)) return [];
     var seen = {};
     var out = [];
     for (var i = 0; i < tags.length && out.length < MAX_TAGS; i++) {
@@ -551,7 +556,9 @@ MemeGen.MemeSearch = (function () {
     for (var i = 0; i < memes.length; i++) {
       if (memes[i].id === id) {
         memes[i].tags = clean;
-        memes[i].searchText = buildSearchText(memes[i]);
+        var searchText = buildSearchText(memes[i]);
+        memes[i].searchText = searchText;
+        memes[i].normalizedSearchText = normalizeQuery(searchText);
         break;
       }
     }
@@ -572,7 +579,7 @@ MemeGen.MemeSearch = (function () {
     var queryTerms = getQueryTerms(query);
     var filtered = query
       ? memes.filter(function (m) {
-          var haystack = m.searchText || (m.name || '').toLowerCase();
+          var haystack = m.normalizedSearchText || normalizeQuery(m.searchText || m.name || '');
           return queryTerms.some(function (term) {
             return matchesSearchTerm(haystack, term);
           });
@@ -638,9 +645,7 @@ MemeGen.MemeSearch = (function () {
       .trim();
   }
 
-  function matchesSearchTerm(haystack, term) {
-    var normalizedHaystack = normalizeQuery(haystack);
-    var normalizedTerm = normalizeQuery(term);
+  function matchesSearchTerm(normalizedHaystack, normalizedTerm) {
     if (!normalizedHaystack || !normalizedTerm) return false;
 
     if (normalizedTerm.indexOf(' ') !== -1) {

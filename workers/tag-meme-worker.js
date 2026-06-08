@@ -184,22 +184,34 @@ function sanitizeTags(rawTags) {
 
 function expandEmotionTags(rawTags) {
   if (!Array.isArray(rawTags)) return [];
-  const expanded = [];
-  for (const tag of rawTags) {
-    expanded.push(tag);
-    const clean = typeof tag === 'string' ? tag.toLowerCase().trim() : '';
+  const uniqueTags = sanitizeTags(rawTags);
+  if (uniqueTags.length >= MAX_TAGS) return uniqueTags;
+
+  const expanded = uniqueTags.slice();
+  const seen = new Set(expanded);
+
+  function addTag(tag) {
+    const cleaned = sanitizeTags([tag])[0];
+    if (cleaned && !seen.has(cleaned) && expanded.length < MAX_TAGS) {
+      seen.add(cleaned);
+      expanded.push(cleaned);
+    }
+  }
+
+  for (const tag of uniqueTags) {
+    const clean = tag.toLowerCase().trim();
     const inflections = EMOTION_TAG_INFLECTIONS[clean];
-    if (inflections) expanded.push.apply(expanded, inflections);
+    if (inflections) inflections.forEach(addTag);
     const related = EMOTION_TAG_EXPANSIONS[clean];
     if (related) {
-      expanded.push.apply(expanded, related);
+      related.forEach(addTag);
       for (const relatedTag of related) {
         const relatedInflections = EMOTION_TAG_INFLECTIONS[relatedTag];
-        if (relatedInflections) expanded.push.apply(expanded, relatedInflections);
+        if (relatedInflections) relatedInflections.forEach(addTag);
       }
     }
   }
-  return sanitizeTags(expanded);
+  return expanded;
 }
 
 // Validate the request body. Returns { ok: true, value } or { ok: false, error }.

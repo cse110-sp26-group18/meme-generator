@@ -84,7 +84,7 @@ MemeGen.GeminiClient = (function () {
   }
 
   function clearApiKey() {
-    try { window.localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+    try { window.localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
   }
 
   function hasApiKey() {

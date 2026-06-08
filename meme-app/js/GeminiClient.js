@@ -70,7 +70,7 @@ MemeGen.GeminiClient = (function () {
   function getApiKey() {
     try {
       return window.localStorage.getItem(STORAGE_KEY);
-    } catch {
+    } catch (e) {
       return null;
     }
   }

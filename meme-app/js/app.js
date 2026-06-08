@@ -315,14 +315,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Mobile Fonts button (below the canvas) → delegate to the desktop font
-  // settings button so both entry points share the same dropdown logic.
-  if (mobileFontsBtn && fontSettingsBtn) {
-    mobileFontsBtn.addEventListener('click', function () {
-      fontSettingsBtn.click();
-    });
-  }
-
   // The legacy header back button has no role in the new editor-first
   // flow; it stays in the DOM for selector compatibility but is wired to
   // a no-op so click doesn't accidentally toggle anything stale.
@@ -399,23 +391,56 @@ document.addEventListener('DOMContentLoaded', function () {
       fontSettingsMenu.appendChild(li);
     });
 
-    function openFontMenu() {
+    function openFontMenu(triggerEl) {
       fontSettingsMenu.hidden = false;
-      fontSettingsBtn.setAttribute('aria-expanded', 'true');
+      if (triggerEl && window.innerWidth >= 769) {
+        // Desktop: menu is inside off-screen .mobile-fonts-row (visibility:hidden).
+        // Override with position:fixed + visibility:visible so it appears at the
+        // correct viewport position relative to the triggering button.
+        var rect = triggerEl.getBoundingClientRect();
+        fontSettingsMenu.style.position   = 'fixed';
+        fontSettingsMenu.style.visibility = 'visible';
+        fontSettingsMenu.style.top    = (rect.bottom + 6) + 'px';
+        fontSettingsMenu.style.left   = Math.min(rect.left, window.innerWidth - 190) + 'px';
+        fontSettingsMenu.style.bottom = 'auto';
+        fontSettingsMenu.style.transform = 'none';
+      } else {
+        // Mobile: CSS handles position (absolute, below the Fonts button).
+        // Clear any desktop inline styles so the media-query rules apply.
+        fontSettingsMenu.style.removeProperty('position');
+        fontSettingsMenu.style.removeProperty('visibility');
+        fontSettingsMenu.style.removeProperty('top');
+        fontSettingsMenu.style.removeProperty('left');
+        fontSettingsMenu.style.removeProperty('bottom');
+        fontSettingsMenu.style.removeProperty('transform');
+      }
+      if (fontSettingsBtn) fontSettingsBtn.setAttribute('aria-expanded', 'true');
+      if (mobileFontsBtn)  mobileFontsBtn.setAttribute('aria-expanded', 'true');
     }
     function closeFontMenu() {
       fontSettingsMenu.hidden = true;
-      fontSettingsBtn.setAttribute('aria-expanded', 'false');
+      fontSettingsMenu.style.removeProperty('position');
+      fontSettingsMenu.style.removeProperty('visibility');
+      fontSettingsMenu.style.removeProperty('top');
+      fontSettingsMenu.style.removeProperty('left');
+      fontSettingsMenu.style.removeProperty('bottom');
+      fontSettingsMenu.style.removeProperty('transform');
+      if (fontSettingsBtn) fontSettingsBtn.setAttribute('aria-expanded', 'false');
+      if (mobileFontsBtn)  mobileFontsBtn.setAttribute('aria-expanded', 'false');
     }
 
     fontSettingsBtn.addEventListener('click', function (e) {
       e.stopPropagation();
-      if (fontSettingsMenu.hidden) {
-        openFontMenu();
-      } else {
-        closeFontMenu();
-      }
+      if (fontSettingsMenu.hidden) { openFontMenu(fontSettingsBtn); } else { closeFontMenu(); }
     });
+
+    // Mobile Fonts button: same toggle, positioned above the bottom bar by CSS.
+    if (mobileFontsBtn) {
+      mobileFontsBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (fontSettingsMenu.hidden) { openFontMenu(mobileFontsBtn); } else { closeFontMenu(); }
+      });
+    }
 
     fontSettingsMenu.addEventListener('click', function (e) {
       // Stop the click from reaching #canvas-container (which would open the
@@ -430,7 +455,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // Click anywhere outside the menu (or press Escape) closes it.
     document.addEventListener('click', function (e) {
       if (fontSettingsMenu.hidden) return;
-      if (fontSettingsBtn.contains(e.target) || fontSettingsMenu.contains(e.target)) return;
+      if (fontSettingsBtn && fontSettingsBtn.contains(e.target)) return;
+      if (mobileFontsBtn  && mobileFontsBtn.contains(e.target))  return;
+      if (fontSettingsMenu.contains(e.target)) return;
       closeFontMenu();
     });
     document.addEventListener('keydown', function (e) {

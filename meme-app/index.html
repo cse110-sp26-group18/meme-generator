@@ -88,13 +88,6 @@
               aria-haspopup="true"
               aria-expanded="false"
             >Font</button>
-            <ul
-              id="font-settings-menu"
-              class="font-settings-menu"
-              role="menu"
-              aria-label="Choose a font"
-              hidden
-            ></ul>
           </div>
         </div>
         <div class="controls-center">
@@ -125,9 +118,20 @@
         ><img src="assets/copy-icon.png" alt="" width="27" height="27" draggable="false"></button>
       </div>
 
-      <!-- Mobile-only Fonts row — sits below canvas on mobile, hidden on desktop. -->
+      <!-- Mobile-only Fonts row — sits below canvas on mobile, invisible on desktop.
+           The shared #font-settings-menu lives here so CSS can anchor it directly
+           below the Fonts button with position:absolute on mobile. On desktop,
+           JS repositions the menu with position:fixed + getBoundingClientRect. -->
       <div class="mobile-fonts-row">
-        <button type="button" id="mobile-fonts-btn" class="fonts-btn">Fonts</button>
+        <button type="button" id="mobile-fonts-btn" class="fonts-btn"
+          aria-haspopup="true" aria-expanded="false">Fonts</button>
+        <ul
+          id="font-settings-menu"
+          class="font-settings-menu"
+          role="menu"
+          aria-label="Choose a font"
+          hidden
+        ></ul>
       </div>
 
       <p class="hint" id="hint" hidden>Click on the image to add text</p>

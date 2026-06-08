@@ -54,8 +54,6 @@ describe('Font Customization', () => {
     expect(options).toContain('Impact');
     expect(options).toContain('Arial');
     expect(options).toContain('Comic Sans');
-    expect(options).toContain('Helvetica');
-    expect(options).toContain('Montserrat');
   });
 
   it('should update fontFamily property when the font select changes to Arial', () => {

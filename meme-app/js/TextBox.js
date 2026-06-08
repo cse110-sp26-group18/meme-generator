@@ -10,9 +10,11 @@ MemeGen.TextBox = (function () {
   // dropdown (below) and the global font-settings menu in app.js, so the two
   // never drift out of sync. Exposed as MemeGen.TextBox.FONTS.
   var FONTS = [
-    { label: 'Impact',     value: 'Impact' },
-    { label: 'Arial',      value: 'Arial' },
-    { label: 'Comic Sans', value: "'Comic Sans MS', cursive" },
+    { label: 'Impact',       value: 'Impact' },
+    { label: 'Arial',        value: 'Arial' },
+    { label: 'Comic Sans',   value: "'Comic Sans MS', cursive" },
+    { label: 'Bangers',      value: 'Bangers' },
+    { label: 'Luckiest Guy', value: 'Luckiest Guy' },
   ];
 
   /**

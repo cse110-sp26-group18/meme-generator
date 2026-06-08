@@ -262,13 +262,10 @@ main {
   background: var(--dark-forest);
 }
 
-/* Dropdown anchored to the pill; opens downward over the canvas, left-aligned
-   with the button so it stays inside the box. */
+/* Dropdown. Position is set by JS (position:fixed on desktop) or by the mobile
+   media query (position:absolute below the Fonts button). Visual styles only here. */
 .font-settings-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 30;
+  z-index: 2000;
   margin: 0;
   padding: 4px;
   list-style: none;
@@ -443,9 +440,13 @@ main {
 
 
 
-/* Mobile fonts row — hidden by default; shown only on mobile. */
+/* Mobile fonts row — off-screen on desktop (not display:none so that its
+   position:fixed child #font-settings-menu can still appear at JS-computed
+   viewport coords). Shown in normal flow on mobile. */
 .mobile-fonts-row {
-  display: none;
+  position: fixed;
+ 
+  visibility: hidden;
 }
 
 .canvas-container.drag-over {
@@ -1733,11 +1734,28 @@ body.is-moving-text-box .copy-btn {
     display: none;
   }
 
-  /* Mobile fonts row — shown below the canvas on mobile. */
+  /* Mobile fonts row — in normal flow below the canvas. position:relative makes
+     it the containing block for the absolutely-positioned #font-settings-menu. */
   .mobile-fonts-row {
+    position: relative;
     display: flex;
     justify-content: center;
     margin-top: 0.75rem;
+    visibility: visible;
+  }
+
+  /* Font-settings menu: anchored directly below the Fonts button. */
+  #font-settings-menu {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    transform: translateX(-50%);
+    visibility: visible;
+    width: min(90vw, 18rem);
+    max-height: 45vh;
+    overflow-y: auto;
   }
 
   /* Browse Memes | Share fixed at viewport bottom on mobile (2 items). */

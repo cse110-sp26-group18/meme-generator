@@ -39,8 +39,12 @@ HTMLAnchorElement.prototype.click = function () {};
 // ── Load MemeGen modules in dependency order ───────────────────────────────
 require('../meme-app/js/LayoutManager.js');
 require('../meme-app/js/ImageLoader.js');
+require('../meme-app/js/FileValidator.js');
 require('../meme-app/js/TextBox.js');
 require('../meme-app/js/DragResize.js');
 require('../meme-app/js/TextBoxManager.js');
 require('../meme-app/js/Exporter.js');
 require('../meme-app/js/MemeSearch.js');
+// require('../meme-app/js/GeminiClient.js');
+// require('../meme-app/js/AISuggestions.js');
+require('../meme-app/js/ThemeToggle.js');

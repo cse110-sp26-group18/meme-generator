@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var imageInput = document.getElementById('image-input');
   var downloadBtn = document.getElementById('download-btn');
   var shareBtn = document.getElementById('share-btn');
+  var copyBtn = document.getElementById('copy-btn');
   var scanTextBtn = document.getElementById('scan-text-btn');
   var searchIconBtn = document.getElementById('search-icon-btn');
   var memeSearchSection = document.getElementById('meme-search');
@@ -14,8 +15,10 @@ document.addEventListener('DOMContentLoaded', function () {
   var mobileHomeBackBtn = document.getElementById('mobile-home-back-btn');
   var mobileHomePlusBtn = document.getElementById('mobile-home-plus-btn');
   var browseMemesBtn = document.getElementById('browse-memes-btn');
+  var mobileFontsBtn = document.getElementById('mobile-fonts-btn');
   var fontsBtn = document.getElementById('fonts-btn');
-  var aiPandaBtn = document.getElementById('ai-panda-btn');
+  var fontSettingsBtn = document.getElementById('font-settings-btn');
+  var fontSettingsMenu = document.getElementById('font-settings-menu');
   var placeholder = document.getElementById('placeholder');
   var hint = document.getElementById('hint');
 
@@ -38,13 +41,19 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   MemeGen.ImageLoader.init(canvas, function (width, height) {
-    container.style.width = width + 'px';
-    container.style.height = height + 'px';
+    // Let CSS control the display size via aspect-ratio + min() width.
+    // JS only sets the custom properties so the CSS formula has the values it needs.
+    container.style.removeProperty('width');
+    container.style.removeProperty('height');
+    container.style.setProperty('--canvas-aspect-ratio', width + ' / ' + height);
+    container.style.setProperty('--canvas-ratio-num', (width / height).toFixed(4));
     container.classList.add('has-image');
     placeholder.hidden = true;
     hint.hidden = false;
     downloadBtn.disabled = false;
-    if (shareBtn && MemeGen.Exporter.isMobileOrTablet()) shareBtn.disabled = false;
+    if (copyBtn) copyBtn.disabled = false;
+    // Enable both; CSS media queries decide which one is visible.
+    if (shareBtn) shareBtn.disabled = false;
     // Scan Text stays disabled in this version — see the inert button
     // contract below. Do NOT enable it when an image loads.
     MemeGen.TextBoxManager.setImageLoaded(true);
@@ -61,27 +70,44 @@ document.addEventListener('DOMContentLoaded', function () {
     // up-front so the user sees the "Loading…" state against the editor;
     // calling again here is idempotent and covers the plain upload path.)
     showEditorView();
+
+    // If an AI suggestion is pending its captions, populate the text boxes
+    // now that the canvas is sized. Deferred one tick so layout fully
+    // commits before we measure the container for box placement.
+    if (MemeGen.pendingAICaptions && Array.isArray(MemeGen.pendingAICaptions)) {
+      var caps = MemeGen.pendingAICaptions;
+      MemeGen.pendingAICaptions = null;
+      setTimeout(function () { populatePresetCaptions(container, caps); }, 0);
+    }
   });
 
   MemeGen.TextBoxManager.init(container, canvas);
 
+  if (
+    typeof ResizeObserver === 'function' &&
+    container &&
+    typeof MemeGen.TextBoxManager.syncTextBoxesToCanvas === 'function'
+  ) {
+    var ro = new ResizeObserver(function () {
+      MemeGen.TextBoxManager.syncTextBoxesToCanvas();
+    });
+    ro.observe(container);
+  }
+
   MemeGen.LayoutManager.init('panel-resizer', 'meme-search');
 
-  // Show share button on mobile/tablet only; keep it hidden on desktop.
-  // Mirror: hide #download-btn on mobile so the top action row is just
-  // Upload + Share, matching the polished mobile mockup (Screen 1).
+  // On mobile, boot into the Browse Memes overlay so the first thing the user
+  // sees is the meme template grid. Share/Download visibility is handled
+  // entirely by CSS media queries — no inline style overrides needed.
   if (MemeGen.Exporter.isMobileOrTablet()) {
-    if (shareBtn) shareBtn.style.display = 'inline-block';
-    if (downloadBtn) downloadBtn.style.display = 'none';
-    // Mobile boots into the Browse Memes overlay so the first thing a user
-    // sees on reload is the meme template grid (per the flow correction).
-    // Desktop stays on the editor — its inline layout shows everything.
     showBrowseView();
   }
 
   imageInput.addEventListener('change', function () {
     if (this.files && this.files[0]) {
-      MemeGen.ImageLoader.loadFromFile(this.files[0]);
+      if (MemeGen.FileValidator.validate(this.files[0])) {
+        MemeGen.ImageLoader.loadFromFile(this.files[0]);
+      }
     }
   });
 
@@ -103,6 +129,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   ['dragenter', 'dragover'].forEach(function (evt) {
     container.addEventListener(evt, function (e) {
+      // In AI mode the canvas is a blank target for the chosen suggestion —
+      // drag-and-drop upload is disabled.
+      if (document.body.classList.contains('ai-mode')) return;
       // preventDefault on dragover is required for the drop event to fire;
       // without it the browser cancels the drag and drop never triggers.
       e.preventDefault();
@@ -116,6 +145,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   ['dragleave', 'dragend'].forEach(function (evt) {
     container.addEventListener(evt, function (e) {
+      if (document.body.classList.contains('ai-mode')) return;
       e.preventDefault();
       e.stopPropagation();
       // relatedTarget is the element the pointer moved to; if it is still
@@ -127,22 +157,40 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   container.addEventListener('drop', function (e) {
+    if (document.body.classList.contains('ai-mode')) return;
     e.preventDefault();
     e.stopPropagation();
     container.classList.remove('drag-over');
     var file = firstImageFile(e.dataTransfer && e.dataTransfer.files);
     if (file) {
-      MemeGen.ImageLoader.loadFromFile(file);
+      if (MemeGen.FileValidator.validate(file)) {
+        MemeGen.ImageLoader.loadFromFile(file);
+      }
+    } else if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      alert('Please drop an image file.');
     }
   });
 
   // Click the empty canvas region to open the file picker. Once an image
   // is loaded, clicks inside the canvas are reserved for adding text boxes,
   // so we gate on .has-image to avoid hijacking that interaction.
-  container.addEventListener('click', function () {
-    if (container.classList.contains('has-image')) return;
+  container.addEventListener('click', function (e) {
+  if (container.classList.contains('has-image')) return;
+
+  // Do not open the file picker when clicking inside overlay UI such as
+  // the AI suggestions panel.
+  if (e.target.closest('#desktop-ai-suggestions-panel')) return;
+
+  // Only the empty canvas area/placeholder should open the file picker.
+  if (
+    e.target === container ||
+    e.target === canvas ||
+    e.target === placeholder ||
+    e.target.classList.contains('canvas-frame')
+  ) {
     imageInput.click();
-  });
+  }
+});
 
   // Block the browser from opening the file if the drop misses the container.
   ['dragover', 'drop'].forEach(function (evt) {
@@ -184,6 +232,46 @@ document.addEventListener('DOMContentLoaded', function () {
       setTimeout(function () {
         MemeGen.ImageLoader.redraw();
       }, 100);
+    });
+  }
+
+  // Copy meme PNG to the clipboard. Mirrors download/share: pull the
+  // ImageLoader image + ctx, snapshot the live text boxes, deselect them
+  // so selection borders aren't baked into the render, hand off to
+  // Exporter.copyMeme (which goes through the same getMemeBlob pipeline
+  // as Download/Share), then redraw the editor view so the selection UI
+  // returns. Copy success / failure feed back through the #hint element
+  // so the user sees the outcome without a layout shift.
+  function showCopyStatus(message) {
+    if (!hint) return;
+    var prevText = hint.textContent;
+    var prevHidden = hint.hidden;
+    hint.textContent = message;
+    hint.hidden = false;
+    setTimeout(function () {
+      hint.textContent = prevText;
+      hint.hidden = prevHidden;
+    }, 2500);
+  }
+
+  if (copyBtn) {
+    copyBtn.addEventListener('click', function () { 
+      var image = MemeGen.ImageLoader.getImage();
+      var ctx = MemeGen.ImageLoader.getContext();
+      var textBoxes = MemeGen.TextBoxManager.getAll();
+
+      textBoxes.forEach(function (tb) { tb.deselect(); });
+
+      MemeGen.Exporter.copyMeme(canvas, ctx, image, textBoxes, function (err) {
+        MemeGen.ImageLoader.redraw();
+        if (err) {
+          // Browsers without clipboard image support land here. Point the
+          // user at Download — that path works everywhere.
+          showCopyStatus('Copy is not supported in this browser. Try Download instead.');
+          return;
+        }
+        showCopyStatus('Copied meme to clipboard');
+      });
     });
   }
 
@@ -242,7 +330,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // so live update and export both stay consistent. If a text box's
   // current font isn't in the cycle list, it starts at the first entry
   // ('Impact'). If there are no text boxes, surface the discovery hint.
-  var MEME_FONTS = ['Impact', 'Anton', 'Bangers', 'Luckiest Guy', 'Oswald'];
+  var MEME_FONTS = ['Impact', 'Arial', "'Comic Sans MS', cursive"];
 
   function cycleFontForTextBox(tb) {
     if (!tb || !tb.fontSelect) return;
@@ -276,6 +364,107 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // ── Font picker dropdown ("Font" pill above the canvas's top-left corner) ──
+  // The pill opens a dropdown built from the shared MemeGen.TextBox.FONTS
+  // list. Choosing a font calls TextBoxManager.setFontForAll, which re-fonts
+  // every existing box AND stores it as the default so future boxes match —
+  // i.e. the choice applies to all text, current and future.
+  // The pill lives inside #canvas-container, whose click handler opens the
+  // file picker while no image is loaded — so every handler below stops
+  // propagation to keep font interactions from triggering an upload.
+  if (fontSettingsBtn && fontSettingsMenu && MemeGen.TextBox && MemeGen.TextBox.FONTS) {
+    // Build the menu items once from the shared font list.
+    MemeGen.TextBox.FONTS.forEach(function (f) {
+      var li = document.createElement('li');
+      li.setAttribute('role', 'none');
+
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'font-settings-item';
+      item.setAttribute('role', 'menuitem');
+      item.dataset.fontValue = f.value;
+      item.textContent = f.label;
+      // Preview each option in its own font so the choice is visible up-front.
+      item.style.fontFamily = f.value;
+
+      li.appendChild(item);
+      fontSettingsMenu.appendChild(li);
+    });
+
+    function openFontMenu(triggerEl) {
+      fontSettingsMenu.hidden = false;
+      if (triggerEl && window.innerWidth >= 769) {
+        // Desktop: menu is inside off-screen .mobile-fonts-row (visibility:hidden).
+        // Override with position:fixed + visibility:visible so it appears at the
+        // correct viewport position relative to the triggering button.
+        var rect = triggerEl.getBoundingClientRect();
+        fontSettingsMenu.style.position   = 'fixed';
+        fontSettingsMenu.style.visibility = 'visible';
+        fontSettingsMenu.style.top    = (rect.bottom + 6) + 'px';
+        fontSettingsMenu.style.left   = Math.min(rect.left, window.innerWidth - 190) + 'px';
+        fontSettingsMenu.style.bottom = 'auto';
+        fontSettingsMenu.style.transform = 'none';
+      } else {
+        // Mobile: CSS handles position (absolute, below the Fonts button).
+        // Clear any desktop inline styles so the media-query rules apply.
+        fontSettingsMenu.style.removeProperty('position');
+        fontSettingsMenu.style.removeProperty('visibility');
+        fontSettingsMenu.style.removeProperty('top');
+        fontSettingsMenu.style.removeProperty('left');
+        fontSettingsMenu.style.removeProperty('bottom');
+        fontSettingsMenu.style.removeProperty('transform');
+      }
+      if (fontSettingsBtn) fontSettingsBtn.setAttribute('aria-expanded', 'true');
+      if (mobileFontsBtn)  mobileFontsBtn.setAttribute('aria-expanded', 'true');
+    }
+    function closeFontMenu() {
+      fontSettingsMenu.hidden = true;
+      fontSettingsMenu.style.removeProperty('position');
+      fontSettingsMenu.style.removeProperty('visibility');
+      fontSettingsMenu.style.removeProperty('top');
+      fontSettingsMenu.style.removeProperty('left');
+      fontSettingsMenu.style.removeProperty('bottom');
+      fontSettingsMenu.style.removeProperty('transform');
+      if (fontSettingsBtn) fontSettingsBtn.setAttribute('aria-expanded', 'false');
+      if (mobileFontsBtn)  mobileFontsBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    fontSettingsBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (fontSettingsMenu.hidden) { openFontMenu(fontSettingsBtn); } else { closeFontMenu(); }
+    });
+
+    // Mobile Fonts button: same toggle, positioned above the bottom bar by CSS.
+    if (mobileFontsBtn) {
+      mobileFontsBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (fontSettingsMenu.hidden) { openFontMenu(mobileFontsBtn); } else { closeFontMenu(); }
+      });
+    }
+
+    fontSettingsMenu.addEventListener('click', function (e) {
+      // Stop the click from reaching #canvas-container (which would open the
+      // file picker when no image is loaded yet).
+      e.stopPropagation();
+      var item = e.target.closest('.font-settings-item');
+      if (!item) return;
+      MemeGen.TextBoxManager.setFontForAll(item.dataset.fontValue);
+      closeFontMenu();
+    });
+
+    // Click anywhere outside the menu (or press Escape) closes it.
+    document.addEventListener('click', function (e) {
+      if (fontSettingsMenu.hidden) return;
+      if (fontSettingsBtn && fontSettingsBtn.contains(e.target)) return;
+      if (mobileFontsBtn  && mobileFontsBtn.contains(e.target))  return;
+      if (fontSettingsMenu.contains(e.target)) return;
+      closeFontMenu();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !fontSettingsMenu.hidden) closeFontMenu();
+    });
+  }
+
   // Circular + button on the home view → reuse the existing file picker.
   // ImageLoader's success callback then calls showEditorView().
   if (mobileHomePlusBtn && imageInput) {
@@ -284,16 +473,16 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // AI panda button — placeholder only; no action in this version.
-  if (aiPandaBtn) {
-    aiPandaBtn.addEventListener('click', function () { /* AI meme ideas — coming soon */ });
-  }
+  // (Real panda click handler lives further down with the AI panel wiring;
+  // the duplicate placeholder that used to live here has been removed so
+  // there is only one canonical AI-open behavior.)
 
   // Wire up meme search: when a result is clicked, load it onto the canvas
   // through the same pipeline as a normal upload.
   var searchInput = document.getElementById('meme-search-input');
   var searchResults = document.getElementById('meme-search-results');
   var searchStatus = document.getElementById('meme-search-status');
+  var editorLibraryPreview = document.getElementById('editor-library-preview');
   var editorLibraryResults = document.getElementById('editor-library-results');
   var editorLibrarySearchInput = document.getElementById('editor-library-search-input');
 
@@ -301,6 +490,10 @@ document.addEventListener('DOMContentLoaded', function () {
   var allEditorMemes = [];
   // Guard prevents duplicate input listeners if onFetched fires more than once.
   var editorPreviewListenerAdded = false;
+
+  // AI suggestions stored after generation — persist until AI Mode is turned OFF.
+  var aiGeneratedSuggestions = [];
+  var selectedAiSuggestionIndex = -1;
 
   // Render (or re-render) cards into the editor preview container.
   function buildEditorPreviewCards(list) {
@@ -389,6 +582,265 @@ document.addEventListener('DOMContentLoaded', function () {
             'Could not load that meme: ' + (err && err.message ? err.message : 'unknown error');
         });
       }
+    });
+  }
+
+  // Wire up AI suggestions. When a card is picked, load the template through
+  // the same pipeline as meme search and pre-populate text boxes from the
+  // returned captions (top + bottom).
+  function populatePresetCaptions(containerEl, captions) {
+    if (!Array.isArray(captions) || captions.length === 0) return;
+
+    // Picking a new AI suggestion replaces the meme — drop any existing text
+    // boxes so the new captions don't stack on top of the old ones.
+    // slice() because destroy() splices the live array via onDelete.
+    MemeGen.TextBoxManager.getAll().slice().forEach(function (tb) {
+      tb.destroy();
+    });
+
+    var w = containerEl.offsetWidth  || 600;
+    var h = containerEl.offsetHeight || 400;
+    // 200×60 is the TextBox default size; center horizontally, top/bottom pad.
+    var boxW = 200;
+    var x = Math.max(0, Math.round((w - boxW) / 2));
+    var items = [
+      { x: x, y: Math.round(h * 0.06),                       text: captions[0] || '' },
+      { x: x, y: Math.max(0, Math.round(h * 0.78)),          text: captions[1] || '' }
+    ];
+    MemeGen.TextBoxManager.createBatch(items);
+  }
+
+  // ── AI suggestions (AI-Mode toggle, #87) ─────────────────────────────────
+  // The header "AI Mode" pill reveals #desktop-ai-suggestions-panel in place
+  // of the template library (see body.ai-mode CSS). On desktop it shows inline
+  // in the right panel (canvas stays left); on mobile it shows as a fullscreen
+  // overlay. The pill replaced the inert ⚙ settings button. The 🐼 panda
+  // buttons and the separate mobile panel were removed.
+  var desktopAiPanel = document.getElementById('desktop-ai-suggestions-panel');
+
+  // Add body.ai-popup-dismissed to hide the mobile AI bottom-sheet without
+  // exiting AI mode — used after the user selects a suggestion.
+  function openMobileAiPanel() {
+    document.body.classList.remove('ai-popup-dismissed');
+  }
+  function closeMobileAiPanel() {
+    document.body.classList.add('ai-popup-dismissed');
+  }
+
+  // Renders the stored AI suggestions as small cards in the editor library
+  // preview section (below the canvas on mobile). Only runs on mobile in
+  // ai-mode — CSS handles the section's visibility, this just fills the content.
+  function renderMobileAiEditorPreview() {
+    if (!editorLibraryResults) return;
+    if (!MemeGen.Exporter.isMobileOrTablet()) return;
+    if (!document.body.classList.contains('ai-mode')) return;
+
+    if (editorLibrarySearchInput) editorLibrarySearchInput.hidden = true;
+    editorLibraryResults.innerHTML = '';
+
+    if (!aiGeneratedSuggestions.length) {
+      var empty = document.createElement('p');
+      empty.className = 'editor-library-empty';
+      empty.textContent = 'Generate AI memes to see options here.';
+      editorLibraryResults.appendChild(empty);
+      return;
+    }
+
+    aiGeneratedSuggestions.forEach(function (suggestion, index) {
+      var card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'meme-search-card editor-ai-preview-card';
+      if (index === selectedAiSuggestionIndex) card.classList.add('selected');
+
+      var previewWrap = document.createElement('div');
+      previewWrap.className = 'ai-preview-wrap';
+
+      var img = document.createElement('img');
+      img.src = suggestion.url;
+      img.alt = suggestion.name || 'AI suggestion';
+      img.loading = 'lazy';
+      img.crossOrigin = 'anonymous';
+      previewWrap.appendChild(img);
+
+      var captions = Array.isArray(suggestion.captions) ? suggestion.captions : [];
+      captions.slice(0, 2).forEach(function (caption, captionIndex) {
+        var captionEl = document.createElement('span');
+        captionEl.className = 'ai-preview-caption ' +
+          (captionIndex === 0 ? 'ai-preview-caption-top' : 'ai-preview-caption-bottom');
+        captionEl.textContent = caption;
+        previewWrap.appendChild(captionEl);
+      });
+
+      var label = document.createElement('span');
+      label.className = 'meme-search-name';
+      label.textContent = suggestion.name || 'AI suggestion';
+
+      card.appendChild(previewWrap);
+      card.appendChild(label);
+
+      var captionList = document.createElement('ul');
+      captionList.className = 'ai-caption-list visually-hidden';
+      captions.forEach(function (caption) {
+        var li = document.createElement('li');
+        li.textContent = caption;
+        captionList.appendChild(li);
+      });
+      card.appendChild(captionList);
+
+      card.addEventListener('click', function () {
+        selectAiSuggestion(suggestion, index);
+      });
+
+      editorLibraryResults.appendChild(card);
+    });
+  }
+
+  // Shared handler for selecting an AI suggestion from either the popup or
+  // the under-editor preview. Closes the popup on mobile, loads the meme,
+  // and re-renders the preview with the new selection highlighted.
+  function selectAiSuggestion(suggestion, index) {
+    selectedAiSuggestionIndex = index;
+    MemeGen.pendingAICaptions = suggestion.captions || [];
+
+    if (MemeGen.Exporter.isMobileOrTablet()) {
+      closeMobileAiPanel();
+      showEditorView();
+    }
+
+    if (desktopAiStatus) desktopAiStatus.textContent = 'Loading ' + (suggestion.name || 'meme') + '…';
+
+    MemeGen.MemeSearch.loadFromUrl(suggestion.url, function (err) {
+      MemeGen.pendingAICaptions = null;
+      if (desktopAiStatus) {
+        desktopAiStatus.textContent =
+          'Could not load that template: ' + (err && err.message ? err.message : 'unknown error');
+      }
+    });
+
+    renderMobileAiEditorPreview();
+  }
+  var desktopAiStatus = document.getElementById('desktop-ai-status');
+  var desktopAiCloseBtn = document.getElementById('desktop-ai-close-btn');
+  var aiModeToggle = document.getElementById('ai-mode-toggle');
+
+  // Single source of truth for entering/leaving AI mode. Toggles body.ai-mode
+  // (which the CSS keys off) and mirrors the state onto the header pill.
+  function setAiMode(on) {
+    document.body.classList.toggle('ai-mode', on);
+    if (aiModeToggle) {
+      aiModeToggle.setAttribute('aria-pressed', String(on));
+      aiModeToggle.textContent = on ? 'AI Mode: ON' : 'AI Mode: OFF';
+      aiModeToggle.title = on
+        ? 'Switch back to normal mode'
+        : 'Switch to AI suggestion mode';
+    }
+    if (on) {
+      openMobileAiPanel();
+      renderMobileAiEditorPreview();
+      if (!MemeGen.Exporter.isMobileOrTablet()) {
+        var identityInput = document.getElementById('desktop-ai-identity');
+        if (identityInput) identityInput.focus();
+      }
+    } else {
+      closeMobileAiPanel();
+      aiGeneratedSuggestions = [];
+      selectedAiSuggestionIndex = -1;
+      // Restore the search input and normal templates in the editor preview.
+      if (editorLibrarySearchInput) editorLibrarySearchInput.hidden = false;
+      buildEditorPreviewCards(allEditorMemes);
+    }
+  }
+
+  // Clicks inside the panel should not bubble out to the canvas/file-picker.
+  if (desktopAiPanel) {
+    desktopAiPanel.addEventListener('click', function (e) {
+      e.stopPropagation();
+    });
+  }
+
+  // The panel's × is hidden on desktop (header toggle controls visibility) but
+  // visible on mobile, where it exits AI mode.
+  if (desktopAiCloseBtn) {
+    desktopAiCloseBtn.addEventListener('click', function () {
+      // On mobile: if suggestions already exist, just close the popup and
+      // show the under-editor preview — keep body.ai-mode active. Only exit
+      // AI mode fully when there are no suggestions yet.
+      if (MemeGen.Exporter.isMobileOrTablet() && aiGeneratedSuggestions.length > 0) {
+        closeMobileAiPanel();
+        renderMobileAiEditorPreview();
+      } else {
+        setAiMode(false);
+      }
+    });
+  }
+
+  // Wire the panel's form to the AISuggestions controller. Generated cards
+  // render inside the panel (#desktop-ai-results); picking one loads the
+  // template through the same meme-search pipeline and stashes its captions
+  // for ImageLoader.onLoad to apply once the canvas is sized.
+  if (desktopAiPanel && MemeGen.AISuggestions) {
+    MemeGen.AISuggestions.init({
+      root: desktopAiPanel,
+      // No getBtn — the AI-Mode toggle controls panel visibility, so the
+      // form is revealed on init.
+      form: document.getElementById('desktop-ai-form'),
+      identity: document.getElementById('desktop-ai-identity'),
+      situation: document.getElementById('desktop-ai-situation'),
+      generateBtn: document.getElementById('desktop-ai-generate-btn'),
+      keyForm: document.getElementById('desktop-ai-key-form'),
+      keyInput: document.getElementById('desktop-ai-key-input'),
+      keySaveBtn: document.getElementById('desktop-ai-key-save-btn'),
+      changeKeyLink: document.getElementById('desktop-ai-change-key'),
+      status: desktopAiStatus,
+      results: document.getElementById('desktop-ai-results'),
+      onGenerated: function (suggestions) {
+        aiGeneratedSuggestions = suggestions || [];
+        selectedAiSuggestionIndex = -1;
+        renderMobileAiEditorPreview();
+      },
+      onSelect: function (template, captions) {
+        // Find the matching stored suggestion so selectAiSuggestion can track
+        // the index and reuse the same load path for both popup and preview.
+        var idx = -1;
+        for (var i = 0; i < aiGeneratedSuggestions.length; i++) {
+          if (aiGeneratedSuggestions[i].url === template.url) { idx = i; break; }
+        }
+        if (idx !== -1) {
+          selectAiSuggestion(aiGeneratedSuggestions[idx], idx);
+        } else {
+          // Fallback: suggestion not in stored list (edge case on desktop).
+          if (desktopAiStatus) desktopAiStatus.textContent = 'Loading ' + template.name + '…';
+          if (MemeGen.Exporter.isMobileOrTablet()) { closeMobileAiPanel(); showEditorView(); }
+          MemeGen.pendingAICaptions = captions;
+          MemeGen.MemeSearch.loadFromUrl(template.url, function (err) {
+            MemeGen.pendingAICaptions = null;
+            if (desktopAiStatus) {
+              desktopAiStatus.textContent =
+                'Could not load that template: ' + (err && err.message ? err.message : 'unknown error');
+            }
+          });
+        }
+      }
+    });
+  }
+
+  // ── AI mode toggle (#87) ─────────────────────────────────────────────────
+  // Tapping the header pill flips `ai-mode` on <body>, which the CSS keys off
+  // to swap the library for the AI panel (inline on desktop, fullscreen overlay
+  // on mobile). See setAiMode above for the state mirroring.
+  if (aiModeToggle) {
+    aiModeToggle.addEventListener('click', function () {
+      setAiMode(!document.body.classList.contains('ai-mode'));
+    });
+  }
+
+  // ── Theme toggle (#89) ───────────────────────────────────────────────────
+  // Wires the header pill so clicking it flips data-theme on <html> and
+  // saves the choice. ThemeToggle.init also applies the stored or system
+  // preference on first paint.
+  if (MemeGen.ThemeToggle) {
+    MemeGen.ThemeToggle.init({
+      toggle: document.getElementById('theme-toggle')
     });
   }
 });

@@ -54,8 +54,6 @@ describe('Font Customization', () => {
     expect(options).toContain('Impact');
     expect(options).toContain('Arial');
     expect(options).toContain('Comic Sans');
-    expect(options).toContain('Helvetica');
-    expect(options).toContain('Montserrat');
   });
 
   it('should update fontFamily property when the font select changes to Arial', () => {
@@ -423,40 +421,45 @@ describe('Text Box — special character content', () => {
   });
 });
 
-// ── Mobile X Delete Button ───────────────────────────────────────────────────
+// ── Floating X Delete Button ───────────────────────────────────────────────────
 
-describe('Mobile X delete button', () => {
+describe('Floating X delete button', () => {
   let container;
   let textBox;
 
   beforeEach(() => {
-    container = makeContainer();
-    textBox = new MemeGen.TextBox(10, 10, container);
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    textBox = new MemeGen.TextBox(100, 100, container);
   });
 
   afterEach(() => {
-    if (container.parentNode) document.body.removeChild(container);
+    document.body.removeChild(container);
   });
 
-  it('has a .mobile-delete-btn element inside the text box', () => {
-    expect(textBox.el.querySelector('.mobile-delete-btn')).not.toBeNull();
+  it('has a .text-box-delete-btn element inside the text box', () => {
+    expect(textBox.el.querySelector('.text-box-delete-btn')).not.toBeNull();
   });
 
-  it('exposes mobileDeleteBtn on the instance', () => {
-    expect(textBox.mobileDeleteBtn).toBeDefined();
-    expect(textBox.mobileDeleteBtn.classList.contains('mobile-delete-btn')).toBe(true);
+  it('exposes deleteBtn on the instance', () => {
+    expect(textBox.deleteBtn).toBeDefined();
+    expect(textBox.deleteBtn.classList.contains('text-box-delete-btn')).toBe(true);
   });
 
-  it('clicking mobile-delete-btn removes the text box from the DOM', () => {
+  it('clicking text-box-delete-btn removes the text box from the DOM', () => {
     expect(container.contains(textBox.el)).toBe(true);
-    textBox.mobileDeleteBtn.click();
+
+    textBox.deleteBtn.click();
+
     expect(container.contains(textBox.el)).toBe(false);
   });
 
-  it('clicking mobile-delete-btn fires the onDelete callback', () => {
+  it('clicking text-box-delete-btn fires the onDelete callback', () => {
     const onDelete = jest.fn();
     textBox.onDelete = onDelete;
-    textBox.mobileDeleteBtn.click();
+
+    textBox.deleteBtn.click();
+
     expect(onDelete).toHaveBeenCalledWith(textBox);
   });
 });

@@ -622,21 +622,43 @@ document.addEventListener('DOMContentLoaded', function () {
     aiGeneratedSuggestions.forEach(function (suggestion, index) {
       var card = document.createElement('button');
       card.type = 'button';
-      card.className = 'meme-search-card';
+      card.className = 'meme-search-card editor-ai-preview-card';
       if (index === selectedAiSuggestionIndex) card.classList.add('selected');
+
+      var previewWrap = document.createElement('div');
+      previewWrap.className = 'ai-preview-wrap';
 
       var img = document.createElement('img');
       img.src = suggestion.url;
       img.alt = suggestion.name || 'AI suggestion';
       img.loading = 'lazy';
       img.crossOrigin = 'anonymous';
+      previewWrap.appendChild(img);
+
+      var captions = Array.isArray(suggestion.captions) ? suggestion.captions : [];
+      captions.slice(0, 2).forEach(function (caption, captionIndex) {
+        var captionEl = document.createElement('span');
+        captionEl.className = 'ai-preview-caption ' +
+          (captionIndex === 0 ? 'ai-preview-caption-top' : 'ai-preview-caption-bottom');
+        captionEl.textContent = caption;
+        previewWrap.appendChild(captionEl);
+      });
 
       var label = document.createElement('span');
       label.className = 'meme-search-name';
       label.textContent = suggestion.name || 'AI suggestion';
 
-      card.appendChild(img);
+      card.appendChild(previewWrap);
       card.appendChild(label);
+
+      var captionList = document.createElement('ul');
+      captionList.className = 'ai-caption-list visually-hidden';
+      captions.forEach(function (caption) {
+        var li = document.createElement('li');
+        li.textContent = caption;
+        captionList.appendChild(li);
+      });
+      card.appendChild(captionList);
 
       card.addEventListener('click', function () {
         selectAiSuggestion(suggestion, index);

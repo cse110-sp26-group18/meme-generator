@@ -11,12 +11,14 @@ MemeGen.TextBox = (function () {
   // never drift out of sync. Exposed as MemeGen.TextBox.FONTS.
   var FONTS = [
     { label: 'Impact',       value: 'Impact' },
-    // ── Meme-style display fonts used by the "fonts" cycle button in app.js.
-    // Loaded via Google Fonts in index.html; browsers without network
-    // access fall back to the system default sans-serif.
     { label: 'Arial',        value: 'Arial' },
+    { label: 'Comic Sans',   value: "'Comic Sans MS', cursive" },
+    { label: 'Helvetica',    value: 'Helvetica, Arial, sans-serif' },
+    { label: 'Montserrat',   value: 'Montserrat, sans-serif' },
+    { label: 'Oswald',       value: 'Oswald' },
     { label: 'Bangers',      value: 'Bangers' },
     { label: 'Luckiest Guy', value: 'Luckiest Guy' },
+    { label: 'Anton',        value: 'Anton' },
   ];
 
   /**

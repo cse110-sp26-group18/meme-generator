@@ -383,8 +383,7 @@ describe('Meme Search — loadFromUrl()', () => {
       'https://i.imgflip.com/30b1gx.jpg',
       { mode: 'cors' }
     );
-    // Templates are tagged 'template' so the app skips OCR auto-scan for them.
-    expect(loadSpy).toHaveBeenCalledWith(fakeBlob, 'template');
+    expect(loadSpy).toHaveBeenCalledWith(fakeBlob);
   });
 
   it('calls onError when the fetch fails', async () => {

@@ -80,7 +80,7 @@ MemeGen.GeminiClient = (function () {
     if (!trimmed) return;
     // Private-browsing / cookie-blocked contexts throw on Storage writes.
     // Match getApiKey's defensive shape — best-effort, no surfacing.
-    try { window.localStorage.setItem(STORAGE_KEY, trimmed); } catch { /* ignore */ }
+    try { window.localStorage.setItem(STORAGE_KEY, trimmed); } catch (e) { /* ignore */ }
   }
 
   function clearApiKey() {

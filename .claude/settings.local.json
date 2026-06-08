@@ -10,7 +10,8 @@
       "Bash(node -e ' *)",
       "Bash(dir \"c:\\\\Users\\\\pisce\\\\OneDrive\\\\Documents\\\\Aaron's Folder\\\\cse110\\\\meme-generator\" /B)",
       "Bash(findstr /i \"zip\")",
-      "Bash(dir \"c:\\\\Users\\\\pisce\\\\OneDrive\\\\Documents\\\\Aaron's Folder\\\\cse110\\\\meme-generator\\\\testing\" /b)"
+      "Bash(dir \"c:\\\\Users\\\\pisce\\\\OneDrive\\\\Documents\\\\Aaron's Folder\\\\cse110\\\\meme-generator\\\\testing\" /b)",
+      "Bash(npm run *)"
     ]
   }
 }

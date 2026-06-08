@@ -455,6 +455,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var searchInput = document.getElementById('meme-search-input');
   var searchResults = document.getElementById('meme-search-results');
   var searchStatus = document.getElementById('meme-search-status');
+  var editorLibraryPreview = document.getElementById('editor-library-preview');
   var editorLibraryResults = document.getElementById('editor-library-results');
   var editorLibrarySearchInput = document.getElementById('editor-library-search-input');
 
@@ -462,6 +463,10 @@ document.addEventListener('DOMContentLoaded', function () {
   var allEditorMemes = [];
   // Guard prevents duplicate input listeners if onFetched fires more than once.
   var editorPreviewListenerAdded = false;
+
+  // AI suggestions stored after generation — persist until AI Mode is turned OFF.
+  var aiGeneratedSuggestions = [];
+  var selectedAiSuggestionIndex = -1;
 
   // Render (or re-render) cards into the editor preview container.
   function buildEditorPreviewCards(list) {
@@ -585,6 +590,86 @@ document.addEventListener('DOMContentLoaded', function () {
   // overlay. The pill replaced the inert ⚙ settings button. The 🐼 panda
   // buttons and the separate mobile panel were removed.
   var desktopAiPanel = document.getElementById('desktop-ai-suggestions-panel');
+
+  // Add body.ai-popup-dismissed to hide the mobile AI bottom-sheet without
+  // exiting AI mode — used after the user selects a suggestion.
+  function openMobileAiPanel() {
+    document.body.classList.remove('ai-popup-dismissed');
+  }
+  function closeMobileAiPanel() {
+    document.body.classList.add('ai-popup-dismissed');
+  }
+
+  // Renders the stored AI suggestions as small cards in the editor library
+  // preview section (below the canvas on mobile). Only runs on mobile in
+  // ai-mode — CSS handles the section's visibility, this just fills the content.
+  function renderMobileAiEditorPreview() {
+    if (!editorLibraryResults) return;
+    if (!MemeGen.Exporter.isMobileOrTablet()) return;
+    if (!document.body.classList.contains('ai-mode')) return;
+
+    if (editorLibrarySearchInput) editorLibrarySearchInput.hidden = true;
+    editorLibraryResults.innerHTML = '';
+
+    if (!aiGeneratedSuggestions.length) {
+      var empty = document.createElement('p');
+      empty.className = 'editor-library-empty';
+      empty.textContent = 'Generate AI memes to see options here.';
+      editorLibraryResults.appendChild(empty);
+      return;
+    }
+
+    aiGeneratedSuggestions.forEach(function (suggestion, index) {
+      var card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'meme-search-card';
+      if (index === selectedAiSuggestionIndex) card.classList.add('selected');
+
+      var img = document.createElement('img');
+      img.src = suggestion.url;
+      img.alt = suggestion.name || 'AI suggestion';
+      img.loading = 'lazy';
+      img.crossOrigin = 'anonymous';
+
+      var label = document.createElement('span');
+      label.className = 'meme-search-name';
+      label.textContent = suggestion.name || 'AI suggestion';
+
+      card.appendChild(img);
+      card.appendChild(label);
+
+      card.addEventListener('click', function () {
+        selectAiSuggestion(suggestion, index);
+      });
+
+      editorLibraryResults.appendChild(card);
+    });
+  }
+
+  // Shared handler for selecting an AI suggestion from either the popup or
+  // the under-editor preview. Closes the popup on mobile, loads the meme,
+  // and re-renders the preview with the new selection highlighted.
+  function selectAiSuggestion(suggestion, index) {
+    selectedAiSuggestionIndex = index;
+    MemeGen.pendingAICaptions = suggestion.captions || [];
+
+    if (MemeGen.Exporter.isMobileOrTablet()) {
+      closeMobileAiPanel();
+      showEditorView();
+    }
+
+    if (desktopAiStatus) desktopAiStatus.textContent = 'Loading ' + (suggestion.name || 'meme') + '…';
+
+    MemeGen.MemeSearch.loadFromUrl(suggestion.url, function (err) {
+      MemeGen.pendingAICaptions = null;
+      if (desktopAiStatus) {
+        desktopAiStatus.textContent =
+          'Could not load that template: ' + (err && err.message ? err.message : 'unknown error');
+      }
+    });
+
+    renderMobileAiEditorPreview();
+  }
   var desktopAiStatus = document.getElementById('desktop-ai-status');
   var desktopAiCloseBtn = document.getElementById('desktop-ai-close-btn');
   var aiModeToggle = document.getElementById('ai-mode-toggle');
@@ -601,8 +686,19 @@ document.addEventListener('DOMContentLoaded', function () {
         : 'Switch to AI suggestion mode';
     }
     if (on) {
-      var identityInput = document.getElementById('desktop-ai-identity');
-      if (identityInput) identityInput.focus();
+      openMobileAiPanel();
+      renderMobileAiEditorPreview();
+      if (!MemeGen.Exporter.isMobileOrTablet()) {
+        var identityInput = document.getElementById('desktop-ai-identity');
+        if (identityInput) identityInput.focus();
+      }
+    } else {
+      closeMobileAiPanel();
+      aiGeneratedSuggestions = [];
+      selectedAiSuggestionIndex = -1;
+      // Restore the search input and normal templates in the editor preview.
+      if (editorLibrarySearchInput) editorLibrarySearchInput.hidden = false;
+      buildEditorPreviewCards(allEditorMemes);
     }
   }
 
@@ -617,7 +713,15 @@ document.addEventListener('DOMContentLoaded', function () {
   // visible on mobile, where it exits AI mode.
   if (desktopAiCloseBtn) {
     desktopAiCloseBtn.addEventListener('click', function () {
-      setAiMode(false);
+      // On mobile: if suggestions already exist, just close the popup and
+      // show the under-editor preview — keep body.ai-mode active. Only exit
+      // AI mode fully when there are no suggestions yet.
+      if (MemeGen.Exporter.isMobileOrTablet() && aiGeneratedSuggestions.length > 0) {
+        closeMobileAiPanel();
+        renderMobileAiEditorPreview();
+      } else {
+        setAiMode(false);
+      }
     });
   }
 
@@ -640,22 +744,33 @@ document.addEventListener('DOMContentLoaded', function () {
       changeKeyLink: document.getElementById('desktop-ai-change-key'),
       status: desktopAiStatus,
       results: document.getElementById('desktop-ai-results'),
+      onGenerated: function (suggestions) {
+        aiGeneratedSuggestions = suggestions || [];
+        selectedAiSuggestionIndex = -1;
+        renderMobileAiEditorPreview();
+      },
       onSelect: function (template, captions) {
-        if (desktopAiStatus) desktopAiStatus.textContent = 'Loading ' + template.name + '…';
-        // Stash captions so the ImageLoader.onLoad callback applies them once
-        // the image is drawn. On desktop the panel stays visible (CSS forces
-        // it in ai-mode) and the canvas on the left updates in place. On mobile
-        // the panel is a fullscreen overlay, so exit AI mode to reveal the
-        // canvas (ImageLoader.onLoad also returns to the editor view).
-        if (MemeGen.Exporter.isMobileOrTablet()) setAiMode(false);
-        MemeGen.pendingAICaptions = captions;
-        MemeGen.MemeSearch.loadFromUrl(template.url, function (err) {
-          MemeGen.pendingAICaptions = null;
-          if (desktopAiStatus) {
-            desktopAiStatus.textContent =
-              'Could not load that template: ' + (err && err.message ? err.message : 'unknown error');
-          }
-        });
+        // Find the matching stored suggestion so selectAiSuggestion can track
+        // the index and reuse the same load path for both popup and preview.
+        var idx = -1;
+        for (var i = 0; i < aiGeneratedSuggestions.length; i++) {
+          if (aiGeneratedSuggestions[i].url === template.url) { idx = i; break; }
+        }
+        if (idx !== -1) {
+          selectAiSuggestion(aiGeneratedSuggestions[idx], idx);
+        } else {
+          // Fallback: suggestion not in stored list (edge case on desktop).
+          if (desktopAiStatus) desktopAiStatus.textContent = 'Loading ' + template.name + '…';
+          if (MemeGen.Exporter.isMobileOrTablet()) { closeMobileAiPanel(); showEditorView(); }
+          MemeGen.pendingAICaptions = captions;
+          MemeGen.MemeSearch.loadFromUrl(template.url, function (err) {
+            MemeGen.pendingAICaptions = null;
+            if (desktopAiStatus) {
+              desktopAiStatus.textContent =
+                'Could not load that template: ' + (err && err.message ? err.message : 'unknown error');
+            }
+          });
+        }
       }
     });
   }

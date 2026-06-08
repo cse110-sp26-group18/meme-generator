@@ -878,6 +878,28 @@ body.is-moving-text-box .copy-btn {
   text-overflow: ellipsis;
 }
 
+/* Selected state for AI suggestion cards in the under-editor preview. */
+.meme-search-card.selected {
+  border-color: var(--forest-green);
+  outline: 2px solid var(--forest-green);
+  outline-offset: -1px;
+}
+
+/* Show card names in the editor AI preview (normally hidden in search grid). */
+.editor-library-results .meme-search-name {
+  display: block;
+}
+
+/* Empty-state message inside the editor library results (AI mode). */
+.editor-library-empty {
+  color: var(--off-white);
+  font-size: 0.875rem;
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+  grid-column: 1 / -1;
+  opacity: 0.75;
+}
+
 /* Mobile overlay state for the meme-search panel. Triggered by the
  * header search icon adding .is-open to the section. The chevron handle
  * at the top doubles as a close affordance. Desktop never sees this — the
@@ -1521,23 +1543,42 @@ body.is-moving-text-box .copy-btn {
 
   body.ai-mode #desktop-ai-suggestions-panel,
   body.ai-mode #desktop-ai-suggestions-panel[hidden] {
-    display: flex !important; /* override .desktop-ai-panel's mobile display:none */
+    display: flex !important;
     position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    top: auto;
-    width: auto;
-    max-height: 75vh;
-    transform: none;
+    top: 50%;
+    left: 50%;
+    right: auto;
+    bottom: auto;
+
+    width: min(90vw, 28rem);
+    max-height: 80vh;
+
+    transform: translate(-50%, -50%);
     overflow-y: auto;
-    /* Bottom-sheet look: rounded top corners only, flush to screen edges. */
-    border-radius: 1.25rem 1.25rem 0 0;
-    z-index: 1001; /* above the browse overlay (50) and bottom-actions (10) */
+
+    border-radius: 1.25rem;
+    z-index: 1001;
   }
 
   /* While the AI sheet is up it replaces the Browse Memes / Share row. */
   body.ai-mode .bottom-actions {
+    display: none;
+  }
+
+  /* After the user selects a suggestion: hide the popup overlay without
+   * exiting AI mode — body.ai-popup-dismissed is toggled by app.js. */
+  body.ai-mode.ai-popup-dismissed #desktop-ai-suggestions-panel,
+  body.ai-mode.ai-popup-dismissed #desktop-ai-suggestions-panel[hidden] {
+    display: none !important;
+  }
+
+  /* Show the under-editor AI preview section when ai-mode is active. */
+  body.ai-mode .editor-library-preview {
+    display: block;
+  }
+
+  /* Hide the search input inside the preview — AI preview doesn't need it. */
+  body.ai-mode .editor-library-search-input {
     display: none;
   }
 

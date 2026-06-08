@@ -1448,9 +1448,7 @@ body.is-moving-text-box .copy-btn {
     justify-content: center;
   }
 
-  #ai-mode-toggle{
-    display:none;
-  }
+  
   .upload-btn,
   #share-btn,
   #scan-text-btn,

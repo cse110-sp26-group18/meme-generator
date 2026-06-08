@@ -59,17 +59,23 @@ MemeGen.Exporter = (function () {
       var state = tb.getState();
       if (!state.text.trim()) return;
 
+      // Scale from display coordinates (CSS pixels) to canvas bitmap coordinates.
+      // When the container is displayed smaller than the canvas bitmap
+      // (CSS-based sizing), all positions and sizes must be scaled up.
+      // Falls back to 1:1 when containerWidth/Height are 0 or missing.
+      var scaleX = (state.containerWidth  > 0) ? canvas.width  / state.containerWidth  : 1;
+      var scaleY = (state.containerHeight > 0) ? canvas.height / state.containerHeight : 1;
+
       // save() pushes the current canvas state (font, styles, transforms)
       // onto a stack; restore() pops it after each text box so settings
       // from one box don't bleed into the next.
       ctx.save();
 
-      var padding = 6;
-      var boxInnerWidth = state.width - padding * 2;
-      // Use the font size the user sees in the editor, not a re-derived formula.
-      // state.fontSize is kept in sync by TextBox.applyFontSize(), so the
-      // exported PNG always matches what was visible on screen.
-      var fontSize = state.fontSize;
+      var padding = 6 * scaleX;
+      var boxInnerWidth = state.width * scaleX - padding * 2;
+      // Scale font size proportionally; use the smaller axis scale so text
+      // never clips for non-square aspect-ratio mismatches.
+      var fontSize = state.fontSize * Math.min(scaleX, scaleY);
       var fontFamily = state.fontFamily || 'Impact';
 
       ctx.font = fontSize + 'px ' + fontFamily;
@@ -84,8 +90,8 @@ MemeGen.Exporter = (function () {
       var lineHeight = fontSize * 1.2;
 
       lines.forEach(function (line, i) {
-        var textX = state.x + padding;
-        var textY = state.y + padding + i * lineHeight;
+        var textX = state.x * scaleX + padding;
+        var textY = state.y * scaleY + padding + i * lineHeight;
 
         if (state.borderEnabled) {
           ctx.strokeStyle = 'black';

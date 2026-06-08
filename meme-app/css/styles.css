@@ -173,9 +173,28 @@ main {
 }
 
 .controls {
-  display: flex;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.controls-left {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.controls-center {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Intentionally empty — mirrors the left column to keep Upload/Download centered. */
+.controls-right {
+  display: flex;
 }
 
 /* Forest-green pill — the primary action button in the polished design. */
@@ -216,15 +235,11 @@ main {
   cursor: not-allowed;
 }
 
-/* ── Font picker (pill above the canvas's top-left corner) ───────────────── */
-/* Anchored to the canvas-container (position: relative). `bottom: 100%` lifts
-   the pill just above the box's top edge so it never overlaps the image. */
+/* ── Font picker (pill in the controls-left column) ────────────────────────── */
+/* Sits in the left cell of the controls grid; `position: relative` anchors the
+   dropdown menu below the button. */
 .font-settings {
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  margin-bottom: 8px;
-  z-index: 30;
+  position: relative;
   display: inline-flex;
 }
 
@@ -247,13 +262,10 @@ main {
   background: var(--dark-forest);
 }
 
-/* Dropdown anchored to the pill; opens downward over the canvas, left-aligned
-   with the button so it stays inside the box. */
+/* Dropdown. Position is set by JS (position:fixed on desktop) or by the mobile
+   media query (position:absolute below the Fonts button). Visual styles only here. */
 .font-settings-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 30;
+  z-index: 2000;
   margin: 0;
   padding: 4px;
   list-style: none;
@@ -398,16 +410,16 @@ main {
 }
 
 .canvas-container {
-  position: relative;
-  display: inline-block;
-  background: var(--off-white);
-  border: 1.5px solid var(--dark-forest);
-  border-radius: 1.5rem;
-  min-width: 400px;
-  min-height: 300px;
-  max-width: 100%;
-  overflow: visible;
-  cursor: pointer;
+    position: relative;
+    display: inline-block;
+    background: var(--off-white);
+    border: 1.5px solid var(--dark-forest);
+    border-radius: 1.5rem;
+    min-width: 400px;
+    min-height: 300px;
+    max-width: 100%;
+    overflow: visible;
+    cursor: pointer;
 }
 
 .canvas-container.has-image {
@@ -415,12 +427,26 @@ main {
   border-color: var(--dark-forest);
   min-width: 0;
   min-height: 0;
-  /* Clip the loaded canvas inside the rounded forest-green border. Without
-   * this, box-sizing: border-box + the inline width set by ImageLoader
-   * makes the canvas spill ~3 px past the border on each side and its
-   * square corners poke through the rounded outline. Export is unaffected:
-   * canvas.toBlob uses the canvas's pixel buffer, not the CSS clip. */
-  /*overflow: hidden;*/
+  /* Drive the container's height from its width using the image aspect ratio
+   * set by JS as --canvas-aspect-ratio. Text boxes (position: absolute) are
+   * then placed relative to a container whose dimensions match the displayed
+   * canvas, so export scaling stays correct. */
+  aspect-ratio: var(--canvas-aspect-ratio, 1 / 1);
+  /* Prevent the canvas bitmap from visually spilling outside the rounded
+   * border. Text boxes are direct children of .canvas-container (not
+   * .canvas-frame), so their controls are unaffected by this clip. */
+  overflow: hidden;
+}
+
+
+
+/* Mobile fonts row — off-screen on desktop (not display:none so that its
+   position:fixed child #font-settings-menu can still appear at JS-computed
+   viewport coords). Shown in normal flow on mobile. */
+.mobile-fonts-row {
+  position: fixed;
+ 
+  visibility: hidden;
 }
 
 .canvas-container.drag-over {
@@ -433,11 +459,13 @@ main {
   color: var(--forest-green);
 }
 
-/* Inner wrapper that clips only the canvas layer to the rounded border.
- * overflow: hidden here rather than on .canvas-container, which would
- * clip the absolutely-positioned .text-box-toolbar that floats above it. */
+/* Inner wrapper that clips the canvas layer to the rounded border.
+ * overflow: hidden on the frame (not the container) so absolutely-positioned
+ * text-box controls that extend outside the frame are not clipped. */
 .canvas-frame {
   display: block;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   border-radius: inherit;
 }
@@ -482,6 +510,11 @@ main {
   outline: none;
 }
 
+[data-theme="dark"] .copy-btn:not(:disabled):hover,
+[data-theme="dark"] .copy-btn:not(:disabled):focus-visible {
+  background: #FFFDF6;
+}
+
 .copy-btn:not(:disabled):active {
   transform: translateY(0);
 }
@@ -500,8 +533,8 @@ body.is-moving-text-box .copy-btn {
 
 #meme-canvas {
   display: block;
-  max-width: 100%;
-  height: auto;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .placeholder {
@@ -851,6 +884,33 @@ body.is-moving-text-box .copy-btn {
   text-overflow: ellipsis;
 }
 
+/* Selected state for AI suggestion cards in the under-editor preview. */
+.meme-search-card.selected {
+  border-color: var(--forest-green);
+  outline: 2px solid var(--forest-green);
+  outline-offset: -1px;
+}
+
+/* Show card names in the editor AI preview (normally hidden in search grid). */
+.editor-library-results .meme-search-name {
+  display: block;
+}
+
+/* Scale caption text to fit the smaller preview cards in the under-editor grid. */
+.editor-ai-preview-card .ai-preview-caption {
+  font-size: 1rem;
+}
+
+/* Empty-state message inside the editor library results (AI mode). */
+.editor-library-empty {
+  color: var(--off-white);
+  font-size: 0.875rem;
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+  grid-column: 1 / -1;
+  opacity: 0.75;
+}
+
 /* Mobile overlay state for the meme-search panel. Triggered by the
  * header search icon adding .is-open to the section. The chevron handle
  * at the top doubles as a close affordance. Desktop never sees this — the
@@ -947,7 +1007,7 @@ body.is-moving-text-box .copy-btn {
 .ai-panda-btn:active {
   transform: scale(0.96);
 }
-}
+
 
 /* Desktop AI button — sits in the top .controls row next to Upload/Download.
  * Hidden by default; the desktop @media block lower in this file reveals it.
@@ -1421,6 +1481,7 @@ body.is-moving-text-box .copy-btn {
     justify-content: center;
   }
 
+  
   .upload-btn,
   #share-btn,
   #scan-text-btn,
@@ -1493,23 +1554,42 @@ body.is-moving-text-box .copy-btn {
 
   body.ai-mode #desktop-ai-suggestions-panel,
   body.ai-mode #desktop-ai-suggestions-panel[hidden] {
-    display: flex !important; /* override .desktop-ai-panel's mobile display:none */
+    display: flex !important;
     position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    top: auto;
-    width: auto;
-    max-height: 75vh;
-    transform: none;
+    top: 50%;
+    left: 50%;
+    right: auto;
+    bottom: auto;
+
+    width: min(90vw, 28rem);
+    max-height: 80vh;
+
+    transform: translate(-50%, -50%);
     overflow-y: auto;
-    /* Bottom-sheet look: rounded top corners only, flush to screen edges. */
-    border-radius: 1.25rem 1.25rem 0 0;
-    z-index: 1001; /* above the browse overlay (50) and bottom-actions (10) */
+
+    border-radius: 1.25rem;
+    z-index: 1001;
   }
 
   /* While the AI sheet is up it replaces the Browse Memes / Share row. */
   body.ai-mode .bottom-actions {
+    display: none;
+  }
+
+  /* After the user selects a suggestion: hide the popup overlay without
+   * exiting AI mode — body.ai-popup-dismissed is toggled by app.js. */
+  body.ai-mode.ai-popup-dismissed #desktop-ai-suggestions-panel,
+  body.ai-mode.ai-popup-dismissed #desktop-ai-suggestions-panel[hidden] {
+    display: none !important;
+  }
+
+  /* Show the under-editor AI preview section when ai-mode is active. */
+  body.ai-mode .editor-library-preview {
+    display: block;
+  }
+
+  /* Hide the search input inside the preview — AI preview doesn't need it. */
+  body.ai-mode .editor-library-search-input {
     display: none;
   }
 
@@ -1524,9 +1604,15 @@ body.is-moving-text-box .copy-btn {
     max-width: 100%;
   }
 
-  #meme-canvas {
-    width: 100%;
-    height: auto;
+  .canvas-container:not(.has-image) {
+    width: min(100%, 34rem);
+    min-height: 18rem;
+  }
+
+  .canvas-container.has-image {
+    width: min(100%, calc(60vh * var(--canvas-ratio-num, 1)));
+    max-height: 60vh;
+    min-height: 0;
   }
 
   .placeholder {
@@ -1638,7 +1724,41 @@ body.is-moving-text-box .copy-btn {
     display: inline-flex;
   }
 
-  /* Browse Memes + Share fixed at viewport bottom on mobile. */
+  /* Show the Share button via CSS — JS inline override is not needed. */
+  #share-btn {
+    display: block;
+  }
+
+  /* Font picker lives in controls-left — hidden on mobile (use .mobile-fonts-row instead). */
+  .controls-left {
+    display: none;
+  }
+
+  /* Mobile fonts row — in normal flow below the canvas. position:relative makes
+     it the containing block for the absolutely-positioned #font-settings-menu. */
+  .mobile-fonts-row {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    margin-top: 0.75rem;
+    visibility: visible;
+  }
+
+  /* Font-settings menu: anchored directly below the Fonts button. */
+  #font-settings-menu {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    transform: translateX(-50%);
+    visibility: visible;
+    width: min(90vw, 18rem);
+    max-height: 45vh;
+    overflow-y: auto;
+  }
+
+  /* Browse Memes | Share fixed at viewport bottom on mobile (2 items). */
   .bottom-actions {
     position: fixed;
     left: clamp(1rem, 5vw, 2rem);
@@ -1648,7 +1768,7 @@ body.is-moving-text-box .copy-btn {
     z-index: 10;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: clamp(0.75rem, 3vw, 1.25rem);
+    gap: clamp(0.5rem, 2vw, 0.75rem);
     align-items: center;
     max-width: 90vw;
     box-sizing: border-box;
@@ -1795,25 +1915,25 @@ body.is-moving-text-box .copy-btn {
     z-index: 100;
   }
 
-  /* Canvas container fills the editor panel on desktop instead of staying
-   * at its inline-block intrinsic size.  align-self: stretch overrides the
-   * parent's align-items: center; min-width: 0 removes the 400 px floor. */
-  .canvas-container {
-    display: block;
-    align-self: stretch;
-    min-width: 0;
-    max-width: 100%;
-    min-height: clamp(18rem, 40vh, 28rem);
-    box-sizing: border-box;
+  /* Canvas container is centered inside the editor panel. min-height and
+   * width for the empty state are handled by .canvas-container:not(.has-image). */
+ .canvas-container {
+        display: block;
+        align-self: stretch;
+        min-width: 0;
+        max-width: 100%;
+        min-height: clamp(18rem, 40vh, 28rem);
+        box-sizing: border-box;
   }
 
-  /* Once an image is loaded JS sets explicit pixel dimensions; the
-   * minimum height is no longer needed and max-width prevents wide images
-   * from overflowing the panel. */
+  /* Once an image is loaded, constrain width so tall/wide images don't
+   * overflow the panel. 100% ensures it never exceeds the panel width even
+   * when the panel is narrower than 90% of the viewport height * ratio. */
   .canvas-container.has-image {
     min-height: 0;
-    max-width: 100%;
-    width: auto;
+    align-self: center;
+    width: min(90%, 100%, calc(72vh * var(--canvas-ratio-num, 1)));
+    max-height: 72vh;
   }
 
   /* Draggable vertical resizer between the two panels.
@@ -1839,9 +1959,33 @@ body.is-moving-text-box .copy-btn {
     background-color: var(--forest-green);
   }
 
+  /* Enable container queries on the meme-search panel so the grid adapts
+   * as the user drags the resizer. */
+  .meme-search {
+    container-type: inline-size;
+  }
+
   .meme-search-results {
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
-    gap: 10px !important;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  @container (min-width: 16rem) {
+    .meme-search-results {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @container (min-width: 24rem) {
+    .meme-search-results {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @container (min-width: 32rem) {
+    .meme-search-results {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
   }
 
   /* ── Desktop AI mode (#87) ──
@@ -2053,6 +2197,10 @@ body.is-moving-text-box .copy-btn {
   background: var(--deep-green);
 }
 
+[data-theme="dark"] .ai-generate-btn:hover:not(:disabled) {
+  color: var(--forest-green);
+}
+
 .ai-generate-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -2144,48 +2292,85 @@ body.is-moving-text-box .copy-btn {
   transform: scale(0.98);
 }
 
-.ai-result-card img {
-  width: 100%;
-  height: 120px;
-  object-fit: contain;
-  background: var(--off-white);
-  border-radius: 4px;
-}
-
 .ai-result-name {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #fff;
+  color: var(--dark-forest);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.ai-caption-list {
-  list-style: none;
-  margin: 0;
+/* Caption overlay wrapper — positions captions on top of the preview image. */
+.ai-preview-wrap {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 0.4rem;
+  background: var(--off-white);
+}
+
+.ai-preview-wrap img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 0;
+}
+
+.ai-preview-caption {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  z-index: 2;
+  color: white;
+  font-family: Impact, Anton, sans-serif;
+  font-weight: 900;
+  font-size: 1rem;
+  line-height: 1.15;
+  text-align: center;
+  text-transform: uppercase;
+  -webkit-text-stroke: 0.5px black;
+  text-shadow:
+    1px 1px 0 black,
+    -1px 1px 0 black,
+    1px -1px 0 black,
+    -1px -1px 0 black;
+  overflow-wrap: break-word;
+  pointer-events: none;
+}
+
+.ai-preview-caption-top {
+  top: 5%;
+}
+
+.ai-preview-caption-bottom {
+  bottom: 5%;
+}
+
+.ai-preview-caption-middle {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Keep caption list in DOM for screen readers but hide it visually. */
+.ai-caption-list.visually-hidden,
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.ai-caption-list li {
-  font-size: 0.8rem;
-  color: var(--forest-green);
-  white-space: nowrap;
+  margin: -1px;
   overflow: hidden;
-  text-overflow: ellipsis;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-/* On narrow screens, single-column AI results so captions stay readable. */
+/* On narrow screens, single-column AI results. */
 @media (max-width: 480px) {
   .ai-results {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  .ai-result-card img {
-    height: 140px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
   }
 }

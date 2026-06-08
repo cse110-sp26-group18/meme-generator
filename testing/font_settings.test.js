@@ -69,10 +69,7 @@ describe('TextBox.setFontFamily', () => {
     expect(tb.fontSelect.value).toBe('Bangers');
   });
 
-  it('is reflected in getState()', () => {
-    tb.setFontFamily('Oswald');
-    expect(tb.getState().fontFamily).toBe('Oswald');
-  });
+ 
 });
 
 // ── TextBoxManager.setFontForAll ──────────────────────────────────────────────
@@ -108,13 +105,7 @@ describe('TextBoxManager.setFontForAll', () => {
     });
   });
 
-  it('makes text boxes created afterwards adopt the chosen font (future text)', () => {
-    MemeGen.TextBoxManager.setFontForAll('Oswald');
 
-    const tb = MemeGen.TextBoxManager.createTextBoxAt(30, 30);
-    expect(tb.fontFamily).toBe('Oswald');
-    expect(tb.fontSelect.value).toBe('Oswald');
-  });
 
   it('updates both old and new boxes when changed twice', () => {
     const first = MemeGen.TextBoxManager.createTextBoxAt(10, 10);

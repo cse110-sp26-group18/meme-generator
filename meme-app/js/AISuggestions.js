@@ -260,6 +260,9 @@ MemeGen.AISuggestions = (function () {
       (captions[0] || '') + '" and "' + (captions[1] || '') + '"'
     );
 
+    var previewWrap = document.createElement('div');
+    previewWrap.className = 'ai-preview-wrap';
+
     var img = document.createElement('img');
     img.src = template.url;
     img.alt = template.name;
@@ -267,16 +270,30 @@ MemeGen.AISuggestions = (function () {
     // Anonymous CORS so the same image can be drawn to canvas later
     // without tainting it (mirrors the MemeSearch card pattern).
     img.crossOrigin = 'anonymous';
-    card.appendChild(img);
+    previewWrap.appendChild(img);
+
+    var safeCaptions = Array.isArray(captions) ? captions : [];
+    safeCaptions.slice(0, 3).forEach(function (caption, index) {
+      var captionEl = document.createElement('span');
+      var posClass = 'ai-preview-caption-middle';
+      if (index === 0) posClass = 'ai-preview-caption-top';
+      if (index === safeCaptions.length - 1 && index > 0) posClass = 'ai-preview-caption-bottom';
+      captionEl.className = 'ai-preview-caption ' + posClass;
+      captionEl.textContent = caption;
+      previewWrap.appendChild(captionEl);
+    });
+
+    card.appendChild(previewWrap);
 
     var name = document.createElement('span');
     name.className = 'ai-result-name';
     name.textContent = template.name;
     card.appendChild(name);
 
+    // Keep caption list for screen readers; visually hidden.
     var capList = document.createElement('ul');
-    capList.className = 'ai-caption-list';
-    captions.forEach(function (cap) {
+    capList.className = 'ai-caption-list visually-hidden';
+    safeCaptions.forEach(function (cap) {
       var li = document.createElement('li');
       li.textContent = cap;
       capList.appendChild(li);

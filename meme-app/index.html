@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Meme Generator</title>
-  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Luckiest+Guy&family=Montserrat:wght@400;700&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
   <!-- Apply theme synchronously before the body paints, so dark-mode users
        don't see a flash of light theme on first load (FOUC). The full
@@ -75,34 +75,32 @@
   <main>
     <div class="editor-panel">
       <div class="controls">
-        <label class="upload-btn">
-          Upload
-          <input type="file" id="image-input" accept="image/*" hidden>
-        </label>
-        <button id="download-btn" disabled>Download</button>
+        <div class="controls-left">
+          <!-- Font picker: pill in the controls row's left column.
+               Opens a dropdown of fonts; choosing one sets the font for every
+               text box, current and future (app.js wiring). -->
+          <div class="font-settings" id="font-settings">
+            <button
+              type="button"
+              id="font-settings-btn"
+              class="font-settings-btn"
+              aria-label="Choose a font"
+              aria-haspopup="true"
+              aria-expanded="false"
+            >Font</button>
+          </div>
+        </div>
+        <div class="controls-center">
+          <label class="upload-btn">
+            Upload
+            <input type="file" id="image-input" accept="image/*" hidden>
+          </label>
+          <button id="download-btn" disabled>Download</button>
+        </div>
+        <div class="controls-right" aria-hidden="true"></div>
       </div>
 
       <div id="canvas-container" class="canvas-container">
-        <!-- Font picker: pill anchored just above the canvas's top-left corner.
-             Opens a dropdown of fonts; choosing one sets the font for every
-             text box, current and future (app.js wiring). -->
-        <div class="font-settings" id="font-settings">
-          <button
-            type="button"
-            id="font-settings-btn"
-            class="font-settings-btn"
-            aria-label="Choose a font"
-            aria-haspopup="true"
-            aria-expanded="false"
-          >Font</button>
-          <ul
-            id="font-settings-menu"
-            class="font-settings-menu"
-            role="menu"
-            aria-label="Choose a font"
-            hidden
-          ></ul>
-        </div>
         <div class="canvas-frame">
           <canvas id="meme-canvas"></canvas>
           <div class="placeholder" id="placeholder">Click here or drag &amp; drop an image to get started</div>
@@ -118,6 +116,22 @@
           title="Copy meme"
           disabled
         ><img src="assets/copy-icon.png" alt="" width="27" height="27" draggable="false"></button>
+      </div>
+
+      <!-- Mobile-only Fonts row — sits below canvas on mobile, invisible on desktop.
+           The shared #font-settings-menu lives here so CSS can anchor it directly
+           below the Fonts button with position:absolute on mobile. On desktop,
+           JS repositions the menu with position:fixed + getBoundingClientRect. -->
+      <div class="mobile-fonts-row">
+        <button type="button" id="mobile-fonts-btn" class="fonts-btn"
+          aria-haspopup="true" aria-expanded="false">Fonts</button>
+        <ul
+          id="font-settings-menu"
+          class="font-settings-menu"
+          role="menu"
+          aria-label="Choose a font"
+          hidden
+        ></ul>
       </div>
 
       <p class="hint" id="hint" hidden>Click on the image to add text</p>

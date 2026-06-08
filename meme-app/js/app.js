@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', function () {
   var fontsBtn = document.getElementById('fonts-btn');
   var fontSettingsBtn = document.getElementById('font-settings-btn');
   var fontSettingsMenu = document.getElementById('font-settings-menu');
-  var aiPandaBtn = document.getElementById('ai-panda-btn');
   var placeholder = document.getElementById('placeholder');
   var hint = document.getElementById('hint');
 
@@ -65,6 +64,15 @@ document.addEventListener('DOMContentLoaded', function () {
     // up-front so the user sees the "Loading…" state against the editor;
     // calling again here is idempotent and covers the plain upload path.)
     showEditorView();
+
+    // If an AI suggestion is pending its captions, populate the text boxes
+    // now that the canvas is sized. Deferred one tick so layout fully
+    // commits before we measure the container for box placement.
+    if (MemeGen.pendingAICaptions && Array.isArray(MemeGen.pendingAICaptions)) {
+      var caps = MemeGen.pendingAICaptions;
+      MemeGen.pendingAICaptions = null;
+      setTimeout(function () { populatePresetCaptions(container, caps); }, 0);
+    }
   });
 
   MemeGen.TextBoxManager.init(container, canvas);
@@ -109,6 +117,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   ['dragenter', 'dragover'].forEach(function (evt) {
     container.addEventListener(evt, function (e) {
+      // In AI mode the canvas is a blank target for the chosen suggestion —
+      // drag-and-drop upload is disabled.
+      if (document.body.classList.contains('ai-mode')) return;
       // preventDefault on dragover is required for the drop event to fire;
       // without it the browser cancels the drag and drop never triggers.
       e.preventDefault();
@@ -122,6 +133,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   ['dragleave', 'dragend'].forEach(function (evt) {
     container.addEventListener(evt, function (e) {
+      if (document.body.classList.contains('ai-mode')) return;
       e.preventDefault();
       e.stopPropagation();
       // relatedTarget is the element the pointer moved to; if it is still
@@ -133,6 +145,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   container.addEventListener('drop', function (e) {
+    if (document.body.classList.contains('ai-mode')) return;
     e.preventDefault();
     e.stopPropagation();
     container.classList.remove('drag-over');
@@ -154,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Do not open the file picker when clicking inside overlay UI such as
   // the AI suggestions panel.
-  if (e.target.closest('#desktop-ai-suggestions-panel, #mobile-ai-suggestions-panel')) return;
+  if (e.target.closest('#desktop-ai-suggestions-panel')) return;
 
   // Only the empty canvas area/placeholder should open the file picker.
   if (
@@ -545,248 +558,76 @@ document.addEventListener('DOMContentLoaded', function () {
     MemeGen.TextBoxManager.createBatch(items);
   }
 
-    // ── AI suggestions panels ─
-  // Desktop and mobile use separate IDs/panels so their layout and behavior
-  // do not fight over the same DOM nodes.
+  // ── AI suggestions (desktop AI-Mode toggle, #87) ─────────────────────────
+  // AI is desktop-only in this version. The header "AI Mode" pill reveals
+  // #desktop-ai-suggestions-panel inline in the right panel, in place of the
+  // template library (see body.ai-mode CSS); the canvas stays on the left.
+  // The 🐼 panda buttons and the separate mobile panel were removed.
   var desktopAiPanel = document.getElementById('desktop-ai-suggestions-panel');
-  var desktopAiCloseBtn = document.getElementById('desktop-ai-close-btn');
-  var desktopAiBtn = document.getElementById('desktop-ai-btn');
   var desktopAiStatus = document.getElementById('desktop-ai-status');
 
-  var mobileAiPanel = document.getElementById('mobile-ai-suggestions-panel');
-  var mobileAiCloseBtn = document.getElementById('mobile-ai-close-btn');
-
+  // Clicks inside the panel should not bubble out to the canvas/file-picker.
   if (desktopAiPanel) {
     desktopAiPanel.addEventListener('click', function (e) {
       e.stopPropagation();
     });
   }
 
-  if (mobileAiPanel) {
-    mobileAiPanel.addEventListener('click', function (e) {
-      e.stopPropagation();
-    });
-  }
-
-  function isDesktopLayout() {
-    return typeof window.matchMedia === 'function' &&
-      window.matchMedia('(min-width: 769px)').matches;
-  }
-
-  // Open/close helpers per panel — NO layout guards here. CSS media queries
-  // (.desktop-ai-panel / .mobile-ai-panel) decide which panel is visible,
-  // so JS only flips `hidden` on both and lets CSS handle which one paints.
-  function openDesktopAiPanel() {
-    if (!desktopAiPanel) return;
-    desktopAiPanel.hidden = false;
-    if (desktopAiBtn) desktopAiBtn.setAttribute('aria-expanded', 'true');
-    var identityInput = document.getElementById('desktop-ai-identity');
-    if (identityInput && isDesktopLayout()) identityInput.focus();
-  }
-
-  function closeDesktopAiPanel() {
-    if (!desktopAiPanel) return;
-    desktopAiPanel.hidden = true;
-    if (desktopAiBtn) desktopAiBtn.setAttribute('aria-expanded', 'false');
-  }
-
-  function openMobileAiPanel() {
-    if (!mobileAiPanel) return;
-    mobileAiPanel.hidden = false;
-    if (aiPandaBtn) aiPandaBtn.setAttribute('aria-expanded', 'true');
-    var identityInput = document.getElementById('mobile-ai-identity');
-    if (identityInput && !isDesktopLayout()) identityInput.focus();
-  }
-
-  function closeMobileAiPanel() {
-    if (!mobileAiPanel) return;
-    mobileAiPanel.hidden = true;
-    if (aiPandaBtn) aiPandaBtn.setAttribute('aria-expanded', 'false');
-  }
-
-  // Shared open/close that both buttons use. CSS decides which panel paints.
-  function openAiPanels() {
-    openDesktopAiPanel();
-    openMobileAiPanel();
-    showAiLibraryEmptyState();
-  }
-
-  function closeAiPanels() {
-    closeDesktopAiPanel();
-    closeMobileAiPanel();
-  }
-
-  if (desktopAiCloseBtn) {
-    desktopAiCloseBtn.addEventListener('click', exitAiLibraryMode);
-  }
-
-  if (mobileAiCloseBtn) {
-    mobileAiCloseBtn.addEventListener('click', exitAiLibraryMode);
-  }
-
-  if (aiPandaBtn) {
-    aiPandaBtn.addEventListener('click', function () {
-      // Use the panel's own hidden state (not viewport) so the toggle
-      // works identically on desktop and mobile.
-      if (mobileAiPanel && mobileAiPanel.hidden) {
-        openAiPanels();
-      } else {
-        exitAiLibraryMode();
-      }
-    });
-  }
-  // ── AI library mode (desktop right-side library swap) ──
-  var aiGeneratedSuggestions = [];
-
-  function renderAiLibraryBackButton() {
-    if (!searchResults) return null;
-
-    var back = document.createElement('button');
-    back.type = 'button';
-    back.className = 'ai-library-back';
-    back.id = 'ai-library-back-btn';
-    back.textContent = '← Back to templates';
-    back.addEventListener('click', exitAiLibraryMode);
-    searchResults.appendChild(back);
-
-    return back;
-  }
-
-  function showAiLibraryEmptyState() {
-    if (!searchResults) return;
-
-    searchResults.innerHTML = '';
-
-    renderAiLibraryBackButton();
-
-    var msg = document.createElement('p');
-    msg.className = 'ai-library-message';
-    msg.textContent = 'Please generate to see AI memes';
-    searchResults.appendChild(msg);
-  }
-
-  function showAiLibraryLoadingState() {
-    if (!searchResults) return;
-
-    searchResults.innerHTML = '';
-
-    renderAiLibraryBackButton();
-
-    var msg = document.createElement('p');
-    msg.className = 'ai-library-message';
-    msg.textContent = 'Generating AI meme suggestions...';
-    searchResults.appendChild(msg);
-  }
-
-  function showAiLibraryErrorState(err) {
-    if (!searchResults) return;
-
-    searchResults.innerHTML = '';
-
-    renderAiLibraryBackButton();
-
-    var msg = document.createElement('p');
-    msg.className = 'ai-library-message';
-    msg.textContent = 'Could not generate AI memes: ' +
-      (err && err.message ? err.message : 'unknown error');
-    searchResults.appendChild(msg);
-  }
-
-  function selectAiSuggestion(suggestion) {
-    if (searchStatus) searchStatus.textContent = 'Loading ' + suggestion.name + '…';
-
-    MemeGen.pendingAICaptions = suggestion.captions || [];
-    // Close BOTH panels — selection can fire from either surface, and on
-    // mobile we also need to return to the editor view so the user sees
-    // the canvas update instead of staying on the Browse Memes overlay.
-    closeAiPanels();
-    if (!isDesktopLayout()) {
-      showEditorView();
-    }
-
-    MemeGen.MemeSearch.loadFromUrl(suggestion.url, function (err) {
-      MemeGen.pendingAICaptions = null;
-
-      if (searchStatus) {
-        searchStatus.textContent =
-          'Could not load that template: ' +
-          (err && err.message ? err.message : 'unknown error');
+  // Wire the panel's form to the AISuggestions controller. Generated cards
+  // render inside the panel (#desktop-ai-results); picking one loads the
+  // template through the same meme-search pipeline and stashes its captions
+  // for ImageLoader.onLoad to apply once the canvas is sized.
+  if (desktopAiPanel && MemeGen.AISuggestions) {
+    MemeGen.AISuggestions.init({
+      root: desktopAiPanel,
+      // No getBtn — the AI-Mode toggle controls panel visibility, so the
+      // form is revealed on init.
+      form: document.getElementById('desktop-ai-form'),
+      identity: document.getElementById('desktop-ai-identity'),
+      situation: document.getElementById('desktop-ai-situation'),
+      generateBtn: document.getElementById('desktop-ai-generate-btn'),
+      keyForm: document.getElementById('desktop-ai-key-form'),
+      keyInput: document.getElementById('desktop-ai-key-input'),
+      keySaveBtn: document.getElementById('desktop-ai-key-save-btn'),
+      changeKeyLink: document.getElementById('desktop-ai-change-key'),
+      status: desktopAiStatus,
+      results: document.getElementById('desktop-ai-results'),
+      onSelect: function (template, captions) {
+        if (desktopAiStatus) desktopAiStatus.textContent = 'Loading ' + template.name + '…';
+        // Stash captions so the ImageLoader.onLoad callback applies them once
+        // the image is drawn. The panel stays visible (CSS forces it in
+        // ai-mode), so the canvas on the left updates in place.
+        MemeGen.pendingAICaptions = captions;
+        MemeGen.MemeSearch.loadFromUrl(template.url, function (err) {
+          MemeGen.pendingAICaptions = null;
+          if (desktopAiStatus) {
+            desktopAiStatus.textContent =
+              'Could not load that template: ' + (err && err.message ? err.message : 'unknown error');
+          }
+        });
       }
     });
   }
 
-  function renderAiSuggestionsInLibrary(suggestions) {
-    if (!searchResults) return;
-
-    aiGeneratedSuggestions = Array.isArray(suggestions) ? suggestions : [];
-    searchResults.innerHTML = '';
-
-    renderAiLibraryBackButton();
-
-    if (aiGeneratedSuggestions.length === 0) {
-      var msg = document.createElement('p');
-      msg.className = 'ai-library-message';
-      msg.textContent = 'No AI suggestions returned. Try a different prompt.';
-      searchResults.appendChild(msg);
-      return;
-    }
-
-    aiGeneratedSuggestions.forEach(function (suggestion) {
-      var card = document.createElement('button');
-      card.type = 'button';
-      card.className = 'meme-search-card ai-suggestion-card';
-      card.title = suggestion.name;
-      card.setAttribute('data-template-id', suggestion.id || '');
-
-      var img = document.createElement('img');
-      img.src = suggestion.url;
-      img.alt = suggestion.name;
-      img.loading = 'lazy';
-      img.crossOrigin = 'anonymous';
-
-      var label = document.createElement('span');
-      label.className = 'meme-search-name';
-      label.textContent = suggestion.name;
-
-      card.appendChild(img);
-      card.appendChild(label);
-
-      card.addEventListener('click', function () {
-        selectAiSuggestion(suggestion);
-      });
-
-      searchResults.appendChild(card);
-    });
-  }
-
-  function exitAiLibraryMode() {
-    aiGeneratedSuggestions = [];
-
-    closeAiPanels();
-
-    if (!searchResults || !MemeGen.MemeSearch) return;
-
-    searchResults.innerHTML = '';
-
-    if (searchInput) {
-      searchInput.value = '';
-      try {
-        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-      } catch {
-        // ignore old browser/jsdom event issues
-      }
-    }
-  }
-
-  if (desktopAiBtn) {
-    desktopAiBtn.addEventListener('click', function () {
-      // Use the desktop panel's hidden state for symmetry with the panda
-      // button. CSS hides the desktop panel on mobile, but the JS toggle
-      // works on whichever panel the user is actually looking at.
-      if (desktopAiPanel && desktopAiPanel.hidden) {
-        openAiPanels();
-      } else {
-        exitAiLibraryMode();
+  // ── Desktop AI mode toggle (#87) ─────────────────────────────────────────
+  // Tapping the header pill adds `ai-mode` to <body>, which the desktop CSS
+  // uses to swap the right-side template library for the AI panel in place
+  // (the canvas stays on the left). The label + aria-pressed mirror the
+  // state; turning it on focuses the first input so the user can type
+  // immediately.
+  var aiModeToggle = document.getElementById('ai-mode-toggle');
+  if (aiModeToggle) {
+    aiModeToggle.addEventListener('click', function () {
+      var on = !document.body.classList.contains('ai-mode');
+      document.body.classList.toggle('ai-mode', on);
+      aiModeToggle.setAttribute('aria-pressed', String(on));
+      aiModeToggle.textContent = on ? 'AI Mode: ON' : 'AI Mode: OFF';
+      aiModeToggle.title = on
+        ? 'Switch back to normal mode'
+        : 'Switch to AI suggestion mode';
+      if (on) {
+        var identityInput = document.getElementById('desktop-ai-identity');
+        if (identityInput) identityInput.focus();
       }
     });
   }

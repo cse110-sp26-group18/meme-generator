@@ -1192,6 +1192,36 @@ body.is-moving-text-box .copy-btn {
   opacity: 0.5;
 }
 
+/* AI Mode toggle pill (#87). Header button that flips the desktop layout
+ * into AI suggestion mode. Hidden by default; the desktop @media block
+ * below reveals it (AI is desktop-only in this version). */
+.ai-mode-toggle {
+  display: none;
+  flex: 0 0 auto;
+  padding: 0.4rem 0.875rem;
+  background: transparent;
+  color: var(--dark-forest);
+  border: 2px solid var(--dark-forest);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.ai-mode-toggle:hover,
+.ai-mode-toggle:focus-visible {
+  background: var(--dark-forest);
+  color: var(--off-white);
+  outline: none;
+}
+
+.ai-mode-toggle[aria-pressed="true"] {
+  background: var(--forest-green);
+  color: var(--off-white);
+  border-color: var(--forest-green);
+}
+
 /* "Fonts" pill row — the primary font-dropdown trigger sits below the
  * canvas on both desktop and mobile. Inline-flex so the wrapper shrinks
  * around the button; the parent (main / .editor-panel) already centers
@@ -1764,6 +1794,71 @@ body.is-moving-text-box .copy-btn {
   .meme-search-results {
     grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
     gap: 10px !important;
+  }
+
+  /* AI Mode pill is desktop-only (#87). */
+  .ai-mode-toggle {
+    display: inline-block;
+  }
+
+  /* ── Desktop AI mode (#87) ──
+   * When body.ai-mode is on, the right-side .meme-search panel swaps its
+   * library content for the inline AI suggestions panel. The layout is
+   * unchanged: the editor/canvas stays on the LEFT and the AI panel takes
+   * the RIGHT panel in place of the template library. */
+
+  /* Hide the library content so the AI panel can take over the right panel. */
+  body.ai-mode .meme-search-header,
+  body.ai-mode #meme-search-input,
+  body.ai-mode #meme-search-status,
+  body.ai-mode #meme-search-results {
+    display: none;
+  }
+
+  /* Force the AI panel visible (overrides [hidden]) and unwind the centered
+   * canvas-overlay positioning of .desktop-ai-panel so it lays out inline
+   * inside .meme-search instead of floating. */
+  body.ai-mode #desktop-ai-suggestions-panel,
+  body.ai-mode #desktop-ai-suggestions-panel[hidden] {
+    display: flex;
+    position: static;
+    top: auto;
+    left: auto;
+    transform: none;
+    width: auto;
+    max-height: none;
+    overflow: visible;
+    box-shadow: none;
+    border: none;
+    background: transparent;
+    padding: 0;
+    z-index: auto;
+  }
+
+  /* The header toggle controls visibility, so the modal close × is redundant. */
+  body.ai-mode #desktop-ai-suggestions-panel .ai-close-btn {
+    display: none;
+  }
+
+  /* The panel now sits on .meme-search's --dark-forest background, so switch
+   * the panel text from the default forest-green palette to light colors so
+   * it stays readable (matches how .meme-search styles its own content). */
+  body.ai-mode #desktop-ai-suggestions-panel .ai-suggestions-title,
+  body.ai-mode #desktop-ai-suggestions-panel .ai-label,
+  body.ai-mode #desktop-ai-suggestions-panel .ai-change-key,
+  body.ai-mode #desktop-ai-suggestions-panel .ai-note a {
+    color: var(--off-white);
+  }
+
+  body.ai-mode #desktop-ai-suggestions-panel .ai-note,
+  body.ai-mode #desktop-ai-suggestions-panel .ai-status {
+    color: var(--soft-gray);
+  }
+
+  /* In AI mode the canvas is a blank target for the chosen suggestion — hide
+   * the upload placeholder so it looks intentionally empty. */
+  body.ai-mode .canvas-container:not(.has-image) .placeholder {
+    display: none;
   }
 }
 

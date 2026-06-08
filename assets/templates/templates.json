@@ -1,0 +1,194 @@
+[
+  {
+    "id": "lebron-funny",
+    "name": "LeBron Funny",
+    "character": "LeBron",
+    "emotion": "funny",
+    "category": "sports",
+    "tags": ["sports", "basketball", "lebron", "funny"],
+    "image": "assets/templates/lebron-meme-templates/lebron-funny.jpg",
+    "textBoxes": []
+  },
+  {
+    "id": "lebron-happy",
+    "name": "LeBron Happy",
+    "character": "LeBron",
+    "emotion": "happy",
+    "category": "sports",
+    "tags": ["sports", "basketball", "lebron", "happy"],
+    "image": "assets/templates/lebron-meme-templates/lebron-happy.jpg",
+    "textBoxes": []
+  },
+  {
+    "id": "lebron-locked",
+    "name": "LeBron Locked In",
+    "character": "LeBron",
+    "emotion": "locked",
+    "category": "sports",
+    "tags": ["sports", "basketball", "lebron", "locked"],
+    "image": "assets/templates/lebron-meme-templates/lebron-locked.jpg",
+    "textBoxes": []
+  },
+  {
+    "id": "lebron-sad",
+    "name": "LeBron Sad",
+    "character": "LeBron",
+    "emotion": "sad",
+    "category": "sports",
+    "tags": ["sports", "basketball", "lebron", "sad"],
+    "image": "assets/templates/lebron-meme-templates/lebron-sad.jpg",
+    "textBoxes": []
+  },
+  {
+    "id": "lebron-shocked",
+    "name": "LeBron Shocked",
+    "character": "LeBron",
+    "emotion": "shocked",
+    "category": "sports",
+    "tags": ["sports", "basketball", "lebron", "shocked"],
+    "image": "assets/templates/lebron-meme-templates/lebron-shocked.jpg",
+    "textBoxes": []
+  },
+  {
+    "id": "lebron-sunshine",
+    "name": "LeBron Sunshine",
+    "character": "LeBron",
+    "emotion": "sunshine",
+    "category": "sports",
+    "tags": ["sports", "basketball", "lebron", "sunshine"],
+    "image": "assets/templates/lebron-meme-templates/lebron-sunshine.jpg",
+    "textBoxes": []
+  },
+
+  {
+    "id": "spongebob-excited",
+    "name": "SpongeBob Excited",
+    "character": "SpongeBob",
+    "emotion": "excited",
+    "category": "animation",
+    "tags": ["animation", "spongebob", "excited"],
+    "image": "assets/templates/spongebob-meme-templates/spongebob-excited.jpg",
+    "textBoxes": []
+  },
+  {
+    "id": "spongebob-dead",
+    "name": "SpongeBob Dead",
+    "character": "SpongeBob",
+    "emotion": "dead",
+    "category": "animation",
+    "tags": ["animation", "spongebob", "dead"],
+    "image": "assets/templates/spongebob-meme-templates/spongebob-dead.jpg",
+    "textBoxes": []
+  },
+  {
+    "id": "spongebob-mocking",
+    "name": "SpongeBob Mocking",
+    "character": "SpongeBob",
+    "emotion": "mocking",
+    "category": "animation",
+    "tags": ["animation", "spongebob", "mocking"],
+    "image": "assets/templates/spongebob-meme-templates/spongebob-mocking.jpg",
+    "textBoxes": []
+  },
+  {
+    "id": "spongebob-relieved",
+    "name": "SpongeBob Relieved",
+    "character": "SpongeBob",
+    "emotion": "relieved",
+    "category": "animation",
+    "tags": ["animation", "spongebob", "relieved"],
+    "image": "assets/templates/spongebob-meme-templates/spongebob-relieved.jpg",
+    "textBoxes": []
+  },
+  {
+    "id": "spongebob-sad",
+    "name": "SpongeBob Sad",
+    "character": "SpongeBob",
+    "emotion": "sad",
+    "category": "animation",
+    "tags": ["animation", "spongebob", "sad"],
+    "image": "assets/templates/spongebob-meme-templates/spongebob-sad.jpg",
+    "textBoxes": []
+  },
+
+  {
+    "id": "taj-crazy",
+    "name": "TAJ Crazy",
+    "character": "TAJ",
+    "emotion": "crazy",
+    "category": "pop-culture",
+    "tags": ["pop-culture", "taj", "crazy"],
+    "image": "assets/templates/TAJ-meme-templates/TAJ-crazy.png",
+    "textBoxes": []
+  },
+  {
+    "id": "taj-easy",
+    "name": "TAJ Easy",
+    "character": "TAJ",
+    "emotion": "easy",
+    "category": "pop-culture",
+    "tags": ["pop-culture", "taj", "easy"],
+    "image": "assets/templates/TAJ-meme-templates/TAJ-easy.png",
+    "textBoxes": []
+  },
+  {
+    "id": "taj-mad",
+    "name": "TAJ Mad",
+    "character": "TAJ",
+    "emotion": "mad",
+    "category": "pop-culture",
+    "tags": ["pop-culture", "taj", "mad"],
+    "image": "assets/templates/TAJ-meme-templates/TAJ-mad.webp",
+    "textBoxes": []
+  },
+  {
+    "id": "taj-serious",
+    "name": "TAJ Serious",
+    "character": "TAJ",
+    "emotion": "serious",
+    "category": "pop-culture",
+    "tags": ["pop-culture", "taj", "serious"],
+    "image": "assets/templates/TAJ-meme-templates/TAJ-serious.png",
+    "textBoxes": []
+  },
+  {
+    "id": "taj-sorry",
+    "name": "TAJ Sorry",
+    "character": "TAJ",
+    "emotion": "sorry",
+    "category": "pop-culture",
+    "tags": ["pop-culture", "taj", "sorry"],
+    "image": "assets/templates/TAJ-meme-templates/TAJ-sorry.webp",
+    "textBoxes": []
+  },
+  {
+    "id": "taj-surprise",
+    "name": "TAJ Surprise",
+    "character": "TAJ",
+    "emotion": "surprise",
+    "category": "pop-culture",
+    "tags": ["pop-culture", "taj", "surprise"],
+    "image": "assets/templates/TAJ-meme-templates/TAJ-supprise.png",
+    "textBoxes": []
+  },
+  {
+    "id": "taj-tease",
+    "name": "TAJ Tease",
+    "character": "TAJ",
+    "emotion": "tease",
+    "category": "pop-culture",
+    "tags": ["pop-culture", "taj", "tease"],
+    "image": "assets/templates/TAJ-meme-templates/TAJ-teasewebp.webp",
+    "textBoxes": []
+  },
+  {
+    "id": "taj-weird-smile",
+    "name": "TAJ Weird Smile",
+    "character": "TAJ",
+    "emotion": "weird-smile",
+    "category": "pop-culture",
+    "tags": ["pop-culture", "taj", "weird-smile"],
+    "image": "assets/templates/TAJ-meme-templates/TAJ-weird smile.webp",
+    "textBoxes": []
+  }
+]

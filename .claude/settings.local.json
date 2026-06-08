@@ -7,9 +7,7 @@
       "Bash(git stash *)",
       "Bash(npx --yes jest@29 --no-coverage)",
       "Bash(npm test *)",
-      "Bash(node -e ' *)",
-      "Bash(npx eslint *)",
-      "Bash(npm run *)"
+      "Bash(node -e ' *)"
     ]
   }
 }

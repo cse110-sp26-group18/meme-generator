@@ -42,6 +42,17 @@
     <h1 class="app-title">
       <img src="assets/mememaxxing-logo.png" alt="MemeMaxxing" class="app-logo">
     </h1>
+    <!-- Desktop AI mode toggle (#87). Tap to swap the right-side template
+         library for the AI suggestions form + results, in place; the canvas
+         stays on the left. Desktop-only — hidden under 769px (AI is
+         desktop-only in this version). -->
+    <button
+      type="button"
+      id="ai-mode-toggle"
+      class="ai-mode-toggle"
+      aria-pressed="false"
+      title="Switch to AI suggestion mode"
+    >AI Mode: OFF</button>
     <!-- Theme toggle (#89). Pill-shaped switch with ☀️ and 🌙; clicking
          slides the thumb between them and flips the data-theme attribute
          on <html>. Persisted in localStorage. -->
@@ -59,15 +70,6 @@
         <span class="theme-toggle-thumb"></span>
       </span>
     </button>
-    <!-- Settings gear (Screen 13). Inert in this version; behavior TBD. -->
-    <button
-      type="button"
-      id="settings-btn"
-      class="settings-btn"
-      aria-label="Settings (coming soon)"
-      aria-disabled="true"
-      title="Settings coming soon"
-    >⚙</button>
   </header>
 
   <main>
@@ -78,15 +80,6 @@
           <input type="file" id="image-input" accept="image/*" hidden>
         </label>
         <button id="download-btn" disabled>Download</button>
-        <button
-          type="button"
-          id="desktop-ai-btn"
-          class="desktop-ai-btn"
-          aria-label="Get AI meme suggestions"
-          aria-controls="desktop-ai-suggestions-panel"
-          aria-expanded="false"
-          title="Get AI meme suggestions"
-        >🐼</button>
       </div>
 
       <div id="canvas-container" class="canvas-container">
@@ -125,72 +118,6 @@
           title="Copy meme"
           disabled
         ><img src="assets/copy-icon.png" alt="" width="27" height="27" draggable="false"></button>
-
-        <!-- Desktop AI panel: lives inside the canvas container only -->
-        <section
-          id="desktop-ai-suggestions-panel"
-          class="ai-suggestions-panel desktop-ai-panel"
-          aria-label="Desktop AI meme suggestions"
-          hidden
-        >
-          <header class="ai-suggestions-header">
-            <h2 class="ai-suggestions-title">🐼 AI meme suggestions</h2>
-            <button
-              type="button"
-              id="desktop-ai-close-btn"
-              class="ai-close-btn"
-              aria-label="Close AI suggestions"
-            >×</button>
-          </header>
-
-          <div id="desktop-ai-form" class="ai-form">
-            <label class="ai-field">
-              <span class="ai-label">I am…</span>
-              <input
-                id="desktop-ai-identity"
-                class="ai-input"
-                placeholder="e.g. a college student"
-                autocomplete="off"
-              >
-            </label>
-
-            <label class="ai-field">
-              <span class="ai-label">My situation…</span>
-              <input
-                id="desktop-ai-situation"
-                class="ai-input"
-                placeholder="e.g. struggling to study for finals"
-                autocomplete="off"
-              >
-            </label>
-
-            <button type="button" id="desktop-ai-generate-btn" class="ai-generate-btn">Generate</button>
-            <a href="#" id="desktop-ai-change-key" class="ai-change-key" hidden>Change API key</a>
-          </div>
-
-          <div id="desktop-ai-key-form" class="ai-key-form" hidden>
-            <label class="ai-field">
-              <span class="ai-label">Gemini API key</span>
-              <input
-                id="desktop-ai-key-input"
-                type="password"
-                class="ai-input"
-                placeholder="Paste your Gemini API key"
-                autocomplete="off"
-              >
-            </label>
-
-            <button type="button" id="desktop-ai-key-save-btn" class="ai-generate-btn">Save key</button>
-
-            <p class="ai-note">
-              Your key is stored only on your device (localStorage). Get a free key at
-              <a href="https://aistudio.google.com" target="_blank" rel="noopener">aistudio.google.com</a>.
-            </p>
-          </div>
-
-          <p id="desktop-ai-status" class="ai-status" role="status" aria-live="polite"></p>
-          <div id="desktop-ai-results" class="ai-results"></div>
-        </section>
       </div>
 
       <p class="hint" id="hint" hidden>Click on the image to add text</p>
@@ -246,81 +173,74 @@
         aria-label="Upload an image"
       >+</button>
 
-      <button
-        type="button"
-        id="ai-panda-btn"
-        class="ai-panda-btn"
-        aria-label="Get AI meme suggestions"
-        aria-controls="mobile-ai-suggestions-panel"
-        aria-expanded="false"
-        title="Get AI meme suggestions"
-      >🐼</button>
-    </section>
+      <!-- Desktop AI panel. Lives inside .meme-search so the AI-Mode toggle
+           (#87) can swap it in for the library content: body.ai-mode reveals
+           it inline in the right panel, in place of the template library.
+           Keeps its desktop-ai-* IDs so AISuggestions.init wires it directly. -->
+      <section
+        id="desktop-ai-suggestions-panel"
+        class="ai-suggestions-panel desktop-ai-panel"
+        aria-label="Desktop AI meme suggestions"
+        hidden
+      >
+        <header class="ai-suggestions-header">
+          <h2 class="ai-suggestions-title">🐼 AI meme suggestions</h2>
+          <button
+            type="button"
+            id="desktop-ai-close-btn"
+            class="ai-close-btn"
+            aria-label="Close AI suggestions"
+          >×</button>
+        </header>
 
-    <!-- Mobile AI panel: separate IDs, separate panel, does not touch desktop canvas panel -->
-    <section
-      id="mobile-ai-suggestions-panel"
-      class="ai-suggestions-panel mobile-ai-panel"
-      aria-label="Mobile AI meme suggestions"
-      hidden
-    >
-      <header class="ai-suggestions-header">
-        <h2 class="ai-suggestions-title">🐼 AI meme suggestions</h2>
-        <button
-          type="button"
-          id="mobile-ai-close-btn"
-          class="ai-close-btn"
-          aria-label="Close AI suggestions"
-        >×</button>
-      </header>
+        <div id="desktop-ai-form" class="ai-form">
+          <label class="ai-field">
+            <span class="ai-label">I am…</span>
+            <input
+              id="desktop-ai-identity"
+              class="ai-input"
+              placeholder="e.g. a college student"
+              autocomplete="off"
+            >
+          </label>
 
-      <div id="mobile-ai-form" class="ai-form">
-        <label class="ai-field">
-          <span class="ai-label">I am…</span>
-          <input
-            id="mobile-ai-identity"
-            class="ai-input"
-            placeholder="e.g. a college student"
-            autocomplete="off"
-          >
-        </label>
+          <label class="ai-field">
+            <span class="ai-label">My situation…</span>
+            <input
+              id="desktop-ai-situation"
+              class="ai-input"
+              placeholder="e.g. struggling to study for finals"
+              autocomplete="off"
+            >
+          </label>
 
-        <label class="ai-field">
-          <span class="ai-label">My situation…</span>
-          <input
-            id="mobile-ai-situation"
-            class="ai-input"
-            placeholder="e.g. struggling to study for finals"
-            autocomplete="off"
-          >
-        </label>
+          <button type="button" id="desktop-ai-generate-btn" class="ai-generate-btn">Generate</button>
+          <a href="#" id="desktop-ai-change-key" class="ai-change-key" hidden>Change API key</a>
+        </div>
 
-        <button type="button" id="mobile-ai-generate-btn" class="ai-generate-btn">Generate</button>
-        <a href="#" id="mobile-ai-change-key" class="ai-change-key" hidden>Change API key</a>
-      </div>
+        <div id="desktop-ai-key-form" class="ai-key-form" hidden>
+          <label class="ai-field">
+            <span class="ai-label">Gemini API key</span>
+            <input
+              id="desktop-ai-key-input"
+              type="password"
+              class="ai-input"
+              placeholder="Paste your Gemini API key"
+              autocomplete="off"
+            >
+          </label>
 
-      <div id="mobile-ai-key-form" class="ai-key-form" hidden>
-        <label class="ai-field">
-          <span class="ai-label">Gemini API key</span>
-          <input
-            id="mobile-ai-key-input"
-            type="password"
-            class="ai-input"
-            placeholder="Paste your Gemini API key"
-            autocomplete="off"
-          >
-        </label>
+          <button type="button" id="desktop-ai-key-save-btn" class="ai-generate-btn">Save key</button>
 
-        <button type="button" id="mobile-ai-key-save-btn" class="ai-generate-btn">Save key</button>
+          <p class="ai-note">
+            Your key is stored only on your device (localStorage). Get a free key at
+            <a href="https://aistudio.google.com" target="_blank" rel="noopener">aistudio.google.com</a>.
+          </p>
+        </div>
 
-        <p class="ai-note">
-          Your key is stored only on your device (localStorage). Get a free key at
-          <a href="https://aistudio.google.com" target="_blank" rel="noopener">aistudio.google.com</a>.
-        </p>
-      </div>
-
-      <p id="mobile-ai-status" class="ai-status" role="status" aria-live="polite"></p>
-      <div id="mobile-ai-results" class="ai-results"></div>
+        <p id="desktop-ai-status" class="ai-status" role="status" aria-live="polite"></p>
+        <div id="desktop-ai-results" class="ai-results"></div>
+      </section>
     </section>
   </main>
   <script src="js/ThemeToggle.js"></script>
@@ -332,6 +252,8 @@
   <script src="js/TextBoxManager.js"></script>
   <script src="js/Exporter.js"></script>
   <script src="js/MemeSearch.js"></script>
+  <script src="js/GeminiClient.js"></script>
+  <script src="js/AISuggestions.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

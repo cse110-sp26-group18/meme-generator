@@ -173,9 +173,28 @@ main {
 }
 
 .controls {
-  display: flex;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.controls-left {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.controls-center {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Intentionally empty — mirrors the left column to keep Upload/Download centered. */
+.controls-right {
+  display: flex;
 }
 
 /* Forest-green pill — the primary action button in the polished design. */
@@ -216,15 +235,11 @@ main {
   cursor: not-allowed;
 }
 
-/* ── Font picker (pill above the canvas's top-left corner) ───────────────── */
-/* Anchored to the canvas-container (position: relative). `bottom: 100%` lifts
-   the pill just above the box's top edge so it never overlaps the image. */
+/* ── Font picker (pill in the controls-left column) ────────────────────────── */
+/* Sits in the left cell of the controls grid; `position: relative` anchors the
+   dropdown menu below the button. */
 .font-settings {
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  margin-bottom: 8px;
-  z-index: 30;
+  position: relative;
   display: inline-flex;
 }
 
@@ -398,16 +413,16 @@ main {
 }
 
 .canvas-container {
-  position: relative;
-  display: inline-block;
-  background: var(--off-white);
-  border: 1.5px solid var(--dark-forest);
-  border-radius: 1.5rem;
-  min-width: 400px;
-  min-height: 300px;
-  max-width: 100%;
-  overflow: visible;
-  cursor: pointer;
+    position: relative;
+    display: inline-block;
+    background: var(--off-white);
+    border: 1.5px solid var(--dark-forest);
+    border-radius: 1.5rem;
+    min-width: 400px;
+    min-height: 300px;
+    max-width: 100%;
+    overflow: visible;
+    cursor: pointer;
 }
 
 .canvas-container.has-image {
@@ -415,12 +430,22 @@ main {
   border-color: var(--dark-forest);
   min-width: 0;
   min-height: 0;
-  /* Clip the loaded canvas inside the rounded forest-green border. Without
-   * this, box-sizing: border-box + the inline width set by ImageLoader
-   * makes the canvas spill ~3 px past the border on each side and its
-   * square corners poke through the rounded outline. Export is unaffected:
-   * canvas.toBlob uses the canvas's pixel buffer, not the CSS clip. */
-  /*overflow: hidden;*/
+  /* Drive the container's height from its width using the image aspect ratio
+   * set by JS as --canvas-aspect-ratio. Text boxes (position: absolute) are
+   * then placed relative to a container whose dimensions match the displayed
+   * canvas, so export scaling stays correct. */
+  aspect-ratio: var(--canvas-aspect-ratio, 1 / 1);
+  /* Prevent the canvas bitmap from visually spilling outside the rounded
+   * border. Text boxes are direct children of .canvas-container (not
+   * .canvas-frame), so their controls are unaffected by this clip. */
+  overflow: hidden;
+}
+
+
+
+/* Mobile fonts row — hidden by default; shown only on mobile. */
+.mobile-fonts-row {
+  display: none;
 }
 
 .canvas-container.drag-over {
@@ -433,11 +458,13 @@ main {
   color: var(--forest-green);
 }
 
-/* Inner wrapper that clips only the canvas layer to the rounded border.
- * overflow: hidden here rather than on .canvas-container, which would
- * clip the absolutely-positioned .text-box-toolbar that floats above it. */
+/* Inner wrapper that clips the canvas layer to the rounded border.
+ * overflow: hidden on the frame (not the container) so absolutely-positioned
+ * text-box controls that extend outside the frame are not clipped. */
 .canvas-frame {
   display: block;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   border-radius: inherit;
 }
@@ -500,8 +527,8 @@ body.is-moving-text-box .copy-btn {
 
 #meme-canvas {
   display: block;
-  max-width: 100%;
-  height: auto;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .placeholder {
@@ -947,7 +974,7 @@ body.is-moving-text-box .copy-btn {
 .ai-panda-btn:active {
   transform: scale(0.96);
 }
-}
+
 
 /* Desktop AI button — sits in the top .controls row next to Upload/Download.
  * Hidden by default; the desktop @media block lower in this file reveals it.
@@ -1421,6 +1448,9 @@ body.is-moving-text-box .copy-btn {
     justify-content: center;
   }
 
+  #ai-mode-toggle{
+    display:none;
+  }
   .upload-btn,
   #share-btn,
   #scan-text-btn,
@@ -1524,9 +1554,15 @@ body.is-moving-text-box .copy-btn {
     max-width: 100%;
   }
 
-  #meme-canvas {
-    width: 100%;
-    height: auto;
+  .canvas-container:not(.has-image) {
+    width: min(100%, 34rem);
+    min-height: 18rem;
+  }
+
+  .canvas-container.has-image {
+    width: min(100%, calc(60vh * var(--canvas-ratio-num, 1)));
+    max-height: 60vh;
+    min-height: 0;
   }
 
   .placeholder {
@@ -1638,7 +1674,24 @@ body.is-moving-text-box .copy-btn {
     display: inline-flex;
   }
 
-  /* Browse Memes + Share fixed at viewport bottom on mobile. */
+  /* Show the Share button via CSS — JS inline override is not needed. */
+  #share-btn {
+    display: block;
+  }
+
+  /* Font picker lives in controls-left — hidden on mobile (use .mobile-fonts-row instead). */
+  .controls-left {
+    display: none;
+  }
+
+  /* Mobile fonts row — shown below the canvas on mobile. */
+  .mobile-fonts-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 0.75rem;
+  }
+
+  /* Browse Memes | Share fixed at viewport bottom on mobile (2 items). */
   .bottom-actions {
     position: fixed;
     left: clamp(1rem, 5vw, 2rem);
@@ -1648,7 +1701,7 @@ body.is-moving-text-box .copy-btn {
     z-index: 10;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: clamp(0.75rem, 3vw, 1.25rem);
+    gap: clamp(0.5rem, 2vw, 0.75rem);
     align-items: center;
     max-width: 90vw;
     box-sizing: border-box;
@@ -1795,25 +1848,25 @@ body.is-moving-text-box .copy-btn {
     z-index: 100;
   }
 
-  /* Canvas container fills the editor panel on desktop instead of staying
-   * at its inline-block intrinsic size.  align-self: stretch overrides the
-   * parent's align-items: center; min-width: 0 removes the 400 px floor. */
-  .canvas-container {
-    display: block;
-    align-self: stretch;
-    min-width: 0;
-    max-width: 100%;
-    min-height: clamp(18rem, 40vh, 28rem);
-    box-sizing: border-box;
+  /* Canvas container is centered inside the editor panel. min-height and
+   * width for the empty state are handled by .canvas-container:not(.has-image). */
+ .canvas-container {
+        display: block;
+        align-self: stretch;
+        min-width: 0;
+        max-width: 100%;
+        min-height: clamp(18rem, 40vh, 28rem);
+        box-sizing: border-box;
   }
 
-  /* Once an image is loaded JS sets explicit pixel dimensions; the
-   * minimum height is no longer needed and max-width prevents wide images
-   * from overflowing the panel. */
+  /* Once an image is loaded, constrain width so tall/wide images don't
+   * overflow the panel. 100% ensures it never exceeds the panel width even
+   * when the panel is narrower than 90% of the viewport height * ratio. */
   .canvas-container.has-image {
     min-height: 0;
-    max-width: 100%;
-    width: auto;
+    align-self: center;
+    width: min(90%, 100%, calc(72vh * var(--canvas-ratio-num, 1)));
+    max-height: 72vh;
   }
 
   /* Draggable vertical resizer between the two panels.
@@ -1839,9 +1892,33 @@ body.is-moving-text-box .copy-btn {
     background-color: var(--forest-green);
   }
 
+  /* Enable container queries on the meme-search panel so the grid adapts
+   * as the user drags the resizer. */
+  .meme-search {
+    container-type: inline-size;
+  }
+
   .meme-search-results {
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
-    gap: 10px !important;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  @container (min-width: 16rem) {
+    .meme-search-results {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @container (min-width: 24rem) {
+    .meme-search-results {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @container (min-width: 32rem) {
+    .meme-search-results {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
   }
 
   /* ── Desktop AI mode (#87) ──
@@ -2155,7 +2232,7 @@ body.is-moving-text-box .copy-btn {
 .ai-result-name {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #fff;
+  color: var(--dark-forest);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

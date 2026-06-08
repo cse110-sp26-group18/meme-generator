@@ -7,7 +7,10 @@
       "Bash(git stash *)",
       "Bash(npx --yes jest@29 --no-coverage)",
       "Bash(npm test *)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(dir \"c:\\\\Users\\\\pisce\\\\OneDrive\\\\Documents\\\\Aaron's Folder\\\\cse110\\\\meme-generator\" /B)",
+      "Bash(findstr /i \"zip\")",
+      "Bash(dir \"c:\\\\Users\\\\pisce\\\\OneDrive\\\\Documents\\\\Aaron's Folder\\\\cse110\\\\meme-generator\\\\testing\" /b)"
     ]
   }
 }

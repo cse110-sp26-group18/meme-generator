@@ -5,6 +5,11 @@ MemeGen.TextBoxManager = (function () {
   var container = null;
   var canvas = null;
   var imageLoaded = false;
+  var isSyncing = false;
+  // When an empty text box is destroyed by a click outside the container,
+  // suppress the very next canvas create so the same gesture doesn't
+  // immediately open a new box.
+  var suppressNextCanvasCreate = false;
   // Global font applied to every text box. Changed via the font-settings menu
   // (setFontForAll); newly created boxes adopt it so the choice sticks for
   // future text too. Defaults to the same 'Impact' each TextBox starts with.
@@ -22,6 +27,10 @@ MemeGen.TextBoxManager = (function () {
 
     container.addEventListener('mousedown', function (e) {
       if (e.target === canvas && imageLoaded) {
+        // Consume the one-click suppression set when an empty box was just
+        // destroyed by a click outside the container — that gesture must not
+        // immediately open a new box.
+        if (consumeSuppressNextCanvasCreate()) return;
         if (getSelectedTextBox()) {
           deselectOrDeleteSelectedTextBox();
           return;
@@ -42,6 +51,12 @@ MemeGen.TextBoxManager = (function () {
         // preventDefault stops the browser from synthesizing a mouse click
         // after the touch, which would otherwise trigger a second createTextBox.
         e.preventDefault();
+        if (consumeSuppressNextCanvasCreate()) return;
+        // Check for a selected text box first — same behaviour as mousedown.
+        if (getSelectedTextBox()) {
+          deselectOrDeleteSelectedTextBox();
+          return;
+        }
         var rect = canvas.getBoundingClientRect();
         // changedTouches contains only the touches that changed in this event;
         // [0] is the first (and typically only) finger involved in the tap.
@@ -54,10 +69,19 @@ MemeGen.TextBoxManager = (function () {
       }
     });
 
-    // mousedown on document (not container) deselects when clicking outside.
+    // mousedown on document (not container): if a selected empty text box
+    // exists, destroy it and set the suppression flag so the next canvas
+    // click does not immediately recreate a box. For non-empty boxes, simply
+    // deselect as before.
     document.addEventListener('mousedown', function (e) {
       if (!container.contains(e.target)) {
-        deselectAll();
+        var selected = getSelectedTextBox();
+        if (selected && isTextBoxEmpty(selected)) {
+          selected.destroy();
+          suppressNextCanvasCreate = true;
+        } else {
+          deselectAll();
+        }
       }
     });
 
@@ -128,6 +152,10 @@ MemeGen.TextBoxManager = (function () {
 
     tb.el.style.left = clampedX + 'px';
     tb.el.style.top = clampedY + 'px';
+
+    if (typeof tb.captureRelativeState === 'function') {
+      tb.captureRelativeState();
+    }
 
     tb.select();
     tb.focusTextarea();
@@ -203,6 +231,49 @@ MemeGen.TextBoxManager = (function () {
     defaultFontFamily = 'Impact';
   }
 
+  /**
+   * Repositions all text boxes proportionally after the container resizes.
+   * Called by the ResizeObserver in app.js whenever the canvas-container
+   * changes size (e.g. user drags the panel resizer).
+   */
+  function syncTextBoxesToCanvas() {
+    if (isSyncing) return;
+    isSyncing = true;
+    textBoxes.forEach(function (tb) {
+      if (typeof tb.applyRelativeState === 'function') {
+        tb.applyRelativeState();
+      }
+      if (typeof tb.captureRelativeState === 'function') {
+        tb.captureRelativeState();
+      }
+    });
+    isSyncing = false;
+  }
+
+  /**
+   * Creates multiple text boxes in one call, each with an optional preset
+   * text string. Used by the AI suggestions flow to pre-populate captions.
+   * @param {Array<{x: number, y: number, text?: string}>} items
+   */
+  function createBatch(items) {
+    if (!Array.isArray(items)) return;
+    items.forEach(function (item) {
+      var tb = createTextBoxAt(item.x, item.y);
+      if (!tb) return;
+      if (item.text) {
+        tb.textarea.value = item.text;
+        if (typeof tb.fitToText === 'function') tb.fitToText();
+        if (typeof tb.captureRelativeState === 'function') tb.captureRelativeState();
+      }
+    });
+  }
+
+  function consumeSuppressNextCanvasCreate() {
+    if (!suppressNextCanvasCreate) return false;
+    suppressNextCanvasCreate = false;
+    return true;
+  }
+
   function deselectOrDeleteSelectedTextBox() {
     var selectedBox = getSelectedTextBox();
 
@@ -225,7 +296,10 @@ MemeGen.TextBoxManager = (function () {
     getAll: getAll,
     createTextBoxAt: createTextBoxAt,
     setFontForAll: setFontForAll,
-    reset: reset
+    reset: reset,
+    syncTextBoxesToCanvas: syncTextBoxesToCanvas,
+    createBatch: createBatch,
+    consumeSuppressNextCanvasCreate: consumeSuppressNextCanvasCreate
   };
 })();
 

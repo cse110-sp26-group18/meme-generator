@@ -45,6 +45,7 @@ MemeGen.TextBox = (function () {
     this._handleKeyDown = null;
     this.onDelete = null;
     this.onSelect = null;
+    this.relativeState = null;
 
     this._buildDOM();
     this._bindEvents();
@@ -528,8 +529,56 @@ MemeGen.TextBox = (function () {
       text: this.textarea.value,
       fontFamily: this.fontFamily,
       fontSize: this.fontSize,       // explicit state — read by Exporter directly
-      borderEnabled: this.borderEnabled
+      borderEnabled: this.borderEnabled,
+      // Container dimensions let the Exporter scale display→bitmap coords.
+      containerWidth:  this.container ? this.container.offsetWidth  : 0,
+      containerHeight: this.container ? this.container.offsetHeight : 0
     };
+  };
+
+  /**
+   * Stores the text box's position as fractions of the container size.
+   * Called after each create/move so `applyRelativeState` can restore
+   * the same proportional position when the container is resized.
+   */
+  TextBox.prototype.captureRelativeState = function () {
+    var cw = this.container ? this.container.offsetWidth : 0;
+    var ch = this.container ? this.container.offsetHeight : 0;
+    if (cw <= 0 || ch <= 0) return;
+    this.relativeState = {
+      relX: this.el.offsetLeft / cw,
+      relY: this.el.offsetTop / ch,
+      widthRatio: this.el.offsetWidth / cw,
+      heightRatio: this.el.offsetHeight / ch
+    };
+  };
+
+  /**
+   * Repositions the text box using the stored relative state and the
+   * container's current dimensions. Clamped so the box stays in-bounds.
+   */
+  TextBox.prototype.applyRelativeState = function () {
+    if (!this.relativeState) return;
+    var cw = this.container ? this.container.offsetWidth : 0;
+    var ch = this.container ? this.container.offsetHeight : 0;
+    if (cw <= 0 || ch <= 0) return;
+
+    var newX = Math.round(this.relativeState.relX * cw);
+    var newY = Math.round(this.relativeState.relY * ch);
+    var nextW = Math.max(80, Math.round(this.relativeState.widthRatio * cw));
+    var nextH = Math.max(40, Math.round(this.relativeState.heightRatio * ch));
+
+    this.el.style.width  = nextW + 'px';
+    this.el.style.height = nextH + 'px';
+
+    var maxLeft = Math.max(0, cw - nextW);
+    var maxTop  = Math.max(0, ch - nextH);
+    this.el.style.left = Math.min(newX, maxLeft) + 'px';
+    this.el.style.top  = Math.min(newY, maxTop)  + 'px';
+
+    if (typeof this.fitToText === 'function') {
+      this.fitToText();
+    }
   };
 
   TextBox.prototype.keepInsideContainer = function () {

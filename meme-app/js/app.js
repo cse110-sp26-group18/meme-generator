@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var mobileHomeBackBtn = document.getElementById('mobile-home-back-btn');
   var mobileHomePlusBtn = document.getElementById('mobile-home-plus-btn');
   var browseMemesBtn = document.getElementById('browse-memes-btn');
+  var mobileFontsBtn = document.getElementById('mobile-fonts-btn');
   var fontsBtn = document.getElementById('fonts-btn');
   var fontSettingsBtn = document.getElementById('font-settings-btn');
   var fontSettingsMenu = document.getElementById('font-settings-menu');
@@ -40,14 +41,19 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   MemeGen.ImageLoader.init(canvas, function (width, height) {
-    container.style.width = width + 'px';
-    container.style.height = height + 'px';
+    // Let CSS control the display size via aspect-ratio + min() width.
+    // JS only sets the custom properties so the CSS formula has the values it needs.
+    container.style.removeProperty('width');
+    container.style.removeProperty('height');
+    container.style.setProperty('--canvas-aspect-ratio', width + ' / ' + height);
+    container.style.setProperty('--canvas-ratio-num', (width / height).toFixed(4));
     container.classList.add('has-image');
     placeholder.hidden = true;
     hint.hidden = false;
     downloadBtn.disabled = false;
     if (copyBtn) copyBtn.disabled = false;
-    if (shareBtn && MemeGen.Exporter.isMobileOrTablet()) shareBtn.disabled = false;
+    // Enable both; CSS media queries decide which one is visible.
+    if (shareBtn) shareBtn.disabled = false;
     // Scan Text stays disabled in this version — see the inert button
     // contract below. Do NOT enable it when an image loads.
     MemeGen.TextBoxManager.setImageLoaded(true);
@@ -77,17 +83,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
   MemeGen.TextBoxManager.init(container, canvas);
 
+  if (
+    typeof ResizeObserver === 'function' &&
+    container &&
+    typeof MemeGen.TextBoxManager.syncTextBoxesToCanvas === 'function'
+  ) {
+    var ro = new ResizeObserver(function () {
+      MemeGen.TextBoxManager.syncTextBoxesToCanvas();
+    });
+    ro.observe(container);
+  }
+
   MemeGen.LayoutManager.init('panel-resizer', 'meme-search');
 
-  // Show share button on mobile/tablet only; keep it hidden on desktop.
-  // Mirror: hide #download-btn on mobile so the top action row is just
-  // Upload + Share, matching the polished mobile mockup (Screen 1).
+  // On mobile, boot into the Browse Memes overlay so the first thing the user
+  // sees is the meme template grid. Share/Download visibility is handled
+  // entirely by CSS media queries — no inline style overrides needed.
   if (MemeGen.Exporter.isMobileOrTablet()) {
-    if (shareBtn) shareBtn.style.display = 'inline-block';
-    if (downloadBtn) downloadBtn.style.display = 'none';
-    // Mobile boots into the Browse Memes overlay so the first thing a user
-    // sees on reload is the meme template grid (per the flow correction).
-    // Desktop stays on the editor — its inline layout shows everything.
     showBrowseView();
   }
 
@@ -300,6 +312,14 @@ document.addEventListener('DOMContentLoaded', function () {
   if (browseMemesBtn) {
     browseMemesBtn.addEventListener('click', function () {
       showBrowseView();
+    });
+  }
+
+  // Mobile Fonts button (below the canvas) → delegate to the desktop font
+  // settings button so both entry points share the same dropdown logic.
+  if (mobileFontsBtn && fontSettingsBtn) {
+    mobileFontsBtn.addEventListener('click', function () {
+      fontSettingsBtn.click();
     });
   }
 

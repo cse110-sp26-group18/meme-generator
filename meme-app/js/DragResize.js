@@ -220,6 +220,9 @@ MemeGen.DragResize = (function () {
     });
 
     document.addEventListener('mouseup', function () {
+      if (resizing && typeof textBox.captureRelativeState === 'function') {
+        textBox.captureRelativeState();
+      }
       resizing = false;
       resizeCorner = null;
     });
@@ -383,7 +386,13 @@ MemeGen.DragResize = (function () {
       // pinch) — let the other handlers finish first.
       if (e.touches && e.touches.length > 0) return;
 
-      if (holdComplete && !holdMoved) {
+      if (holdComplete && holdMoved) {
+        // Drag ended — update relative state so ResizeObserver can restore
+        // the new position when the panel resizes.
+        if (typeof textBox.captureRelativeState === 'function') {
+          textBox.captureRelativeState();
+        }
+      } else if (holdComplete && !holdMoved) {
         // Hold without drag → open the quick-action menu. preventDefault
         // here suppresses the synthetic click that would otherwise reach
         // the document-level outside-click handler and immediately close

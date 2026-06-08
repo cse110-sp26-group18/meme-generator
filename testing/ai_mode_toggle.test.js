@@ -34,6 +34,9 @@ function buildDom() {
       <canvas id="meme-canvas"></canvas>
       <div class="placeholder" id="placeholder">Click here or drag &amp; drop</div>
     </div>
+    <section id="desktop-ai-suggestions-panel" class="ai-suggestions-panel desktop-ai-panel" hidden>
+      <button id="desktop-ai-close-btn" class="ai-close-btn" aria-label="Close AI suggestions">×</button>
+    </section>
     <p class="hint" id="hint" hidden></p>
   `;
 }
@@ -101,6 +104,15 @@ describe('AI Mode toggle (#87)', () => {
     it('clicking again exits AI mode — removes body class, flips back', () => {
       toggle.click(); // ON
       toggle.click(); // OFF
+      expect(document.body.classList.contains('ai-mode')).toBe(false);
+      expect(toggle.textContent).toBe('AI Mode: OFF');
+      expect(toggle.getAttribute('aria-pressed')).toBe('false');
+    });
+
+    it('the panel close button exits AI mode (mobile exit path)', () => {
+      toggle.click(); // ON
+      expect(document.body.classList.contains('ai-mode')).toBe(true);
+      document.getElementById('desktop-ai-close-btn').click();
       expect(document.body.classList.contains('ai-mode')).toBe(false);
       expect(toggle.textContent).toBe('AI Mode: OFF');
       expect(toggle.getAttribute('aria-pressed')).toBe('false');

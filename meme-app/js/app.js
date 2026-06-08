@@ -558,18 +558,46 @@ document.addEventListener('DOMContentLoaded', function () {
     MemeGen.TextBoxManager.createBatch(items);
   }
 
-  // ── AI suggestions (desktop AI-Mode toggle, #87) ─────────────────────────
-  // AI is desktop-only in this version. The header "AI Mode" pill reveals
-  // #desktop-ai-suggestions-panel inline in the right panel, in place of the
-  // template library (see body.ai-mode CSS); the canvas stays on the left.
-  // The 🐼 panda buttons and the separate mobile panel were removed.
+  // ── AI suggestions (AI-Mode toggle, #87) ─────────────────────────────────
+  // The header "AI Mode" pill reveals #desktop-ai-suggestions-panel in place
+  // of the template library (see body.ai-mode CSS). On desktop it shows inline
+  // in the right panel (canvas stays left); on mobile it shows as a fullscreen
+  // overlay. The pill replaced the inert ⚙ settings button. The 🐼 panda
+  // buttons and the separate mobile panel were removed.
   var desktopAiPanel = document.getElementById('desktop-ai-suggestions-panel');
   var desktopAiStatus = document.getElementById('desktop-ai-status');
+  var desktopAiCloseBtn = document.getElementById('desktop-ai-close-btn');
+  var aiModeToggle = document.getElementById('ai-mode-toggle');
+
+  // Single source of truth for entering/leaving AI mode. Toggles body.ai-mode
+  // (which the CSS keys off) and mirrors the state onto the header pill.
+  function setAiMode(on) {
+    document.body.classList.toggle('ai-mode', on);
+    if (aiModeToggle) {
+      aiModeToggle.setAttribute('aria-pressed', String(on));
+      aiModeToggle.textContent = on ? 'AI Mode: ON' : 'AI Mode: OFF';
+      aiModeToggle.title = on
+        ? 'Switch back to normal mode'
+        : 'Switch to AI suggestion mode';
+    }
+    if (on) {
+      var identityInput = document.getElementById('desktop-ai-identity');
+      if (identityInput) identityInput.focus();
+    }
+  }
 
   // Clicks inside the panel should not bubble out to the canvas/file-picker.
   if (desktopAiPanel) {
     desktopAiPanel.addEventListener('click', function (e) {
       e.stopPropagation();
+    });
+  }
+
+  // The panel's × is hidden on desktop (header toggle controls visibility) but
+  // visible on mobile, where it exits AI mode.
+  if (desktopAiCloseBtn) {
+    desktopAiCloseBtn.addEventListener('click', function () {
+      setAiMode(false);
     });
   }
 
@@ -595,8 +623,11 @@ document.addEventListener('DOMContentLoaded', function () {
       onSelect: function (template, captions) {
         if (desktopAiStatus) desktopAiStatus.textContent = 'Loading ' + template.name + '…';
         // Stash captions so the ImageLoader.onLoad callback applies them once
-        // the image is drawn. The panel stays visible (CSS forces it in
-        // ai-mode), so the canvas on the left updates in place.
+        // the image is drawn. On desktop the panel stays visible (CSS forces
+        // it in ai-mode) and the canvas on the left updates in place. On mobile
+        // the panel is a fullscreen overlay, so exit AI mode to reveal the
+        // canvas (ImageLoader.onLoad also returns to the editor view).
+        if (MemeGen.Exporter.isMobileOrTablet()) setAiMode(false);
         MemeGen.pendingAICaptions = captions;
         MemeGen.MemeSearch.loadFromUrl(template.url, function (err) {
           MemeGen.pendingAICaptions = null;
@@ -609,26 +640,13 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // ── Desktop AI mode toggle (#87) ─────────────────────────────────────────
-  // Tapping the header pill adds `ai-mode` to <body>, which the desktop CSS
-  // uses to swap the right-side template library for the AI panel in place
-  // (the canvas stays on the left). The label + aria-pressed mirror the
-  // state; turning it on focuses the first input so the user can type
-  // immediately.
-  var aiModeToggle = document.getElementById('ai-mode-toggle');
+  // ── AI mode toggle (#87) ─────────────────────────────────────────────────
+  // Tapping the header pill flips `ai-mode` on <body>, which the CSS keys off
+  // to swap the library for the AI panel (inline on desktop, fullscreen overlay
+  // on mobile). See setAiMode above for the state mirroring.
   if (aiModeToggle) {
     aiModeToggle.addEventListener('click', function () {
-      var on = !document.body.classList.contains('ai-mode');
-      document.body.classList.toggle('ai-mode', on);
-      aiModeToggle.setAttribute('aria-pressed', String(on));
-      aiModeToggle.textContent = on ? 'AI Mode: ON' : 'AI Mode: OFF';
-      aiModeToggle.title = on
-        ? 'Switch back to normal mode'
-        : 'Switch to AI suggestion mode';
-      if (on) {
-        var identityInput = document.getElementById('desktop-ai-identity');
-        if (identityInput) identityInput.focus();
-      }
+      setAiMode(!document.body.classList.contains('ai-mode'));
     });
   }
 

@@ -1192,11 +1192,11 @@ body.is-moving-text-box .copy-btn {
   opacity: 0.5;
 }
 
-/* AI Mode toggle pill (#87). Header button that flips the desktop layout
- * into AI suggestion mode. Hidden by default; the desktop @media block
- * below reveals it (AI is desktop-only in this version). */
+/* AI Mode toggle pill (#87). Header button that swaps the meme library for
+ * the AI suggestions panel. Shown on both desktop and mobile (it replaced
+ * the inert ⚙ settings button on mobile). */
 .ai-mode-toggle {
-  display: none;
+  display: inline-block;
   flex: 0 0 auto;
   padding: 0.4rem 0.875rem;
   background: transparent;
@@ -1463,6 +1463,54 @@ body.is-moving-text-box .copy-btn {
     z-index: 50;
     padding: 1.25rem 1rem 1rem;
     overflow: hidden;
+  }
+
+  /* ── Mobile AI mode (#87) ──
+   * Mobile has no side-by-side panels, so AI mode slides the suggestions panel
+   * up as a bottom sheet that temporarily takes the place of the Browse Memes
+   * button row. Triggered by the header AI pill that replaced the ⚙ button. */
+  .ai-mode-toggle {
+    /* Compact so the pill fits the narrow header next to the theme toggle. */
+    padding: 0.35rem 0.625rem;
+    font-size: 0.75rem;
+  }
+
+  /* The panel lives inside .meme-search, which is display:none on mobile until
+   * Browse is open — and a display:none ancestor would keep the panel hidden.
+   * In AI mode, make .meme-search a transparent pass-through so the fixed
+   * bottom-sheet panel renders, while its own library children stay hidden. */
+  body.ai-mode .meme-search {
+    display: contents;
+  }
+
+  body.ai-mode .meme-search-header,
+  body.ai-mode #meme-search-input,
+  body.ai-mode #meme-search-status,
+  body.ai-mode #meme-search-results,
+  body.ai-mode #mobile-home-plus-btn {
+    display: none;
+  }
+
+  body.ai-mode #desktop-ai-suggestions-panel,
+  body.ai-mode #desktop-ai-suggestions-panel[hidden] {
+    display: flex !important; /* override .desktop-ai-panel's mobile display:none */
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: auto;
+    max-height: 75vh;
+    transform: none;
+    overflow-y: auto;
+    /* Bottom-sheet look: rounded top corners only, flush to screen edges. */
+    border-radius: 1.25rem 1.25rem 0 0;
+    z-index: 1001; /* above the browse overlay (50) and bottom-actions (10) */
+  }
+
+  /* While the AI sheet is up it replaces the Browse Memes / Share row. */
+  body.ai-mode .bottom-actions {
+    display: none;
   }
 
   .meme-search-title {
@@ -1794,11 +1842,6 @@ body.is-moving-text-box .copy-btn {
   .meme-search-results {
     grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
     gap: 10px !important;
-  }
-
-  /* AI Mode pill is desktop-only (#87). */
-  .ai-mode-toggle {
-    display: inline-block;
   }
 
   /* ── Desktop AI mode (#87) ──

@@ -195,7 +195,8 @@ MemeGen.MemeSearch = (function () {
         return response.blob();
       })
       .then(function (blob) {
-        MemeGen.ImageLoader.loadFromFile(blob);
+        // Mark as 'template' so the app skips OCR auto-scan for library memes.
+        MemeGen.ImageLoader.loadFromFile(blob, 'template');
       })
       .catch(function (err) {
         if (typeof onError === 'function') onError(err);

@@ -13,8 +13,8 @@
  *     "Loading…") AND still routes through MemeSearch.loadFromUrl.
  *  5. ImageLoader success callback removes .browse-open (covers upload).
  *  6. The circular + button in the overlay forwards to #image-input.
- *  7. Scan Text remains inert: starts disabled with aria-disabled + a
- *     "coming soon" title and is not auto-enabled by an image load.
+ *  7. Scan Text (OCR): starts disabled and becomes enabled once an image
+ *     is loaded (the ImageLoader callback fires).
  *  8. Fonts button cycles ALL text boxes through the meme-font list
  *     (Impact → Anton → Bangers → Luckiest Guy → Oswald → Impact) and
  *     dispatches a bubbling `change` event on each so TextBox's existing
@@ -45,9 +45,6 @@ function buildDom() {
       </div>
       <div id="canvas-container"><canvas id="meme-canvas"></canvas><div class="placeholder" id="placeholder">Click</div></div>
       <div class="fonts-row"><button id="fonts-btn">fonts</button></div>
-      <div class="scan-text-row">
-        <button id="scan-text-btn" disabled aria-disabled="true" title="Scan Text coming soon">Scan Text</button>
-      </div>
       <p class="hint" id="hint" hidden></p>
       <div class="bottom-actions">
         <button id="browse-memes-btn">Browse Memes</button>
@@ -272,6 +269,134 @@ describe('Browse overlay + upload button', () => {
   });
 });
 
+describe('Fonts button (Screen 13 — discovery affordance)', () => {
+  let getAllSpy;
+
+  beforeEach(() => {
+    buildDom();
+    jest.spyOn(window.MemeGen.ImageLoader, 'init').mockImplementation(() => {});
+    jest.spyOn(window.MemeGen.MemeSearch, 'init').mockImplementation(() => {});
+    jest.spyOn(window.MemeGen.TextBoxManager, 'init').mockImplementation(() => {});
+    jest.spyOn(window.MemeGen.TextBoxManager, 'setImageLoaded').mockImplementation(() => {});
+    getAllSpy = jest.spyOn(window.MemeGen.TextBoxManager, 'getAll').mockImplementation(() => []);
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+    document.body.innerHTML = '';
+  });
+
+  it('shows the "Add or select text" hint when there are no text boxes', () => {
+    // Default getAllSpy returns [] — zero text boxes path.
+    const handler = loadAppAndGetHandler();
+    handler();
+    const hint = document.getElementById('hint');
+    expect(hint.hidden).toBe(true);
+    document.getElementById('fonts-btn').dispatchEvent(new Event('click', { bubbles: true }));
+    expect(hint.hidden).toBe(false);
+    expect(hint.textContent).toMatch(/add or select text/i);
+  });
+
+  it('reverts the hint after 3 seconds', () => {
+    const handler = loadAppAndGetHandler();
+    handler();
+    const hint = document.getElementById('hint');
+    document.getElementById('fonts-btn').dispatchEvent(new Event('click', { bubbles: true }));
+    expect(hint.hidden).toBe(false);
+    jest.advanceTimersByTime(3100);
+    expect(hint.hidden).toBe(true);
+  });
+
+  // Build a real <select> populated with every font value TextBox.js
+  // exposes (kept private here so tests don't import from TextBox.js).
+  function makeFontSelect(initialValue) {
+    const sel = document.createElement('select');
+    [
+      'Impact',
+      'Anton',
+      'Bangers',
+      'Luckiest Guy',
+      'Oswald',
+      'Arial',
+      "'Comic Sans MS', cursive",
+      'Helvetica, Arial, sans-serif',
+      "'Montserrat', sans-serif"
+    ].forEach(function (v) {
+      const o = document.createElement('option');
+      o.value = v;
+      sel.appendChild(o);
+    });
+    sel.value = initialValue;
+    return sel;
+  }
+
+  it('cycles a single text box Impact → Anton and fires a bubbling `change`', () => {
+    const fontSelect = makeFontSelect('Impact');
+    const changeSpy = jest.fn();
+    fontSelect.addEventListener('change', changeSpy);
+    getAllSpy.mockImplementation(() => [{ fontSelect }]);
+
+    const handler = loadAppAndGetHandler();
+    handler();
+    document.getElementById('fonts-btn').dispatchEvent(new Event('click', { bubbles: true }));
+
+    expect(fontSelect.value).toBe('Anton');
+    expect(changeSpy).toHaveBeenCalledTimes(1);
+    expect(changeSpy.mock.calls[0][0].bubbles).toBe(true);
+  });
+
+  it('cycles ALL text boxes (not just the selected one)', () => {
+    const sel1 = makeFontSelect('Impact');
+    const sel2 = makeFontSelect('Bangers');
+    const sel3 = makeFontSelect('Oswald');
+    getAllSpy.mockImplementation(() => [
+      { fontSelect: sel1 },             // not selected
+      { selected: true, fontSelect: sel2 },
+      { fontSelect: sel3 }
+    ]);
+
+    const handler = loadAppAndGetHandler();
+    handler();
+    document.getElementById('fonts-btn').dispatchEvent(new Event('click', { bubbles: true }));
+
+    // Each text box advances by 1 from its own current font.
+    expect(sel1.value).toBe('Anton');       // Impact → Anton
+    expect(sel2.value).toBe('Luckiest Guy'); // Bangers → Luckiest Guy
+    expect(sel3.value).toBe('Impact');      // Oswald wraps → Impact
+  });
+
+  it('wraps Oswald → Impact', () => {
+    const fontSelect = makeFontSelect('Oswald');
+    getAllSpy.mockImplementation(() => [{ fontSelect }]);
+    const handler = loadAppAndGetHandler();
+    handler();
+    document.getElementById('fonts-btn').dispatchEvent(new Event('click', { bubbles: true }));
+    expect(fontSelect.value).toBe('Impact');
+  });
+
+  it('starts at Impact when the current font is not in the meme cycle', () => {
+    // Existing legacy options stay in the dropdown (Arial, Comic Sans, …)
+    // but they are NOT in the meme cycle — the prompt says start at Impact.
+    const fontSelect = makeFontSelect('Arial');
+    getAllSpy.mockImplementation(() => [{ fontSelect }]);
+    const handler = loadAppAndGetHandler();
+    handler();
+    document.getElementById('fonts-btn').dispatchEvent(new Event('click', { bubbles: true }));
+    expect(fontSelect.value).toBe('Impact');
+  });
+
+  it('does NOT show the hint when at least one text box exists', () => {
+    const fontSelect = makeFontSelect('Impact');
+    getAllSpy.mockImplementation(() => [{ fontSelect }]);
+    const handler = loadAppAndGetHandler();
+    handler();
+    const hint = document.getElementById('hint');
+    document.getElementById('fonts-btn').dispatchEvent(new Event('click', { bubbles: true }));
+    expect(hint.hidden).toBe(true);
+  });
+});
 // The "Scan Text is inert" and "Fonts button (Screen 13 — discovery
 // affordance)" describes that used to live here have been removed.
 // Scan Text was a placeholder for an OCR feature that never shipped, and

@@ -55,6 +55,15 @@ MemeGen.Exporter = (function () {
     if (!image) { if (callback) callback(null); return; }
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
+    // Hide OCR-detected text beneath its inpaint blend before drawing the
+    // editable boxes, so the exported meme matches what the editor shows.
+    if (MemeGen.Inpaint && MemeGen.TextBoxManager &&
+        typeof MemeGen.TextBoxManager.getCoverRegions === 'function') {
+      MemeGen.TextBoxManager.getCoverRegions().forEach(function (r) {
+        MemeGen.Inpaint.coverRegion(ctx, r);
+      });
+    }
+
     textBoxes.forEach(function (tb) {
       var state = tb.getState();
       if (!state.text.trim()) return;

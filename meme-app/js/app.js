@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', function () {
   var downloadBtn = document.getElementById('download-btn');
   var shareBtn = document.getElementById('share-btn');
   var copyBtn = document.getElementById('copy-btn');
-  var scanTextBtn = document.getElementById('scan-text-btn');
   var searchIconBtn = document.getElementById('search-icon-btn');
   var memeSearchSection = document.getElementById('meme-search');
   var memeSearchCloseBtn = document.getElementById('meme-search-close');
@@ -39,7 +38,56 @@ document.addEventListener('DOMContentLoaded', function () {
     document.body.classList.remove('browse-open');
   }
 
-  MemeGen.ImageLoader.init(canvas, function (width, height) {
+  // OCR regions below this confidence are dropped as likely noise.
+  var MIN_OCR_CONFIDENCE = 60;
+  // Identifies the most recent scan so results from a superseded upload (OCR is
+  // async — the user may upload a new image before the previous scan finishes)
+  // can be ignored instead of drawn onto the newer image.
+  var currentScanId = 0;
+
+  /**
+   * Runs OCR on the current canvas and marks each confident detection with a
+   *   clickable dashed region (TextBoxManager.showDetectedRegions). Clicking a
+   *   region is what converts it into an editable text box and covers the
+   *   original text — the scan itself leaves the image untouched. A brief
+   *   "Detecting text…" message shows in #hint while OCR runs.
+   */
+  function autoScanText() {
+    if (!MemeGen.TextRecognizer) return;
+
+    currentScanId++;
+    var scanId = currentScanId;
+
+    var prevHint = hint ? hint.textContent : '';
+    if (hint) {
+      hint.textContent = 'Detecting text…';
+      hint.hidden = false;
+    }
+
+    function restoreHint() {
+      if (hint && currentScanId === scanId) {
+        hint.textContent = prevHint;
+      }
+    }
+
+    MemeGen.TextRecognizer.detectText(MemeGen.ImageLoader.getCanvas())
+      .then(function (regions) {
+        // A newer upload has started its own scan — drop these stale results.
+        if (currentScanId !== scanId) return;
+        var filtered = regions.filter(function (r) {
+          return r.confidence > MIN_OCR_CONFIDENCE;
+        });
+        MemeGen.TextBoxManager.showDetectedRegions(filtered);
+        restoreHint();
+      })
+      .catch(function (err) {
+        if (currentScanId !== scanId) return;
+        console.error('OCR failed:', err);
+        restoreHint();
+      });
+  }
+
+  MemeGen.ImageLoader.init(canvas, function (width, height, source) {
     container.style.width = width + 'px';
     container.style.height = height + 'px';
     container.classList.add('has-image');
@@ -48,8 +96,6 @@ document.addEventListener('DOMContentLoaded', function () {
     downloadBtn.disabled = false;
     if (copyBtn) copyBtn.disabled = false;
     if (shareBtn && MemeGen.Exporter.isMobileOrTablet()) shareBtn.disabled = false;
-    // Scan Text stays disabled in this version — see the inert button
-    // contract below. Do NOT enable it when an image loads.
     MemeGen.TextBoxManager.setImageLoaded(true);
     // Clear any "Loading…" message left over from the meme-search flow.
     var s = document.getElementById('meme-search-status');
@@ -65,6 +111,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // calling again here is idempotent and covers the plain upload path.)
     showEditorView();
 
+    // Auto-detect text on uploaded images only. Templates from the library are
+    // skipped — their captions are usually empty placeholders the user fills in.
+    if (source === 'upload') {
+      autoScanText();
     // If an AI suggestion is pending its captions, populate the text boxes
     // now that the canvas is sized. Deferred one tick so layout fully
     // commits before we measure the container for box placement.
@@ -197,7 +247,9 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     MemeGen.Exporter.exportMeme(canvas, ctx, image, textBoxes, function () {
-      MemeGen.ImageLoader.redraw();
+      // renderCanvas restores the image AND re-applies any OCR inpaint covers,
+      // so the editor keeps detected text hidden after the export composite.
+      MemeGen.TextBoxManager.renderCanvas();
     });
   });
 
@@ -218,7 +270,7 @@ document.addEventListener('DOMContentLoaded', function () {
       MemeGen.Exporter.shareMeme(canvas, ctx, image, textBoxes);
 
       setTimeout(function () {
-        MemeGen.ImageLoader.redraw();
+        MemeGen.TextBoxManager.renderCanvas();
       }, 100);
     });
   }
@@ -279,11 +331,6 @@ document.addEventListener('DOMContentLoaded', function () {
       if (searchIconBtn) searchIconBtn.setAttribute('aria-expanded', 'false');
     });
   }
-
-  // Scan Text is intentionally inert in this version (future OCR feature).
-  // The button stays visible per the design but does NOT create a text
-  // box and does NOT call TextBoxManager. The native disabled attribute
-  // plus aria-disabled in the HTML are the source of truth.
 
   // Browse overlay close button (top-left of the search panel) → return to
   // the editor without selecting a meme. The editor's image/text boxes are

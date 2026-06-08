@@ -89,7 +89,6 @@ main,
 .upload-btn,
 #download-btn,
 #share-btn,
-#scan-text-btn,
 .search-icon-btn,
 .settings-btn,
 .font-settings-btn,
@@ -356,45 +355,24 @@ main {
   padding: 0.75rem;
 }
 
-/* Scan Text — persistent "add text box to the meme" affordance below the
- * canvas. Forest green pill flanked by soft green dividers on either side.
- * Disabled until an image is loaded, matching the download/share pattern. */
-#scan-text-btn {
-  padding: 0.625rem 1.75rem;
-  background: var(--forest-green);
-  color: var(--off-white);
-  border: none;
-  border-radius: 999px;
+/* OCR region marker — dashed outline drawn over each text region detected by
+ * the auto-scan. Sits inside .canvas-container (which is position: relative) so
+ * it scales with the displayed canvas. The original text stays visible beneath
+ * it; clicking the marker converts the region into an editable text box. */
+.ocr-region-marker {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px dashed var(--forest-green);
+  border-radius: 4px;
+  background: transparent;
   cursor: pointer;
-  font-size: 1rem;
-  font-weight: 600;
-  transition: background 0.2s;
+  z-index: 5;
+  transition: background 0.15s, border-color 0.15s;
 }
 
-#scan-text-btn:hover:not(:disabled) {
-  background: var(--dark-forest);
-}
-
-#scan-text-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.scan-text-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  width: 100%;
-}
-
-.scan-text-row::before,
-.scan-text-row::after {
-  content: '';
-  flex: 1 1 0;
-  max-width: 6rem;
-  height: 1px;
-  background: var(--dark-forest);
+.ocr-region-marker:hover {
+  border-color: var(--dark-forest);
+  background: rgba(45, 106, 79, 0.18);
 }
 
 .canvas-container {
@@ -1423,7 +1401,6 @@ body.is-moving-text-box .copy-btn {
 
   .upload-btn,
   #share-btn,
-  #scan-text-btn,
   #browse-memes-btn,
   #download-btn {
     flex: 1 1 8.75rem;

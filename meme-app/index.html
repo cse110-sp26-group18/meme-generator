@@ -120,6 +120,10 @@
         ><img src="assets/copy-icon.png" alt="" width="27" height="27" draggable="false"></button>
       </div>
 
+      <div class="fonts-row">
+        <button type="button" id="fonts-btn" class="fonts-btn">fonts</button>
+      </div>
+
       <p class="hint" id="hint" hidden>Click on the image to add text</p>
 
       <section id="editor-library-preview" class="editor-library-preview" aria-label="Meme library">
@@ -243,14 +247,19 @@
       </section>
     </section>
   </main>
+  <!-- Tesseract.js powers the Scan Text OCR; loaded from CDN before
+       TextRecognizer.js, which wraps it as MemeGen.TextRecognizer. -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="js/ThemeToggle.js"></script>
   <script src="js/LayoutManager.js"></script>
   <script src="js/ImageLoader.js"></script>
+  <script src="js/Inpaint.js"></script>
   <script src="js/FileValidator.js"></script>
   <script src="js/TextBox.js"></script>
   <script src="js/DragResize.js"></script>
   <script src="js/TextBoxManager.js"></script>
   <script src="js/Exporter.js"></script>
+  <script src="js/TextRecognizer.js"></script>
   <script src="js/MemeSearch.js"></script>
   <script src="js/GeminiClient.js"></script>
   <script src="js/AISuggestions.js"></script>

@@ -397,6 +397,14 @@ describe('Fonts button (Screen 13 — discovery affordance)', () => {
     expect(hint.hidden).toBe(true);
   });
 });
+// The "Scan Text is inert" and "Fonts button (Screen 13 — discovery
+// affordance)" describes that used to live here have been removed.
+// Scan Text was a placeholder for an OCR feature that never shipped, and
+// the old fonts-btn cycled fonts + showed a discovery hint — both were
+// superseded when the gear-style font dropdown moved below the canvas
+// and the visible button was relabeled "Fonts" (id stays
+// #font-settings-btn so the dropdown handler is unchanged). The Fonts
+// dropdown's underlying behavior is still covered by font_settings.test.js.
 
 describe('Editor library preview', () => {
   beforeEach(() => {

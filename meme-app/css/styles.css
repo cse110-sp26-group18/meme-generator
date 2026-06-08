@@ -509,6 +509,11 @@ main {
   outline: none;
 }
 
+[data-theme="dark"] .copy-btn:not(:disabled):hover,
+[data-theme="dark"] .copy-btn:not(:disabled):focus-visible {
+  background: #FFFDF6;
+}
+
 .copy-btn:not(:disabled):active {
   transform: translateY(0);
 }
@@ -2172,6 +2177,10 @@ body.is-moving-text-box .copy-btn {
 .ai-get-btn:hover,
 .ai-generate-btn:hover:not(:disabled) {
   background: var(--deep-green);
+}
+
+[data-theme="dark"] .ai-generate-btn:hover:not(:disabled) {
+  color: var(--forest-green);
 }
 
 .ai-generate-btn:disabled {

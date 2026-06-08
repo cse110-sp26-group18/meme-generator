@@ -338,7 +338,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // so live update and export both stay consistent. If a text box's
   // current font isn't in the cycle list, it starts at the first entry
   // ('Impact'). If there are no text boxes, surface the discovery hint.
-  var MEME_FONTS = ['Impact', 'Anton', 'Bangers', 'Luckiest Guy', 'Oswald'];
+  var MEME_FONTS = ['Impact', 'Arial', "'Comic Sans MS', cursive"];
 
   function cycleFontForTextBox(tb) {
     if (!tb || !tb.fontSelect) return;

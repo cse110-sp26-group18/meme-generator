@@ -10,19 +10,26 @@ MemeGen.Inpaint = (function () {
   // collapses to the exact surrounding color; on a gradient it reproduces the
   // gradient. region = { x, y, width, height } in canvas pixel coordinates.
   function coverRegion(ctx, region) {
-    var x = Math.round(region.x);
-    var y = Math.round(region.y);
-    var w = Math.round(region.width);
-    var h = Math.round(region.height);
+    var canvasW = ctx.canvas.width;
+    var canvasH = ctx.canvas.height;
+    var x0 = Math.max(0, Math.min(canvasW, Math.round(region.x)));
+    var y0 = Math.max(0, Math.min(canvasH, Math.round(region.y)));
+    var x1 = Math.max(0, Math.min(canvasW, Math.round(region.x + region.width)));
+    var y1 = Math.max(0, Math.min(canvasH, Math.round(region.y + region.height)));
+
+    var x = x0;
+    var y = y0;
+    var w = x1 - x0;
+    var h = y1 - y0;
     if (w <= 0 || h <= 0) return;
 
     // Sample the border lines just outside the region, clamped to the canvas on
     // every side so the read never goes out of bounds — an out-of-bounds read
     // returns transparent black and bleeds black edges into the blend.
     var topY    = Math.max(0, y - 1);
-    var bottomY = Math.min(ctx.canvas.height - 1, y + h);
+    var bottomY = Math.min(canvasH - 1, y + h);
     var leftX   = Math.max(0, x - 1);
-    var rightX  = Math.min(ctx.canvas.width - 1, x + w);
+    var rightX  = Math.min(canvasW - 1, x + w);
 
     // A tainted canvas (e.g. a CORS-restricted meme template) makes getImageData
     // throw a SecurityError. Fall back to a soft gray fill instead of crashing.

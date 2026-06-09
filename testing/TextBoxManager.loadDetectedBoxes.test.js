@@ -142,16 +142,17 @@ describe('TextBoxManager.loadDetectedBoxes', () => {
     expect(mockCtx.putImageData).toHaveBeenCalled();
   });
 
-  test('deleting a box keeps its cover (cleaned background stays; original text not restored)', () => {
+  test('deleting a box removes its cover (original text is restored)', () => {
     MemeGen.TextBoxManager.loadDetectedBoxes(mockRegions);
     const boxes = MemeGen.TextBoxManager.getAll();
 
     boxes[0].deleteBtn.click();
 
-    // The box is gone, but its cover remains so the de-texted background stays —
-    // deleting a detected box must not bring the original baked-in text back.
     expect(MemeGen.TextBoxManager.getAll()).toHaveLength(1);
-    expect(MemeGen.TextBoxManager.getCoverRegions()).toHaveLength(2);
+    expect(MemeGen.TextBoxManager.getCoverRegions()).toHaveLength(1);
+    expect(MemeGen.TextBoxManager.getCoverRegions()[0]).toMatchObject({
+      x: 50, y: 80, width: 120, height: 40
+    });
   });
 
   test('erasing a box keeps its cover even after the box is destroyed', () => {

@@ -244,6 +244,7 @@ MemeGen.TextBoxManager = (function () {
       coverRegions.push(cover);
 
       var tb = new MemeGen.TextBox(region.x * scaleX, region.y * scaleY, container);
+      tb.associatedCover = cover;
 
       // Detected boxes hug the recognized text. Clear the default min-width/height
       // (meant to keep manually-created boxes grabbable) so short labels like
@@ -263,7 +264,15 @@ MemeGen.TextBoxManager = (function () {
       tb.onDelete = function (box) {
         var idx = textBoxes.indexOf(box);
         if (idx !== -1) textBoxes.splice(idx, 1);
+        if (box.associatedCover && !box.keepAssociatedCover) {
+          var cIdx = coverRegions.indexOf(box.associatedCover);
+          if (cIdx !== -1) coverRegions.splice(cIdx, 1);
+        }
         renderCanvas();
+      };
+
+      tb.onErase = function (box) {
+        box.keepAssociatedCover = true;
       };
 
       tb.onSelect = function (box) {

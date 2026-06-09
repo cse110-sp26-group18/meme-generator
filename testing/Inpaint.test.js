@@ -81,14 +81,32 @@ describe('Inpaint.coverRegion', () => {
     expect(Math.max(...xs)).toBe(99); // rightX clamped from 100 → 99
   });
 
+  test('clamps partially off-canvas regions before sampling and writing', () => {
+    const ctx = makeUniformCtx(0, 0, 0);
+    ctx.canvas = { width: 100, height: 100 };
+
+    MemeGen.Inpaint.coverRegion(ctx, { x: -5, y: -3, width: 15, height: 13 });
+
+    const [imageData, dx, dy] = ctx.putImageData.mock.calls[0];
+    expect(imageData.data.length).toBe(10 * 10 * 4);
+    expect(dx).toBe(0);
+    expect(dy).toBe(0);
+    ctx.getImageData.mock.calls.forEach(([x, y, w, h]) => {
+      expect(x).toBeGreaterThanOrEqual(0);
+      expect(y).toBeGreaterThanOrEqual(0);
+      expect(x + w).toBeLessThanOrEqual(100);
+      expect(y + h).toBeLessThanOrEqual(100);
+    });
+  });
+
   test('falls back to a soft gray fill when the canvas is tainted', () => {
     const ctx = makeUniformCtx(0, 0, 0);
     ctx.fillRect = jest.fn();
     ctx.getImageData = jest.fn(() => { throw new Error('SecurityError'); });
 
-    MemeGen.Inpaint.coverRegion(ctx, { x: 5, y: 5, width: 10, height: 10 });
+    MemeGen.Inpaint.coverRegion(ctx, { x: -5, y: -5, width: 15, height: 15 });
 
-    expect(ctx.fillRect).toHaveBeenCalledWith(5, 5, 10, 10);
+    expect(ctx.fillRect).toHaveBeenCalledWith(0, 0, 10, 10);
     expect(ctx.putImageData).not.toHaveBeenCalled(); // bailed before the blend
   });
 });

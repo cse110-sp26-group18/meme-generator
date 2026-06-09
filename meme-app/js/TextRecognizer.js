@@ -55,6 +55,10 @@ MemeGen.TextRecognizer = (function () {
   // enhance contrast. Returns { canvas, scale } where scale maps source pixels
   // to preprocessed pixels (so OCR coordinates can be divided back out).
   function preprocess(source) {
+    if (!source) {
+      return { canvas: document.createElement('canvas'), scale: 1 };
+    }
+
     var w = source.width || source.naturalWidth || source.videoWidth || 0;
     var h = source.height || source.naturalHeight || source.videoHeight || 0;
     if (w <= 0 || h <= 0) {
@@ -69,13 +73,21 @@ MemeGen.TextRecognizer = (function () {
     off.height = Math.round(h * scale);
 
     var ctx = off.getContext('2d');
+    if (!ctx) {
+      return { canvas: off, scale: scale };
+    }
+
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(source, 0, 0, off.width, off.height);
 
-    var imageData = ctx.getImageData(0, 0, off.width, off.height);
-    enhancePixels(imageData.data);
-    ctx.putImageData(imageData, 0, 0);
+    try {
+      var imageData = ctx.getImageData(0, 0, off.width, off.height);
+      enhancePixels(imageData.data);
+      ctx.putImageData(imageData, 0, 0);
+    } catch (e) {
+      console.warn('Text preprocessing enhancement failed:', e);
+    }
 
     return { canvas: off, scale: scale };
   }
@@ -178,35 +190,39 @@ MemeGen.TextRecognizer = (function () {
       return Promise.reject(new Error('Tesseract is not loaded — include tesseract.min.js before TextRecognizer.js'));
     }
 
-    // Recognize on an upscaled, contrast-enhanced copy; coordinates come back in
-    // that preprocessed space and are divided by `scale` to return to source px.
-    var pre = preprocess(source);
-    var s = pre.scale;
+    try {
+      // Recognize on an upscaled, contrast-enhanced copy; coordinates come back in
+      // that preprocessed space and are divided by `scale` to return to source px.
+      var pre = preprocess(source);
+      var s = pre.scale;
 
-    return T.recognize(pre.canvas, 'eng').then(function (result) {
-      var lines = (result && result.data && result.data.lines) || [];
-      var regions = [];
+      return T.recognize(pre.canvas, 'eng').then(function (result) {
+        var lines = (result && result.data && result.data.lines) || [];
+        var regions = [];
 
-      lines.forEach(function (line) {
-        // One Tesseract line may hold several captions on the same row; split it
-        // wherever a big horizontal gap appears so each becomes its own region.
-        // Word boxes hug the actual glyphs (the line bbox often runs to the text
-        // block margin, wider than and left of the visible text).
-        splitLineByGaps(line).forEach(function (seg) {
-          var box = seg.box || {};
-          regions.push({
-            text: sanitizeText(seg.text),
-            x: Math.round(box.x0 / s),
-            y: Math.round(box.y0 / s),
-            width:  Math.round((box.x1 - box.x0) / s),
-            height: Math.round((box.y1 - box.y0) / s),
-            confidence: line.confidence
+        lines.forEach(function (line) {
+          // One Tesseract line may hold several captions on the same row; split it
+          // wherever a big horizontal gap appears so each becomes its own region.
+          // Word boxes hug the actual glyphs (the line bbox often runs to the text
+          // block margin, wider than and left of the visible text).
+          splitLineByGaps(line).forEach(function (seg) {
+            var box = seg.box || {};
+            regions.push({
+              text: sanitizeText(seg.text),
+              x: Math.round(box.x0 / s),
+              y: Math.round(box.y0 / s),
+              width:  Math.round((box.x1 - box.x0) / s),
+              height: Math.round((box.y1 - box.y0) / s),
+              confidence: line.confidence
+            });
           });
         });
-      });
 
-      return regions;
-    });
+        return regions;
+      });
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   return {

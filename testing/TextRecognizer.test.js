@@ -178,6 +178,27 @@ describe('TextRecognizer.detectText', () => {
       .rejects.toThrow(/Tesseract is not loaded/);
   });
 
+  test('returns a rejected promise when preprocessing throws synchronously', async () => {
+    const source = { width: 100, height: 100 };
+    const err = new Error('draw failed');
+    const createElement = document.createElement.bind(document);
+    stubTesseract(() => Promise.resolve({ data: { lines: [] } }));
+    jest.spyOn(document, 'createElement').mockImplementation((tag) => {
+      if (tag !== 'canvas') return createElement(tag);
+      return {
+        width: 0,
+        height: 0,
+        getContext: () => ({
+          imageSmoothingEnabled: false,
+          imageSmoothingQuality: 'low',
+          drawImage: () => { throw err; }
+        })
+      };
+    });
+
+    await expect(MemeGen.TextRecognizer.detectText(source)).rejects.toThrow('draw failed');
+  });
+
   test('recognizes a preprocessed canvas (not the raw source) with eng', async () => {
     stubTesseract(() => Promise.resolve({ data: { lines: [] } }));
 
@@ -267,6 +288,12 @@ describe('TextRecognizer.sanitizeText', () => {
 });
 
 describe('TextRecognizer.preprocess', () => {
+  test('returns an empty canvas for null sources', () => {
+    const pre = MemeGen.TextRecognizer.preprocess(null);
+    expect(pre.scale).toBe(1);
+    expect(pre.canvas).toBeInstanceOf(HTMLCanvasElement);
+  });
+
   test('upscales a small source toward the 2000px long edge', () => {
     const small = document.createElement('canvas');
     small.width = 800;
@@ -287,5 +314,22 @@ describe('TextRecognizer.preprocess', () => {
     expect(pre.scale).toBe(1);
     expect(pre.canvas.width).toBe(3000);
     expect(pre.canvas.height).toBe(2000);
+  });
+
+  test('returns the offscreen canvas when a 2d context is unavailable', () => {
+    const source = { width: 100, height: 50 };
+    const offscreen = {
+      width: 0,
+      height: 0,
+      getContext: () => null
+    };
+    jest.spyOn(document, 'createElement').mockReturnValue(offscreen);
+
+    const pre = MemeGen.TextRecognizer.preprocess(source);
+
+    expect(pre.canvas).toBe(offscreen);
+    expect(pre.scale).toBe(20);
+    expect(offscreen.width).toBe(2000);
+    expect(offscreen.height).toBe(1000);
   });
 });

@@ -16,7 +16,7 @@
  *  7. Scan Text remains inert: starts disabled with aria-disabled + a
  *     "coming soon" title and is not auto-enabled by an image load.
  *  8. Fonts button cycles ALL text boxes through the meme-font list
- *     (Impact → Anton → Bangers → Luckiest Guy → Oswald → Impact) and
+ *     (Impact → Arial → Comic Sans → Impact) and
  *     dispatches a bubbling `change` event on each so TextBox's existing
  *     font listener runs. Unknown current fonts start at Impact.
  *  9. Fonts button when there are no text boxes → shows the hint message.

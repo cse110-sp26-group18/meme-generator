@@ -63,9 +63,10 @@ describe('Font Customization', () => {
   });
 
   it('should update fontFamily property when the font select changes to Comic Sans', () => {
-    textBox.fontSelect.value = "'Comic Sans MS', cursive";
+    const comicSansOption = Array.from(textBox.fontSelect.options).find(o => o.textContent === 'Comic Sans');
+    comicSansOption.selected = true;
     textBox.fontSelect.dispatchEvent(new Event('change'));
-    expect(textBox.fontFamily).toBe("'Comic Sans MS', cursive");
+    expect(textBox.fontFamily).toBe("'Comic Sans MS', 'Comic Sans', sans-serif");
   });
 
   it('should reflect the updated font family in getState()', () => {

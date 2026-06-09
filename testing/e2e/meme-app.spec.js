@@ -111,7 +111,7 @@ test.fixme('changing font keeps the text fitting inside the box (review finding 
   const textarea = page.locator('.text-box .text-content');
   await textarea.fill('WIDE TEXT THAT IS QUITE LONG INDEED');
 
-  await page.locator('.text-box .font-select').selectOption('Anton');
+  await page.locator('.text-box .font-select').selectOption('Arial');
 
   const fits = await textarea.evaluate(
     el => el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight

@@ -10,11 +10,9 @@ MemeGen.TextBox = (function () {
   // dropdown (below) and the global font-settings menu in app.js, so the two
   // never drift out of sync. Exposed as MemeGen.TextBox.FONTS.
   var FONTS = [
-    { label: 'Impact',       value: 'Impact' },
-    { label: 'Arial',        value: 'Arial' },
-    { label: 'Comic Sans',   value: "'Comic Sans MS', cursive" },
-    { label: 'Bangers',      value: 'Bangers' },
-    { label: 'Luckiest Guy', value: 'Luckiest Guy' },
+    { label: 'Impact',     value: 'Impact' },
+    { label: 'Arial',      value: 'Arial' },
+    { label: 'Comic Sans', value: "'Comic Sans MS', 'Comic Sans', sans-serif" },
   ];
 
   /**
@@ -303,27 +301,20 @@ MemeGen.TextBox = (function () {
     //          itself never destroys.
     this.qEditBtn.addEventListener('click', function (e) {
       e.stopPropagation();
-      self.hideQuickActions();
       self.focusTextarea();
     });
     this.qBorderBtn.addEventListener('click', function (e) {
       e.stopPropagation();
       self.borderBtn.click();
-      self.hideQuickActions();
     });
     this.qDeleteBtn.addEventListener('click', function (e) {
       e.stopPropagation();
       self.destroy();
     });
 
-    // Tap anywhere outside the menu closes it. Stored on the instance so
-    // destroy() can detach it.
-    this._outsideClickHandler = function (e) {
-      if (!self.quickMenu.classList.contains('is-open')) return;
-      if (self.quickMenu.contains(e.target)) return;
+    this.textarea.addEventListener('blur', function () {
       self.hideQuickActions();
-    };
-    document.addEventListener('click', this._outsideClickHandler);
+    });
 
     // --- Mobile double-tap → focus textarea ---
     // Two single-finger touchend events within 300 ms call focusTextarea(),
@@ -392,6 +383,36 @@ MemeGen.TextBox = (function () {
   TextBox.prototype._fitBoxToFontSize = function () {
     var newHeight = Math.max(40, Math.round(this.fontSize * 2.5));
     this.el.style.height = newHeight + 'px';
+  };
+
+  // Resizes both dimensions to tightly hug the text at the current font size.
+  // Width fits the longest natural line; height fits all resulting wrapped lines.
+  TextBox.prototype.fitBoxToText = function () {
+    var text = this.textarea.value;
+    var ctx = (TextBox._measureCanvas || (TextBox._measureCanvas = document.createElement('canvas'))).getContext('2d');
+    ctx.font = this.fontSize + 'px ' + this.fontFamily;
+
+    var containerMax = this.container ? this.container.offsetWidth : 9999;
+
+    // Width: measure each natural (newline-split) line, use the widest.
+    var naturalLines = text.split('\n');
+    var maxLineWidth = 0;
+    for (var i = 0; i < naturalLines.length; i++) {
+      var w = ctx.measureText(naturalLines[i]).width;
+      if (w > maxLineWidth) maxLineWidth = w;
+    }
+    var newWidth = Math.max(80, Math.min(Math.round(maxLineWidth + 25), containerMax));
+
+    // Height: re-wrap at the new width to get the true line count.
+    var wrappedLines = MemeGen.Exporter.wrapText(ctx, text, Math.max(1, newWidth - 16));
+    var newHeight = Math.max(40, Math.round(wrappedLines.length * this.fontSize * 1.2 + 12));
+
+    this.el.style.width = newWidth + 'px';
+    this.el.style.height = newHeight + 'px';
+
+    if (typeof this.keepInsideContainer === 'function') {
+      this.keepInsideContainer();
+    }
   };
 
   /**
@@ -481,6 +502,7 @@ MemeGen.TextBox = (function () {
   TextBox.prototype.focusTextarea = function () {
     var self = this;
     self.editing = true;
+    self.showQuickActions();
     self.textarea.focus();
     // setTimeout 0 defers the second focus call to after the current event
     // finishes — needed on desktop where the originating mousedown can
@@ -496,11 +518,6 @@ MemeGen.TextBox = (function () {
     if (this._handleKeyDown) {
       document.removeEventListener('keydown', this._handleKeyDown);
     }
-    if (this._outsideClickHandler) {
-      document.removeEventListener('click', this._outsideClickHandler);
-      this._outsideClickHandler = null;
-    }
-
     if (this.onDelete) {
       this.onDelete(this);
     }

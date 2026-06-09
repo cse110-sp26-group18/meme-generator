@@ -226,7 +226,6 @@ MemeGen.Exporter = (function () {
       });
 
       var item = new ClipboardItem({ 'image/png': blobPromise });
-      // calling the line in Safari results in a NotAllowedError because the browser considers the user gesture context to be lost
       navigator.clipboard.write([item])
         .then(function () { done(null); })
         .catch(function (err) { done(err); });

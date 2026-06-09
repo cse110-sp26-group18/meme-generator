@@ -593,6 +593,11 @@ body.is-moving-text-box .copy-btn {
      1px  1px 0 #000;
 }
 
+.text-box textarea::placeholder {
+  color: #fff;
+  opacity: 1;
+}
+
 .text-box textarea.no-border {
   -webkit-text-stroke: 0;
   text-shadow: none;
@@ -975,8 +980,8 @@ body.is-moving-text-box .copy-btn {
   outline: none;
 }
 
-/* AI panda placeholder — bottom-left of the browse panel, mirrors the
- * upload + button at bottom-right. Inert in this version (aria-disabled). */
+/* AI toggle button — bottom-left of the browse panel, mirrors the
+ * upload + button at bottom-right. */
 .ai-panda-btn {
   display: none;
   position: absolute;
@@ -987,8 +992,9 @@ body.is-moving-text-box .copy-btn {
   border-radius: 50%;
   background: var(--forest-green);
   color: var(--off-white);
-  border: none;
-  font-size: 1.5rem;
+  border: 2px solid var(--off-white);
+  font-size: 1rem;
+  font-weight: 700;
   line-height: 1;
   align-items: center;
   justify-content: center;
@@ -996,12 +1002,13 @@ body.is-moving-text-box .copy-btn {
   z-index: 5;
   box-shadow: 0 2px 8px rgba(15, 43, 26, 0.5);
   cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
-.ai-panda-btn:hover {
-  transform: scale(1.06);
-  box-shadow: 0 4px 12px rgba(15, 43, 26, 0.65);
+.ai-panda-btn:hover,
+.ai-panda-btn:focus-visible {
+  background: var(--dark-forest);
+  outline: none;
 }
 
 .ai-panda-btn:active {
@@ -1602,6 +1609,7 @@ body.is-moving-text-box .copy-btn {
     min-width: 0;
     width: 100%;
     max-width: 100%;
+    touch-action: none;
   }
 
   .canvas-container:not(.has-image) {
@@ -1701,8 +1709,8 @@ body.is-moving-text-box .copy-btn {
     position: absolute;
     bottom: 1.25rem;
     right: 1.25rem;
-    width: 4rem;
-    height: 4rem;
+    width: 5rem;
+    height: 5rem;
     background: var(--forest-green);
     color: var(--off-white);
     border: 2px solid var(--off-white);
@@ -1719,9 +1727,12 @@ body.is-moving-text-box .copy-btn {
     background: var(--dark-forest);
   }
 
-  /* AI panda placeholder shown bottom-left of the browse panel. */
+  /* AI toggle button shown bottom-left of the browse panel. */
   body.browse-open .ai-panda-btn {
     display: inline-flex;
+    width: 6rem;
+    height: 5rem;
+    font-size: 1rem;
   }
 
   /* Show the Share button via CSS — JS inline override is not needed. */

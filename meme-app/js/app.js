@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var mobileBackBtn = document.getElementById('mobile-back-btn');
   var mobileHomeBackBtn = document.getElementById('mobile-home-back-btn');
   var mobileHomePlusBtn = document.getElementById('mobile-home-plus-btn');
+  var mobileAiBtn = document.getElementById('mobile-ai-btn');
   var browseMemesBtn = document.getElementById('browse-memes-btn');
   var mobileFontsBtn = document.getElementById('mobile-fonts-btn');
   var fontsBtn = document.getElementById('fonts-btn');
@@ -831,6 +832,14 @@ document.addEventListener('DOMContentLoaded', function () {
   if (aiModeToggle) {
     aiModeToggle.addEventListener('click', function () {
       setAiMode(!document.body.classList.contains('ai-mode'));
+    });
+  }
+
+  // Mobile browse page AI button — switches to editor view and activates AI mode.
+  if (mobileAiBtn) {
+    mobileAiBtn.addEventListener('click', function () {
+      showEditorView();
+      setAiMode(true);
     });
   }
 

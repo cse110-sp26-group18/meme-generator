@@ -38,6 +38,10 @@ MemeGen.TextBox = (function () {
     this._handleKeyDown = null;
     this.onDelete = null;
     this.onSelect = null;
+    // Fired by the Erase button (detected-text boxes only). Lets the manager
+    // keep the cover so the original baked-in text stays hidden after the box
+    // is removed. null for manually-created boxes.
+    this.onErase = null;
     this.relativeState = null;
 
     this._buildDOM();
@@ -109,6 +113,18 @@ MemeGen.TextBox = (function () {
     borderBtn.className = 'border-toggle';
     borderBtn.textContent = 'Border: ON';
     toolbar.appendChild(borderBtn);
+
+    // Erase — only meaningful on detected-text boxes (wired via onErase by the
+    // manager). Removes the box and keeps the cover so the original text on the
+    // image stays hidden. Harmless on manual boxes: with no onErase handler it
+    // just deletes the box like the × control.
+    var eraseBtn = document.createElement('button');
+    eraseBtn.type = 'button';
+    eraseBtn.className = 'erase-btn';
+    eraseBtn.textContent = 'Erase';
+    eraseBtn.title = 'Erase text from image';
+    toolbar.appendChild(eraseBtn);
+
     el.appendChild(toolbar);
 
     // Delete
@@ -164,6 +180,7 @@ MemeGen.TextBox = (function () {
     this.textarea = textarea;
     this.fontSelect = fontSelect;
     this.borderBtn = borderBtn;
+    this.eraseBtn = eraseBtn;
     this.deleteBtn = deleteBtn;
     this.fontSizeDecBtn = fontSizeDecBtn;
     this.fontSizeIncBtn = fontSizeIncBtn;
@@ -203,6 +220,16 @@ MemeGen.TextBox = (function () {
       } else {
         self.textarea.classList.add('no-border');
       }
+    });
+
+    this.eraseBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      // onErase (set by the manager for detected boxes) marks the cover to be
+      // kept; then we remove the box. With no handler this is a plain delete.
+      if (self.onErase) {
+        self.onErase(self);
+      }
+      self.destroy();
     });
 
     this.deleteBtn.addEventListener('mousedown', function (e) {

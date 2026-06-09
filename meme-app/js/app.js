@@ -41,6 +41,9 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   MemeGen.ImageLoader.init(canvas, function (width, height) {
+    // Start each image clean: drop any text boxes and detected-text covers from
+    // a previous image so stale boxes / wrong-coordinate covers can't carry over.
+    MemeGen.TextBoxManager.reset();
     // Let CSS control the display size via aspect-ratio + min() width.
     // JS only sets the custom properties so the CSS formula has the values it needs.
     container.style.removeProperty('width');
@@ -54,8 +57,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (copyBtn) copyBtn.disabled = false;
     // Enable both; CSS media queries decide which one is visible.
     if (shareBtn) shareBtn.disabled = false;
-    // Scan Text stays disabled in this version — see the inert button
-    // contract below. Do NOT enable it when an image loads.
+    // Scan Text runs OCR on the loaded image — enable it now that there's
+    // something to scan (wiring below).
+    if (scanTextBtn) scanTextBtn.disabled = false;
     MemeGen.TextBoxManager.setImageLoaded(true);
     // Clear any "Loading…" message left over from the meme-search flow.
     var s = document.getElementById('meme-search-status');
@@ -209,7 +213,9 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     MemeGen.Exporter.exportMeme(canvas, ctx, image, textBoxes, function () {
-      MemeGen.ImageLoader.redraw();
+      // Restore the editing view: pristine image with any detected-text covers
+      // re-applied (renderCanvas is a plain redraw when there are no covers).
+      MemeGen.TextBoxManager.renderCanvas();
     });
   });
 
@@ -230,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function () {
       MemeGen.Exporter.shareMeme(canvas, ctx, image, textBoxes);
 
       setTimeout(function () {
-        MemeGen.ImageLoader.redraw();
+        MemeGen.TextBoxManager.renderCanvas();
       }, 100);
     });
   }
@@ -263,7 +269,7 @@ document.addEventListener('DOMContentLoaded', function () {
       textBoxes.forEach(function (tb) { tb.deselect(); });
 
       MemeGen.Exporter.copyMeme(canvas, ctx, image, textBoxes, function (err) {
-        MemeGen.ImageLoader.redraw();
+        MemeGen.TextBoxManager.renderCanvas();
         if (err) {
           // Browsers without clipboard image support land here. Point the
           // user at Download — that path works everywhere.
@@ -292,10 +298,41 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Scan Text is intentionally inert in this version (future OCR feature).
-  // The button stays visible per the design but does NOT create a text
-  // box and does NOT call TextBoxManager. The native disabled attribute
-  // plus aria-disabled in the HTML are the source of truth.
+  // Scan Text → client-side OCR (Tesseract.js via MemeGen.TextRecognizer).
+  // Detected captions become editable text boxes and the original baked-in
+  // text is hidden behind a blended cover (MemeGen.Inpaint), so the user can
+  // re-caption an existing meme.
+  //
+  // Minimum Tesseract confidence (0–100) for a detected line to become a text
+  // box. Lower = catches fainter text at the cost of more false positives.
+  var MIN_OCR_CONFIDENCE = 60;
+
+  if (scanTextBtn) {
+    scanTextBtn.addEventListener('click', function () {
+      // OCR runs for several seconds; disable the button so repeat clicks can't
+      // spawn concurrent Tesseract jobs that freeze the tab and duplicate boxes.
+      var originalText = scanTextBtn.textContent;
+      scanTextBtn.disabled = true;
+      scanTextBtn.textContent = 'Scanning…';
+
+      function restore() {
+        scanTextBtn.disabled = false;
+        scanTextBtn.textContent = originalText;
+      }
+
+      var src = MemeGen.ImageLoader.getCanvas();
+      MemeGen.TextRecognizer.detectText(src).then(function (regions) {
+        var filtered = regions.filter(function (r) {
+          return r.confidence > MIN_OCR_CONFIDENCE;
+        });
+        MemeGen.TextBoxManager.loadDetectedBoxes(filtered);
+        restore();
+      }).catch(function (err) {
+        console.error('OCR failed:', err);
+        restore();
+      });
+    });
+  }
 
   // Browse overlay close button (top-left of the search panel) → return to
   // the editor without selecting a meme. The editor's image/text boxes are

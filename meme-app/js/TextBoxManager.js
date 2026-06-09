@@ -14,6 +14,11 @@ MemeGen.TextBoxManager = (function () {
   // (setFontForAll); newly created boxes adopt it so the choice sticks for
   // future text too. Defaults to the same 'Impact' each TextBox starts with.
   var defaultFontFamily = 'Impact';
+  // Detected-text (OCR) covers. Each entry is { x, y, width, height } in
+  // canvas-pixel coordinates. Stored as plain data and re-applied via a blended
+  // inpaint on every render, so the source image is never mutated — removing a
+  // cover restores the original pixels exactly.
+  var coverRegions = [];
 
   /**
    * @param {HTMLElement} containerEl - the canvas container that receives
@@ -190,6 +195,102 @@ MemeGen.TextBoxManager = (function () {
     return textBoxes;
   }
 
+  /**
+   * Re-renders the canvas non-destructively: redraw the pristine image, then
+   * re-apply every active cover via a blended inpaint. Called after detect,
+   * erase/delete of a detected box, and when restoring the editing view after
+   * an export. With no covers it is identical to ImageLoader.redraw().
+   */
+  function renderCanvas() {
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    MemeGen.ImageLoader.redraw();
+    coverRegions.forEach(function (r) {
+      MemeGen.Inpaint.coverRegion(ctx, r);
+    });
+  }
+
+  /**
+   * Turns OCR regions into editable text boxes. Each region becomes a TextBox
+   * pre-filled with the recognized text and sized to the detected bounds, with
+   * the original baked-in text hidden behind a cover. Low-content noise is
+   * skipped. Coordinates arrive in source (canvas) pixels and are scaled to the
+   * display for box placement.
+   * @param {Array<{text:string,x:number,y:number,width:number,height:number,confidence:number}>} regions
+   */
+  function loadDetectedBoxes(regions) {
+    if (!canvas || !container || !Array.isArray(regions)) return;
+    var scaleX = canvas.offsetWidth  / canvas.width;
+    var scaleY = canvas.offsetHeight / canvas.height;
+
+    regions.forEach(function (region) {
+      // Require 3+ alphanumerics for plain text (drops stray single-letter OCR
+      // noise), but keep short numeric labels like "2%", "55", or "0.1%" — any
+      // region containing a digit.
+      var text = region.text || '';
+      var alnum = (text.match(/[a-zA-Z0-9]/g) || []).length;
+      var hasDigit = /[0-9]/.test(text);
+      if (alnum < 3 && !hasDigit) return;
+
+      // Record the cover as data and re-render — the detected text is hidden by
+      // a background-matched blend, not a destructive solid fill.
+      var cover = {
+        x: region.x,
+        y: region.y,
+        width: region.width,
+        height: region.height
+      };
+      coverRegions.push(cover);
+
+      var tb = new MemeGen.TextBox(region.x * scaleX, region.y * scaleY, container);
+
+      // Detected boxes hug the recognized text. Clear the default min-width/height
+      // (meant to keep manually-created boxes grabbable) so short labels like
+      // "2%" or "55" don't balloon past the actual text.
+      tb.el.style.minWidth  = '0px';
+      tb.el.style.minHeight = '0px';
+      tb.el.style.width  = Math.round(region.width  * scaleX) + 'px';
+      tb.el.style.height = Math.round(region.height * scaleY) + 'px';
+      tb.textarea.value  = region.text;
+      tb.applyFontSize(Math.round(region.height * scaleY * 0.4));
+      tb.setFontFamily(defaultFontFamily);
+
+      // Removing the caption keeps its cover, so the cleaned (de-texted)
+      // background stays put — deleting a detected box must never bring the
+      // original baked-in text back. Covers are cleared only on a fresh image
+      // load (see reset()).
+      tb.onDelete = function (box) {
+        var idx = textBoxes.indexOf(box);
+        if (idx !== -1) textBoxes.splice(idx, 1);
+        renderCanvas();
+      };
+
+      tb.onSelect = function (box) {
+        deselectAll();
+        box.select();
+      };
+
+      MemeGen.DragResize.attach(tb);
+      if (typeof tb.captureRelativeState === 'function') {
+        tb.captureRelativeState();
+      }
+      textBoxes.push(tb);
+    });
+
+    renderCanvas();
+    deselectAll();
+  }
+
+  /**
+   * @returns {Array<{x:number,y:number,width:number,height:number}>} the active
+   *   detected-text covers, in canvas-pixel coordinates. Read by the Exporter so
+   *   downloaded/shared/copied images match the editing view.
+   */
+  function getCoverRegions() {
+    return coverRegions;
+  }
+
   // Public wrapper so the Scan Text button (and any future callers) can
   // create a text box without simulating a canvas touch event. Honors the
   // same imageLoaded gate as the tap-on-canvas path.
@@ -229,6 +330,7 @@ MemeGen.TextBoxManager = (function () {
     textBoxes = [];
     imageLoaded = false;
     defaultFontFamily = 'Impact';
+    coverRegions.length = 0;
   }
 
   /**
@@ -299,7 +401,10 @@ MemeGen.TextBoxManager = (function () {
     reset: reset,
     syncTextBoxesToCanvas: syncTextBoxesToCanvas,
     createBatch: createBatch,
-    consumeSuppressNextCanvasCreate: consumeSuppressNextCanvasCreate
+    consumeSuppressNextCanvasCreate: consumeSuppressNextCanvasCreate,
+    loadDetectedBoxes: loadDetectedBoxes,
+    getCoverRegions: getCoverRegions,
+    renderCanvas: renderCanvas
   };
 })();
 

@@ -1498,9 +1498,12 @@ body.is-moving-text-box .copy-btn {
     display: none;
   }
 
-  /* Hide Scan Text on mobile. */
+  /* Show Scan Text below the canvas on mobile too (the desktop controls row is
+     hidden here, but Scan Text stays available for re-captioning on phones).
+     The parent's flex gap spaces it — no extra margin, so the view still fits
+     in one screen without scrolling. */
   .scan-text-row {
-    display: none;
+    display: flex;
   }
 
   /* Hide legacy header buttons on mobile. */
@@ -1610,8 +1613,10 @@ body.is-moving-text-box .copy-btn {
   }
 
   .canvas-container.has-image {
-    width: min(100%, calc(60vh * var(--canvas-ratio-num, 1)));
-    max-height: 60vh;
+    /* Trimmed from 60vh to 52vh so the canvas + Fonts row + hint + Scan Text
+       row + fixed bottom actions all fit one screen without scrolling. */
+    width: min(100%, calc(52vh * var(--canvas-ratio-num, 1)));
+    max-height: 52vh;
     min-height: 0;
   }
 

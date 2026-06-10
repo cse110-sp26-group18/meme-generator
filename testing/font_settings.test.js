@@ -63,10 +63,10 @@ describe('TextBox.setFontFamily', () => {
   });
 
   it('updates fontFamily, textarea inline style, and the dropdown value together', () => {
-    tb.setFontFamily('Bangers');
-    expect(tb.fontFamily).toBe('Bangers');
-    expect(tb.textarea.style.fontFamily).toBe('Bangers');
-    expect(tb.fontSelect.value).toBe('Bangers');
+    tb.setFontFamily('Arial');
+    expect(tb.fontFamily).toBe('Arial');
+    expect(tb.textarea.style.fontFamily).toBe('Arial');
+    expect(tb.fontSelect.value).toBe('Arial');
   });
 
  
@@ -97,11 +97,11 @@ describe('TextBoxManager.setFontForAll', () => {
     MemeGen.TextBoxManager.createTextBoxAt(10, 10);
     MemeGen.TextBoxManager.createTextBoxAt(20, 20);
 
-    MemeGen.TextBoxManager.setFontForAll('Bangers');
+    MemeGen.TextBoxManager.setFontForAll('Arial');
 
     MemeGen.TextBoxManager.getAll().forEach((tb) => {
-      expect(tb.fontFamily).toBe('Bangers');
-      expect(tb.fontSelect.value).toBe('Bangers');
+      expect(tb.fontFamily).toBe('Arial');
+      expect(tb.fontSelect.value).toBe('Arial');
     });
   });
 
@@ -109,17 +109,17 @@ describe('TextBoxManager.setFontForAll', () => {
 
   it('updates both old and new boxes when changed twice', () => {
     const first = MemeGen.TextBoxManager.createTextBoxAt(10, 10);
-    MemeGen.TextBoxManager.setFontForAll('Anton');
+    MemeGen.TextBoxManager.setFontForAll('Arial');
 
     const second = MemeGen.TextBoxManager.createTextBoxAt(40, 40);
-    MemeGen.TextBoxManager.setFontForAll('Luckiest Guy');
+    MemeGen.TextBoxManager.setFontForAll("'Comic Sans MS', 'Comic Sans', sans-serif");
 
-    expect(first.fontFamily).toBe('Luckiest Guy');
-    expect(second.fontFamily).toBe('Luckiest Guy');
+    expect(first.fontFamily).toBe("'Comic Sans MS', 'Comic Sans', sans-serif");
+    expect(second.fontFamily).toBe("'Comic Sans MS', 'Comic Sans', sans-serif");
   });
 
   it('reset() restores the default font for new boxes', () => {
-    MemeGen.TextBoxManager.setFontForAll('Bangers');
+    MemeGen.TextBoxManager.setFontForAll('Arial');
     MemeGen.TextBoxManager.reset();
     MemeGen.TextBoxManager.init(container, canvas);
     MemeGen.TextBoxManager.setImageLoaded(true);

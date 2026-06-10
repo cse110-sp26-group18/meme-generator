@@ -136,6 +136,14 @@
 
       <p class="hint" id="hint" hidden>Click on the image to add text</p>
 
+      <!-- Scan Text — runs client-side OCR (Tesseract.js) on the loaded image
+           and drops an editable text box over each detected caption, erasing
+           the original baked-in text behind a background-matched blend.
+           Disabled until an image is loaded (matches Download/Share). -->
+      <div class="scan-text-row">
+        <button type="button" id="scan-text-btn" disabled>Scan Text</button>
+      </div>
+
       <section id="editor-library-preview" class="editor-library-preview" aria-label="Meme library">
         <input
           type="text"
@@ -229,8 +237,10 @@
           </label>
 
           <button type="button" id="desktop-ai-generate-btn" class="ai-generate-btn">Generate</button>
+          <hr id="desktop-ai-divider" class="ai-divider">
           <a href="#" id="desktop-ai-change-key" class="ai-change-key" hidden>Change API key</a>
         </div>
+
 
         <div id="desktop-ai-key-form" class="ai-key-form" hidden>
           <label class="ai-field">
@@ -257,14 +267,19 @@
       </section>
     </section>
   </main>
+  <!-- Tesseract.js (client-side WASM OCR) powers Scan Text. Loaded from CDN so
+       it stays a zero-build, no-npm-dependency static site. -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="js/ThemeToggle.js"></script>
   <script src="js/LayoutManager.js"></script>
   <script src="js/ImageLoader.js"></script>
   <script src="js/FileValidator.js"></script>
+  <script src="js/Inpaint.js"></script>
   <script src="js/TextBox.js"></script>
   <script src="js/DragResize.js"></script>
   <script src="js/TextBoxManager.js"></script>
   <script src="js/Exporter.js"></script>
+  <script src="js/TextRecognizer.js"></script>
   <script src="js/MemeSearch.js"></script>
   <script src="js/GeminiClient.js"></script>
   <script src="js/AISuggestions.js"></script>

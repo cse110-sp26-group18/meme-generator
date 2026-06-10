@@ -9,6 +9,8 @@ module.exports = [
       globals: {
         ...globals.browser,
         MemeGen: 'readonly',
+        // Loaded globally via a CDN <script> in index.html (OCR / Scan Text).
+        Tesseract: 'readonly',
       },
     },
     rules: {

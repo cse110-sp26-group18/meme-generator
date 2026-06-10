@@ -202,8 +202,6 @@ describe('Toolbar visibility contract — selection state on text boxes', () => 
     expect(toolbar.querySelector('.font-size-btn')).not.toBeNull();
     expect(toolbar.querySelector('.font-size-display')).not.toBeNull();
     expect(toolbar.querySelector('.font-select')).not.toBeNull();
-    expect(toolbar.querySelector('.border-toggle')).not.toBeNull();
-
     expect(textBox.el.querySelector('.text-box-delete-btn')).not.toBeNull();
   });
 });

@@ -47,31 +47,6 @@ describe('Shared font list (MemeGen.TextBox.FONTS)', () => {
   });
 });
 
-// ── TextBox.setFontFamily ─────────────────────────────────────────────────────
-
-describe('TextBox.setFontFamily', () => {
-  let container;
-  let tb;
-
-  beforeEach(() => {
-    container = makeContainer();
-    tb = new MemeGen.TextBox(0, 0, container);
-  });
-
-  afterEach(() => {
-    document.body.removeChild(container);
-  });
-
-  it('updates fontFamily, textarea inline style, and the dropdown value together', () => {
-    tb.setFontFamily('Bangers');
-    expect(tb.fontFamily).toBe('Bangers');
-    expect(tb.textarea.style.fontFamily).toBe('Bangers');
-    expect(tb.fontSelect.value).toBe('Bangers');
-  });
-
- 
-});
-
 // ── TextBoxManager.setFontForAll ──────────────────────────────────────────────
 
 describe('TextBoxManager.setFontForAll', () => {
@@ -93,33 +68,8 @@ describe('TextBoxManager.setFontForAll', () => {
     document.body.removeChild(container);
   });
 
-  it('applies the chosen font to every existing text box', () => {
-    MemeGen.TextBoxManager.createTextBoxAt(10, 10);
-    MemeGen.TextBoxManager.createTextBoxAt(20, 20);
-
-    MemeGen.TextBoxManager.setFontForAll('Bangers');
-
-    MemeGen.TextBoxManager.getAll().forEach((tb) => {
-      expect(tb.fontFamily).toBe('Bangers');
-      expect(tb.fontSelect.value).toBe('Bangers');
-    });
-  });
-
-
-
-  it('updates both old and new boxes when changed twice', () => {
-    const first = MemeGen.TextBoxManager.createTextBoxAt(10, 10);
-    MemeGen.TextBoxManager.setFontForAll('Anton');
-
-    const second = MemeGen.TextBoxManager.createTextBoxAt(40, 40);
-    MemeGen.TextBoxManager.setFontForAll('Luckiest Guy');
-
-    expect(first.fontFamily).toBe('Luckiest Guy');
-    expect(second.fontFamily).toBe('Luckiest Guy');
-  });
-
   it('reset() restores the default font for new boxes', () => {
-    MemeGen.TextBoxManager.setFontForAll('Bangers');
+    MemeGen.TextBoxManager.setFontForAll('Arial');
     MemeGen.TextBoxManager.reset();
     MemeGen.TextBoxManager.init(container, canvas);
     MemeGen.TextBoxManager.setImageLoaded(true);

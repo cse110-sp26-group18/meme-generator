@@ -7,13 +7,13 @@ document.addEventListener('DOMContentLoaded', function () {
   var downloadBtn = document.getElementById('download-btn');
   var shareBtn = document.getElementById('share-btn');
   var copyBtn = document.getElementById('copy-btn');
-  var scanTextBtn = document.getElementById('scan-text-btn');
   var searchIconBtn = document.getElementById('search-icon-btn');
   var memeSearchSection = document.getElementById('meme-search');
   var memeSearchCloseBtn = document.getElementById('meme-search-close');
   var mobileBackBtn = document.getElementById('mobile-back-btn');
   var mobileHomeBackBtn = document.getElementById('mobile-home-back-btn');
   var mobileHomePlusBtn = document.getElementById('mobile-home-plus-btn');
+  var mobileAiBtn = document.getElementById('mobile-ai-btn');
   var browseMemesBtn = document.getElementById('browse-memes-btn');
   var mobileFontsBtn = document.getElementById('mobile-fonts-btn');
   var fontsBtn = document.getElementById('fonts-btn');
@@ -330,7 +330,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // so live update and export both stay consistent. If a text box's
   // current font isn't in the cycle list, it starts at the first entry
   // ('Impact'). If there are no text boxes, surface the discovery hint.
-  var MEME_FONTS = ['Impact', 'Arial', "'Comic Sans MS', cursive"];
+  var MEME_FONTS = ['Impact', 'Arial', 'Comic Sans MS'];
 
   function cycleFontForTextBox(tb) {
     if (!tb || !tb.fontSelect) return;
@@ -831,6 +831,14 @@ document.addEventListener('DOMContentLoaded', function () {
   if (aiModeToggle) {
     aiModeToggle.addEventListener('click', function () {
       setAiMode(!document.body.classList.contains('ai-mode'));
+    });
+  }
+
+  // Mobile browse page AI button — switches to editor view and activates AI mode.
+  if (mobileAiBtn) {
+    mobileAiBtn.addEventListener('click', function () {
+      showEditorView();
+      setAiMode(true);
     });
   }
 

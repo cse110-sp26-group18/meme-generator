@@ -42,6 +42,7 @@ MemeGen.DragResize = (function () {
     // body.is-moving-text-box lets CSS disable overlays during drag so
     // they do not intercept the pointer and make movement stutter.
     var moving = false;
+    var movePointerId = -1;
 
     function endMoveDrag(e) {
       if (e && e.pointerId !== undefined && el.hasPointerCapture(e.pointerId)) {
@@ -49,9 +50,9 @@ MemeGen.DragResize = (function () {
       }
 
       moving = false;
+      movePointerId = -1;
       document.body.classList.remove('is-moving-text-box');
 
-      // Keep the box anchored correctly if the canvas/layout resizes later.
       if (typeof textBox.captureRelativeState === 'function') {
         textBox.captureRelativeState();
       }
@@ -60,26 +61,17 @@ MemeGen.DragResize = (function () {
     el.addEventListener('pointerdown', function (e) {
       var target = e.target;
 
-      // Resize handles should resize, not move.
-      if (target.classList.contains('resize-handle')) {
-        return;
-      }
+      if (target.classList.contains('resize-handle')) return;
+      if (target.closest('.text-box-toolbar')) return;
+      if (target.closest('.text-box-delete-btn')) return;
+      if (!textBox.selected) return;
 
-      // Toolbar controls should not move the textbox.
-      if (target.closest('.text-box-toolbar')) {
-        return;
-      }
-
-      if (target.closest('.text-box-delete-btn')) {
-        return;
-      }
-
-      // Only drag boxes that are already selected.
-      if (!textBox.selected) {
-        return;
-      }
+      // Only track the first pointer — ignore additional fingers so they
+      // don't overwrite startX/Y and cause position glitching during pinch.
+      if (moving) return;
 
       moving = true;
+      movePointerId = e.pointerId;
       el.setPointerCapture(e.pointerId);
 
       startX = e.clientX;
@@ -91,9 +83,12 @@ MemeGen.DragResize = (function () {
     });
 
     el.addEventListener('pointermove', function (e) {
-      if (!moving || !el.hasPointerCapture(e.pointerId)) {
+      if (!moving || e.pointerId !== movePointerId || !el.hasPointerCapture(e.pointerId)) {
         return;
       }
+
+      // Pinch takes over positioning — don't fight it with the pointer handler.
+      if (pinchActive) return;
 
       var dx = e.clientX - startX;
       var dy = e.clientY - startY;
@@ -236,6 +231,10 @@ MemeGen.DragResize = (function () {
     var pinchActive = false;
     var pinchStartDist = 0;
     var pinchStartFontSize = 0;
+    var pinchStartMidX = 0;
+    var pinchStartMidY = 0;
+    var pinchStartElLeft = 0;
+    var pinchStartElTop = 0;
 
     function touchDistance(t1, t2) {
       var dx = t1.clientX - t2.clientX;
@@ -245,13 +244,14 @@ MemeGen.DragResize = (function () {
 
     el.addEventListener('touchstart', function (e) {
       if (!e.touches || e.touches.length !== 2) return;
-      if (!textBox.selected) return;
       pinchActive = true;
       pinchStartDist = touchDistance(e.touches[0], e.touches[1]);
       pinchStartFontSize = textBox.fontSize;
+      pinchStartMidX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      pinchStartMidY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      pinchStartElLeft = el.offsetLeft;
+      pinchStartElTop = el.offsetTop;
       el.dataset.pinchAt = String(Date.now());
-      // Pinch always wins: cancel any in-flight hold-to-move / long-press
-      // state and close the quick-action menu if it happened to be open.
       resetHold();
       if (typeof textBox.hideQuickActions === 'function') {
         textBox.hideQuickActions();
@@ -264,10 +264,22 @@ MemeGen.DragResize = (function () {
       if (!e.touches || e.touches.length < 2) return;
       if (pinchStartDist <= 0) return;
       if (typeof e.preventDefault === 'function') e.preventDefault();
+
+      // Scale font size.
       var newDist = touchDistance(e.touches[0], e.touches[1]);
       var scale = newDist / pinchStartDist;
       textBox.applyFontSize(pinchStartFontSize * scale);
-      textBox._fitBoxToFontSize();
+      if (typeof textBox.fitBoxToText === 'function') {
+        textBox.fitBoxToText();
+      }
+
+      // Translate: keep the box centered on the midpoint of the two fingers.
+      var midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      var midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      var maxLeft = Math.max(0, container.offsetWidth - el.offsetWidth);
+      var maxTop = Math.max(0, container.offsetHeight - el.offsetHeight);
+      el.style.left = Math.max(0, Math.min(pinchStartElLeft + midX - pinchStartMidX, maxLeft)) + 'px';
+      el.style.top  = Math.max(0, Math.min(pinchStartElTop  + midY - pinchStartMidY, maxTop))  + 'px';
     }, { passive: false });
 
     el.addEventListener('touchend', function (e) {
@@ -276,6 +288,13 @@ MemeGen.DragResize = (function () {
       pinchActive = false;
       pinchStartDist = 0;
       el.dataset.pinchAt = String(Date.now());
+      if (typeof textBox.fitBoxToText === 'function') {
+        textBox.fitBoxToText();
+      }
+      if (typeof textBox.captureRelativeState === 'function') {
+        textBox.captureRelativeState();
+      }
+      textBox.deselect();
     });
 
     // --- Hold-to-move + long-press menu (touch only) ---
@@ -300,6 +319,7 @@ MemeGen.DragResize = (function () {
     var holdStartY = 0;
     var holdElStartLeft = 0;
     var holdElStartTop = 0;
+    var wasSelected = false;
 
     function resetHold() {
       if (holdTimer) {
@@ -333,6 +353,10 @@ MemeGen.DragResize = (function () {
       if (!e.touches || e.touches.length !== 1) return;
       if (isInteractiveTarget(e.target)) return;
 
+      wasSelected = textBox.selected;
+      if (typeof textBox.hideQuickActions === 'function') {
+        textBox.hideQuickActions();
+      }
       var t = e.touches[0];
       holdStartX = t.clientX;
       holdStartY = t.clientY;
@@ -342,11 +366,16 @@ MemeGen.DragResize = (function () {
       holdMoved = false;
       holdDragging = false;
       if (holdTimer) clearTimeout(holdTimer);
-      holdTimer = setTimeout(function () {
+      if (textBox.selected) {
+        holdTimer = setTimeout(function () {
+          holdComplete = true;
+          holdTimer = null;
+          el.classList.add('hold-active');
+        }, HOLD_MS);
+      } else {
+        // Unselected: any movement immediately drags; tap triggers edit on touchend.
         holdComplete = true;
-        holdTimer = null;
-        el.classList.add('hold-active');
-      }, HOLD_MS);
+      }
     }, { passive: true });
 
     el.addEventListener('touchmove', function (e) {
@@ -371,9 +400,16 @@ MemeGen.DragResize = (function () {
       }
 
       if (holdDragging || distSq > DRAG_THRESHOLD_PX * DRAG_THRESHOLD_PX) {
+        if (!holdDragging) {
+          if (!wasSelected && typeof textBox.onSelect === 'function') {
+            textBox.onSelect(textBox);
+          }
+          if (typeof textBox.hideQuickActions === 'function') {
+            textBox.hideQuickActions();
+          }
+        }
         holdDragging = true;
         holdMoved = true;
-        if (typeof e.preventDefault === 'function') e.preventDefault();
         var newLeft = Math.max(0, Math.min(holdElStartLeft + dx, container.offsetWidth - el.offsetWidth));
         var newTop  = Math.max(0, Math.min(holdElStartTop  + dy, container.offsetHeight - el.offsetHeight));
         el.style.left = newLeft + 'px';
@@ -387,19 +423,26 @@ MemeGen.DragResize = (function () {
       if (e.touches && e.touches.length > 0) return;
 
       if (holdComplete && holdMoved) {
-        // Drag ended — update relative state so ResizeObserver can restore
-        // the new position when the panel resizes.
+        // Drag ended — suppress synthetic mouse events, save position, deselect.
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+        if (typeof textBox.fitBoxToText === 'function') {
+          textBox.fitBoxToText();
+        }
         if (typeof textBox.captureRelativeState === 'function') {
           textBox.captureRelativeState();
         }
+        textBox.deselect();
       } else if (holdComplete && !holdMoved) {
-        // Hold without drag → open the quick-action menu. preventDefault
-        // here suppresses the synthetic click that would otherwise reach
-        // the document-level outside-click handler and immediately close
-        // the menu we just opened.
+        // preventDefault suppresses the synthetic mousedown/click that follows
+        // touchend — needed for both branches below.
         if (typeof e.preventDefault === 'function') e.preventDefault();
-        if (typeof textBox.showQuickActions === 'function') {
-          textBox.showQuickActions();
+        if (!wasSelected) {
+          // Tap on unselected textbox → select and enter edit mode.
+          if (typeof textBox.onSelect === 'function') textBox.onSelect(textBox);
+          textBox.focusTextarea();
+        } else {
+          // Hold without drag on selected textbox → enter edit mode.
+          textBox.focusTextarea();
         }
       }
       resetHold();

@@ -27,20 +27,15 @@ MemeGen.TextBoxManager = (function () {
 
     container.addEventListener('mousedown', function (e) {
       if (e.target === canvas && imageLoaded) {
-        // Consume the one-click suppression set when an empty box was just
-        // destroyed by a click outside the container — that gesture must not
-        // immediately open a new box.
         if (consumeSuppressNextCanvasCreate()) return;
         if (getSelectedTextBox()) {
           deselectOrDeleteSelectedTextBox();
           return;
         }
-        // getBoundingClientRect() returns viewport-relative coordinates;
-        // subtracting rect.left/top converts them to canvas-local coordinates.
+        if (isPointOverTextBox(e.clientX, e.clientY)) return;
         var rect = canvas.getBoundingClientRect();
         var x = e.clientX - rect.left;
         var y = e.clientY - rect.top;
-
         createTextBox(x, y);
       }
     });
@@ -48,23 +43,17 @@ MemeGen.TextBoxManager = (function () {
     // Support tap-to-create on touch devices
     container.addEventListener('touchend', function (e) {
       if (e.target === canvas && imageLoaded) {
-        // preventDefault stops the browser from synthesizing a mouse click
-        // after the touch, which would otherwise trigger a second createTextBox.
         e.preventDefault();
         if (consumeSuppressNextCanvasCreate()) return;
-        // Check for a selected text box first — same behaviour as mousedown.
         if (getSelectedTextBox()) {
           deselectOrDeleteSelectedTextBox();
           return;
         }
-        var rect = canvas.getBoundingClientRect();
-        // changedTouches contains only the touches that changed in this event;
-        // [0] is the first (and typically only) finger involved in the tap.
         var touch = e.changedTouches[0];
-
+        if (isPointOverTextBox(touch.clientX, touch.clientY)) return;
+        var rect = canvas.getBoundingClientRect();
         var x = touch.clientX - rect.left;
         var y = touch.clientY - rect.top;
-
         createTextBox(x, y);
       }
     });
@@ -133,6 +122,10 @@ MemeGen.TextBoxManager = (function () {
     };
 
     tb.onSelect = function (box) {
+      var prev = getSelectedTextBox();
+      if (prev && prev !== box && isTextBoxEmpty(prev)) {
+        prev.destroy();
+      }
       deselectAll();
       box.select();
     };
@@ -220,6 +213,14 @@ MemeGen.TextBoxManager = (function () {
 
   function isTextBoxEmpty(tb) {
     return !tb.textarea.value.trim();
+  }
+
+  function isPointOverTextBox(clientX, clientY) {
+    return textBoxes.some(function (tb) {
+      var r = tb.el.getBoundingClientRect();
+      return clientX >= r.left && clientX <= r.right &&
+             clientY >= r.top  && clientY <= r.bottom;
+    });
   }
 
   function reset() {

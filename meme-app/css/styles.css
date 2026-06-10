@@ -63,13 +63,13 @@
 }
 
 header .app-logo {
-  height: 65px;
+  height: 4rem;
   width: auto;
   display: block;
 }
 
 .meme-search-header .app-logo {
-  height: 56px;
+  height: 4.5rem;
   width: auto;
   display: block;
 }
@@ -960,24 +960,14 @@ body.is-moving-text-box .copy-btn {
   height: 2.5rem;
   border-radius: 50%;
   background: transparent;
-  color: var(--off-white);
-  border: 1.5px solid var(--off-white);
-  font-size: 1.25rem;
-  font-weight: 700;
-  line-height: 1;
+  border: none;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   padding: 0;
-  transition: background 0.15s, color 0.15s;
+  overflow: hidden;
 }
 
-.mobile-home-plus-btn:hover,
 .mobile-home-plus-btn:focus-visible {
-  background: var(--off-white);
-  color: var(--dark-forest);
-  outline: none;
+  outline: 2px solid var(--forest-green);
 }
 
 /* AI toggle button — bottom-left of the browse panel, mirrors the
@@ -985,36 +975,30 @@ body.is-moving-text-box .copy-btn {
 .ai-panda-btn {
   display: none;
   position: absolute;
-  bottom: 1.25rem;
-  left: 1.25rem;
-  width: 3.5rem;
-  height: 3.5rem;
-  border-radius: 50%;
-  background: var(--forest-green);
-  color: var(--off-white);
-  border: 2px solid var(--off-white);
-  font-size: 1rem;
-  font-weight: 700;
-  line-height: 1;
-  align-items: center;
-  justify-content: center;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  background: transparent;
+  border: none;
   padding: 0;
   z-index: 5;
-  box-shadow: 0 2px 8px rgba(15, 43, 26, 0.5);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
 }
 
-.ai-panda-btn:hover,
 .ai-panda-btn:focus-visible {
-  background: var(--dark-forest);
-  outline: none;
+  outline: 2px solid var(--forest-green);
+  border-radius: 50%;
 }
 
 .ai-panda-btn:active {
   transform: scale(0.96);
 }
 
+.ai-panda-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
 
 /* Desktop AI button — sits in the top .controls row next to Upload/Download.
  * Hidden by default; the desktop @media block lower in this file reveals it.
@@ -1092,27 +1076,31 @@ body.is-moving-text-box .copy-btn {
   position: absolute;
   top: 1rem;
   left: 1rem;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 3rem;
+  height: 3rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background: transparent;
-  color: var(--off-white);
   border: 2px solid var(--off-white);
   border-radius: 50%;
   cursor: pointer;
-  font-size: 1.1rem;
-  line-height: 1;
   padding: 0;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s;
   z-index: 1;
+}
+
+.mobile-home-back-btn img {
+  width: 65%;
+  height: 65%;
+  object-fit: contain;
+  display: block;
+  margin: auto;
 }
 
 .mobile-home-back-btn:hover,
 .mobile-home-back-btn:focus-visible {
   background: var(--off-white);
-  color: var(--dark-forest);
   outline: none;
 }
 
@@ -1180,7 +1168,7 @@ body.is-moving-text-box .copy-btn {
  * here. The thumb slides via translateX when [data-theme="dark"]. */
 .theme-toggle {
   flex: 0 0 auto;
-  margin-left: auto;
+  margin-left: -1.5rem;
   padding: 0;
   background: transparent;
   border: none;
@@ -1265,28 +1253,29 @@ body.is-moving-text-box .copy-btn {
 .ai-mode-toggle {
   display: inline-block;
   flex: 0 0 auto;
-  padding: 0.4rem 0.875rem;
+  width: 8rem;
+  height: 3rem;
+  margin-left: -1.75rem;
   background: transparent;
-  color: var(--dark-forest);
-  border: 2px solid var(--dark-forest);
-  border-radius: 999px;
+  border: none;
+  padding: 0;
   cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 600;
-  line-height: 1;
 }
 
-.ai-mode-toggle:hover,
+.ai-mode-toggle img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
 .ai-mode-toggle:focus-visible {
-  background: var(--dark-forest);
-  color: var(--off-white);
-  outline: none;
+  outline: 2px solid var(--forest-green);
+  border-radius: 50%;
 }
 
-.ai-mode-toggle[aria-pressed="true"] {
-  background: var(--forest-green);
-  color: var(--off-white);
-  border-color: var(--forest-green);
+.ai-mode-toggle:active {
+  transform: scale(0.96);
 }
 
 /* "Fonts" pill row — the primary font-dropdown trigger sits below the
@@ -1482,6 +1471,11 @@ body.is-moving-text-box .copy-btn {
     display: none;
   }
 
+  /* Hide corner resize squares on mobile — dotted border + X button are sufficient. */
+  .text-box.selected .resize-handle {
+    display: none;
+  }
+
   .controls {
     width: 100%;
     flex-wrap: wrap;
@@ -1537,11 +1531,6 @@ body.is-moving-text-box .copy-btn {
    * Mobile has no side-by-side panels, so AI mode slides the suggestions panel
    * up as a bottom sheet that temporarily takes the place of the Browse Memes
    * button row. Triggered by the header AI pill that replaced the ⚙ button. */
-  .ai-mode-toggle {
-    /* Compact so the pill fits the narrow header next to the theme toggle. */
-    padding: 0.35rem 0.625rem;
-    font-size: 0.75rem;
-  }
 
   /* The panel lives inside .meme-search, which is display:none on mobile until
    * Browse is open — and a display:none ancestor would keep the panel hidden.
@@ -1707,32 +1696,31 @@ body.is-moving-text-box .copy-btn {
   /* Floating upload + button anchored bottom-right of the browse panel. */
   .mobile-home-plus-btn {
     position: absolute;
-    bottom: 1.25rem;
-    right: 1.25rem;
-    width: 5rem;
-    height: 5rem;
-    background: var(--forest-green);
-    color: var(--off-white);
-    border: 2px solid var(--off-white);
-    font-size: 2rem;
-    font-weight: 700;
+    bottom: 2rem;
+    right: 2rem;
+    width: 4.5rem;
+    height: 4.5rem;
     border-radius: 50%;
+    background: transparent;
+    border: none;
+    padding: 0;
     flex: none;
     z-index: 5;
-    box-shadow: 0 2px 8px rgba(15, 43, 26, 0.5);
+    overflow: hidden;
   }
 
-  .mobile-home-plus-btn:hover,
-  .mobile-home-plus-btn:focus-visible {
-    background: var(--dark-forest);
+  .mobile-home-plus-btn img {
+    width: 5rem;
+    height: 5rem;
+    object-fit: cover;
+    display: block;
   }
 
   /* AI toggle button shown bottom-left of the browse panel. */
   body.browse-open .ai-panda-btn {
-    display: inline-flex;
-    width: 6rem;
-    height: 5rem;
-    font-size: 1rem;
+    display: block;
+    width: 15rem;
+    height: 7rem;
   }
 
   /* Show the Share button via CSS — JS inline override is not needed. */

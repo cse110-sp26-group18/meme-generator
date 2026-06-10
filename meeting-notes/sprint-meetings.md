@@ -8,6 +8,9 @@
 * [5/21](#5/21)
 * [5/26](#5/26)
 * [5/28](#5/28)
+* [6/4](#6/4)
+
+---
 
 <a id="5/7"></a>
 ## Sprint Meeting 1: 5/7 (6:20 PM – 6:45 PM)
@@ -297,5 +300,26 @@ Members:
 - Begin documenting all manual testing sessions and observations using the new testing template.
 - Complete and submit availability for the next in-person meeting using the When2Meet link.
 - **Fill out this [When2Meet](https://www.when2meet.com/?36809737-F1Ho8)**
+
+----
+<a id="6/4"></a>
+
+## Sprint Meeting 7: 6/4 (6:20 PM – 6:40 PM)
+
+### Summary
+- A couple days before the code freeze so everyone needs to make sure their feature branches are coming close to an end. 
+- No more new features, just focusing on quality of the ones already being implemented. 
+- All PRs should be done by Saturday night, review happening Sunday morning, and final review happening Sunday evening Sprint review meeting
+
+#### Updates
+- Some issues with the ai-text-recognition, Tim is working on that
+
+#### Blockers
+- Brendan and Daniel waiting for other PRs to be done to restore the library funcionalities
+
+### Tasks to Complete
+- Everyone finish current in-progress features 
+- Ask 3 friends for user feedback in case we need to change some UI designs [Form](https://docs.google.com/forms/d/e/1FAIpQLSc_gEBuY6Lsi2uv5ieEi79w1AGHPM5awMTnxxsnDoYVvlaxFg/viewform?usp=sharing&ouid=116264982814825997881) 
+- prepare for the video presentations next week 
 
 

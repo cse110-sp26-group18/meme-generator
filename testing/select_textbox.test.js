@@ -225,22 +225,4 @@ describe('TextBox selection and editing behavior', () => {
     expect(textbox.fontSizeDisplay.textContent).toBe('20px');
   });
 
-  test('border toggle turns border off and on', () => {
-    const textbox = createTextBox();
-
-    expect(textbox.borderEnabled).toBe(true);
-    expect(textbox.borderBtn.textContent).toBe('Border: ON');
-
-    textbox.borderBtn.click();
-
-    expect(textbox.borderEnabled).toBe(false);
-    expect(textbox.borderBtn.textContent).toBe('Border: OFF');
-    expect(textbox.textarea.classList.contains('no-border')).toBe(true);
-
-    textbox.borderBtn.click();
-
-    expect(textbox.borderEnabled).toBe(true);
-    expect(textbox.borderBtn.textContent).toBe('Border: ON');
-    expect(textbox.textarea.classList.contains('no-border')).toBe(false);
-  });
 });

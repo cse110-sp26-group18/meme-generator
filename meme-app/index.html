@@ -30,7 +30,7 @@
       class="mobile-back-btn"
       aria-label="Back to home"
       hidden
-    >←</button>
+    ><img src="assets/back-arrow.png" alt="" draggable="false"></button>
     <button
       type="button"
       id="search-icon-btn"
@@ -39,20 +39,22 @@
       aria-controls="meme-search"
       aria-expanded="false"
     >🔍</button>
-    <h1 class="app-title">
-      <img src="assets/mememaxxing-logo.png" alt="MemeMaxxing" class="app-logo">
-    </h1>
-    <!-- Desktop AI mode toggle (#87). Tap to swap the right-side template
-         library for the AI suggestions form + results, in place; the canvas
-         stays on the left. Desktop-only — hidden under 769px (AI is
-         desktop-only in this version). -->
-    <button
-      type="button"
-      id="ai-mode-toggle"
-      class="ai-mode-toggle"
-      aria-pressed="false"
-      title="Switch to AI suggestion mode"
-    ><img src="assets/ai-mode-button.png" alt="" draggable="false"></button>
+    <div class="header-logo-group">
+      <h1 class="app-title">
+        <img src="assets/mememaxxing-logo.png" alt="MemeMaxxing" class="app-logo">
+      </h1>
+      <!-- Desktop AI mode toggle (#87). Tap to swap the right-side template
+           library for the AI suggestions form + results, in place; the canvas
+           stays on the left. Desktop-only — hidden under 769px (AI is
+           desktop-only in this version). -->
+      <button
+        type="button"
+        id="ai-mode-toggle"
+        class="ai-mode-toggle"
+        aria-pressed="false"
+        title="Switch to AI suggestion mode"
+      >AI Mode: OFF</button>
+    </div>
     <!-- Theme toggle (#89). Pill-shaped switch with ☀️ and 🌙; clicking
          slides the thumb between them and flips the data-theme attribute
          on <html>. Persisted in localStorage. -->

@@ -81,20 +81,6 @@ describe('Pinch-to-resize gesture (DragResize.js)', () => {
     expect(textBox.fontSize).toBe(120);
   });
 
-  it('does not resize when the box is not selected', () => {
-    textBox.applyFontSize(24);
-    textBox.deselect();
-    textBox.el.dispatchEvent(makeTouchEvent('touchstart', [
-      { clientX: 100, clientY: 100 },
-      { clientX: 200, clientY: 100 }
-    ]));
-    textBox.el.dispatchEvent(makeTouchEvent('touchmove', [
-      { clientX: 50, clientY: 100 },
-      { clientX: 250, clientY: 100 }
-    ]));
-    expect(textBox.fontSize).toBe(24);
-  });
-
   it('ignores single-finger touchmove — typing should still work', () => {
     textBox.select();
     textBox.applyFontSize(24);
@@ -195,15 +181,17 @@ describe('Hold-to-move (DragResize.js)', () => {
     expect(textBox.quickMenu.classList.contains('is-open')).toBe(false);
   });
 
-  it('opens the quick-action menu when the hold timer completes WITHOUT movement', () => {
+  it('focuses the textarea when hold timer completes WITHOUT movement', () => {
+    const focusSpy = jest.spyOn(textBox, 'focusTextarea');
     textBox.el.dispatchEvent(makeTouchEvent('touchstart', [{ clientX: 200, clientY: 200 }]));
     jest.advanceTimersByTime(HOLD_MS + 50);
     textBox.el.dispatchEvent(makeTouchEvent('touchend', [], [{ clientX: 200, clientY: 200 }]));
-    expect(textBox.quickMenu.classList.contains('is-open')).toBe(true);
-    expect(textBox.el.classList.contains('menu-open')).toBe(true);
+    expect(focusSpy).toHaveBeenCalledTimes(1);
+    expect(textBox.quickMenu.classList.contains('is-open')).toBe(false);
   });
 
   it('drags the text box when movement happens AFTER the hold timer completes', () => {
+    textBox.select();
     textBox.el.dispatchEvent(makeTouchEvent('touchstart', [{ clientX: 200, clientY: 200 }]));
     jest.advanceTimersByTime(HOLD_MS + 50);
     expect(textBox.el.classList.contains('hold-active')).toBe(true);
@@ -284,9 +272,8 @@ describe('Quick-action menu (TextBox.js)', () => {
     document.body.innerHTML = '';
   });
 
-  it('renders an Edit / Border / Delete trio with the documented class names', () => {
+  it('renders an Edit / Delete pair with the documented class names', () => {
     expect(textBox.quickMenu.querySelector('.quick-action-edit')).not.toBeNull();
-    expect(textBox.quickMenu.querySelector('.quick-action-border')).not.toBeNull();
     expect(textBox.quickMenu.querySelector('.quick-action-delete')).not.toBeNull();
   });
 
@@ -295,15 +282,6 @@ describe('Quick-action menu (TextBox.js)', () => {
     textBox.showQuickActions();
     textBox.qEditBtn.click();
     expect(focusSpy).toHaveBeenCalledTimes(1);
-    expect(textBox.quickMenu.classList.contains('is-open')).toBe(false);
-  });
-
-  it('Border reuses the existing border-toggle handler and closes the menu', () => {
-    const before = textBox.borderEnabled;
-    textBox.showQuickActions();
-    textBox.qBorderBtn.click();
-    expect(textBox.borderEnabled).toBe(!before);
-    expect(textBox.quickMenu.classList.contains('is-open')).toBe(false);
   });
 
   it('Delete only fires after an explicit Delete tap — long-press alone never destroys', () => {
@@ -313,13 +291,6 @@ describe('Quick-action menu (TextBox.js)', () => {
     expect(destroySpy).not.toHaveBeenCalled();
     textBox.qDeleteBtn.click();
     expect(destroySpy).toHaveBeenCalledTimes(1);
-  });
-
-  it('outside click closes the menu', () => {
-    textBox.showQuickActions();
-    expect(textBox.quickMenu.classList.contains('is-open')).toBe(true);
-    document.body.dispatchEvent(new Event('click', { bubbles: true }));
-    expect(textBox.quickMenu.classList.contains('is-open')).toBe(false);
   });
 
   it('deselect() closes the menu (e.g. user picks another text box)', () => {

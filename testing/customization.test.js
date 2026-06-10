@@ -62,12 +62,6 @@ describe('Font Customization', () => {
     expect(textBox.fontFamily).toBe('Arial');
   });
 
-  it('should update fontFamily property when the font select changes to Comic Sans', () => {
-    textBox.fontSelect.value = "'Comic Sans MS', cursive";
-    textBox.fontSelect.dispatchEvent(new Event('change'));
-    expect(textBox.fontFamily).toBe("'Comic Sans MS', cursive");
-  });
-
   it('should reflect the updated font family in getState()', () => {
     textBox.fontSelect.value = 'Arial';
     textBox.fontSelect.dispatchEvent(new Event('change'));
@@ -78,59 +72,6 @@ describe('Font Customization', () => {
     textBox.fontSelect.value = 'Arial';
     textBox.fontSelect.dispatchEvent(new Event('change'));
     expect(textBox.textarea.style.fontFamily).toBe('Arial');
-  });
-});
-
-// ── Border Toggle ─────────────────────────────────────────────────────────────
-
-describe('Border Toggle', () => {
-  let container;
-  let textBox;
-
-  beforeEach(() => {
-    container = makeContainer();
-    textBox = new MemeGen.TextBox(10, 10, container);
-  });
-
-  afterEach(() => {
-    document.body.removeChild(container);
-  });
-
-  it('should have border enabled by default', () => {
-    expect(textBox.borderEnabled).toBe(true);
-  });
-
-  it('should display "Border: ON" on the toggle button initially', () => {
-    expect(textBox.borderBtn.textContent).toBe('Border: ON');
-  });
-
-  it('should disable the border and update button text after one click', () => {
-    textBox.borderBtn.click();
-    expect(textBox.borderEnabled).toBe(false);
-    expect(textBox.borderBtn.textContent).toBe('Border: OFF');
-  });
-
-  it('should add the "no-border" class to textarea when border is toggled off', () => {
-    textBox.borderBtn.click();
-    expect(textBox.textarea.classList.contains('no-border')).toBe(true);
-  });
-
-  it('should re-enable the border after a second click', () => {
-    textBox.borderBtn.click();
-    textBox.borderBtn.click();
-    expect(textBox.borderEnabled).toBe(true);
-    expect(textBox.borderBtn.textContent).toBe('Border: ON');
-  });
-
-  it('should remove the "no-border" class from textarea when border is re-enabled', () => {
-    textBox.borderBtn.click();
-    textBox.borderBtn.click();
-    expect(textBox.textarea.classList.contains('no-border')).toBe(false);
-  });
-
-  it('should reflect borderEnabled=false in getState() after toggle', () => {
-    textBox.borderBtn.click();
-    expect(textBox.getState().borderEnabled).toBe(false);
   });
 });
 

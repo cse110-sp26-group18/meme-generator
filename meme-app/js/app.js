@@ -730,6 +730,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.body.classList.toggle('ai-mode', on);
     if (aiModeToggle) {
       aiModeToggle.setAttribute('aria-pressed', String(on));
+      aiModeToggle.textContent = on ? 'AI Mode: ON' : 'AI Mode: OFF';
       aiModeToggle.title = on
         ? 'Switch back to normal mode'
         : 'Switch to AI suggestion mode';

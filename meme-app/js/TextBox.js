@@ -102,11 +102,6 @@ MemeGen.TextBox = (function () {
 
     toolbar.appendChild(fontSelect);
 
-    // Border toggle
-    var borderBtn = document.createElement('button');
-    borderBtn.className = 'border-toggle';
-    borderBtn.textContent = 'Border: ON';
-    toolbar.appendChild(borderBtn);
     el.appendChild(toolbar);
 
     // Delete
@@ -144,12 +139,6 @@ MemeGen.TextBox = (function () {
     qEditBtn.textContent = 'Edit';
     quickMenu.appendChild(qEditBtn);
 
-    var qBorderBtn = document.createElement('button');
-    qBorderBtn.type = 'button';
-    qBorderBtn.className = 'quick-action-btn quick-action-border';
-    qBorderBtn.textContent = 'Border';
-    quickMenu.appendChild(qBorderBtn);
-
     var qDeleteBtn = document.createElement('button');
     qDeleteBtn.type = 'button';
     qDeleteBtn.className = 'quick-action-btn quick-action-delete';
@@ -161,7 +150,6 @@ MemeGen.TextBox = (function () {
     this.el = el;
     this.textarea = textarea;
     this.fontSelect = fontSelect;
-    this.borderBtn = borderBtn;
     this.deleteBtn = deleteBtn;
     this.fontSizeDecBtn = fontSizeDecBtn;
     this.fontSizeIncBtn = fontSizeIncBtn;
@@ -169,7 +157,6 @@ MemeGen.TextBox = (function () {
     this.toolbar = toolbar;
     this.quickMenu = quickMenu;
     this.qEditBtn = qEditBtn;
-    this.qBorderBtn = qBorderBtn;
     this.qDeleteBtn = qDeleteBtn;
 
     this.container.appendChild(el);
@@ -190,17 +177,6 @@ MemeGen.TextBox = (function () {
     this.fontSelect.addEventListener('change', function () {
       self.fontFamily = this.value;
       self.textarea.style.fontFamily = this.value;
-    });
-
-    this.borderBtn.addEventListener('click', function () {
-      self.borderEnabled = !self.borderEnabled;
-      this.textContent = self.borderEnabled ? 'Border: ON' : 'Border: OFF';
-
-      if (self.borderEnabled) {
-        self.textarea.classList.remove('no-border');
-      } else {
-        self.textarea.classList.add('no-border');
-      }
     });
 
     this.deleteBtn.addEventListener('mousedown', function (e) {
@@ -294,26 +270,13 @@ MemeGen.TextBox = (function () {
     document.addEventListener('keydown', this._handleKeyDown);
 
     // --- Quick-action menu wiring (mobile long-press output) ---
-    // Edit → focus the textarea for typing.
-    // Border → reuse the existing border-toggle handler so the toolbar
-    //          label / state stay in sync; no behaviour duplication.
-    // Delete → only fires after this explicit second tap; the long-press
-    //          itself never destroys.
     this.qEditBtn.addEventListener('click', function (e) {
       e.stopPropagation();
       self.focusTextarea();
     });
-    this.qBorderBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      self.borderBtn.click();
-    });
     this.qDeleteBtn.addEventListener('click', function (e) {
       e.stopPropagation();
       self.destroy();
-    });
-
-    this.textarea.addEventListener('blur', function () {
-      self.hideQuickActions();
     });
 
     // --- Mobile double-tap → focus textarea ---
@@ -502,7 +465,7 @@ MemeGen.TextBox = (function () {
   TextBox.prototype.focusTextarea = function () {
     var self = this;
     self.editing = true;
-    self.showQuickActions();
+    self.hideQuickActions();
     self.textarea.focus();
     // setTimeout 0 defers the second focus call to after the current event
     // finishes — needed on desktop where the originating mousedown can

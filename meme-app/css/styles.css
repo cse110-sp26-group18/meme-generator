@@ -2,6 +2,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  caret-color: black;
 }
 
 /* Palette — applied from the polished mobile design references under
@@ -50,6 +51,12 @@
   align-items: center;
 }
 
+.header-logo-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .app-logo {
   height: 44px;
   width: auto;
@@ -63,14 +70,13 @@
 }
 
 header .app-logo {
-  height: 4rem;
+  height: 3.8rem;
   width: auto;
   display: block;
 }
 
 .meme-search-header .app-logo {
-  height: 4.5rem;
-  width: auto;
+  height: 4rem;
   display: block;
 }
 
@@ -1078,30 +1084,24 @@ body.is-moving-text-box .copy-btn {
   left: 1rem;
   width: 3rem;
   height: 3rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   background: transparent;
-  border: 2px solid var(--off-white);
+  border: none;
   border-radius: 50%;
   cursor: pointer;
   padding: 0;
-  transition: background 0.15s;
+  overflow: hidden;
   z-index: 1;
 }
 
 .mobile-home-back-btn img {
-  width: 65%;
-  height: 65%;
-  object-fit: contain;
+  width: 3rem;
+  height: 3rem;
+  object-fit: cover;
   display: block;
-  margin: auto;
 }
 
-.mobile-home-back-btn:hover,
 .mobile-home-back-btn:focus-visible {
-  background: var(--off-white);
-  outline: none;
+  outline: 2px solid var(--off-white);
 }
 
 /* Ensure [hidden] beats the display: inline-flex above. Author-CSS specificity
@@ -1142,24 +1142,23 @@ body.is-moving-text-box .copy-btn {
   height: 2.5rem;
   flex: 0 0 auto;
   display: none;
-  align-items: center;
-  justify-content: center;
   background: transparent;
-  color: var(--dark-forest);
-  border: 2px solid var(--dark-forest);
+  border: none;
   border-radius: 50%;
   cursor: pointer;
-  font-size: 1.1rem;
-  line-height: 1;
   padding: 0;
-  transition: background 0.15s, color 0.15s;
+  overflow: hidden;
 }
 
-.mobile-back-btn:hover,
+.mobile-back-btn img {
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: cover;
+  display: block;
+}
+
 .mobile-back-btn:focus-visible {
-  background: var(--dark-forest);
-  color: var(--off-white);
-  outline: none;
+  outline: 2px solid var(--dark-forest);
 }
 
 /* Theme toggle (#89): pill-shaped sliding switch with ☀️ and 🌙.
@@ -1253,29 +1252,28 @@ body.is-moving-text-box .copy-btn {
 .ai-mode-toggle {
   display: inline-block;
   flex: 0 0 auto;
-  width: 8rem;
-  height: 3rem;
-  margin-left: -1.75rem;
+  padding: 0.4rem 0.875rem;
   background: transparent;
-  border: none;
-  padding: 0;
+  color: var(--dark-forest);
+  border: 2px solid var(--dark-forest);
+  border-radius: 999px;
   cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1;
 }
 
-.ai-mode-toggle img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
-}
-
+.ai-mode-toggle:hover,
 .ai-mode-toggle:focus-visible {
-  outline: 2px solid var(--forest-green);
-  border-radius: 50%;
+  background: var(--dark-forest);
+  color: var(--off-white);
+  outline: none;
 }
 
-.ai-mode-toggle:active {
-  transform: scale(0.96);
+.ai-mode-toggle[aria-pressed="true"] {
+  background: var(--forest-green);
+  color: var(--off-white);
+  border-color: var(--forest-green);
 }
 
 /* "Fonts" pill row — the primary font-dropdown trigger sits below the

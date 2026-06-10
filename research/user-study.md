@@ -2,14 +2,14 @@
 In order to maintain a human-centered project, we spent time ensuring we understand our target audience. 
 
 ## User Survey
-# Initial Survey
-This survey was sent to all CSE110 students and our own friends:  
-[Meme Generator Survey](https://docs.google.com/forms/d/e/1FAIpQLSe7W3z_zCDKt6zSCbLowkkn0ASFlT91d8pdZgNOR1EwX9iabw/viewform?usp=sharing&ouid=116264982814825997881)   
+- Initial Survey:   
+This survey was sent to all CSE110 students and our own friends  
+[Meme Generator Survey](https://docs.google.com/forms/d/e/1FAIpQLSe7W3z_zCDKt6zSCbLowkkn0ASFlT91d8pdZgNOR1EwX9iabw/viewform?usp=sharing&ouid=116264982814825997881)        
 [Spreadsheet of Responses and data](https://docs.google.com/spreadsheets/d/10RNL8rYggWKypoVWlszl9zNryPJJCmf_SSrvHFQlRP0/edit?usp=sharing) 
 
-# Follow-Up Survey 
-This survey was sent about version 4 of the project to friends and potential users in order to see their thoughts on the working implementation and guide our next steps: 
-[MemeMaxxing User Feedback](https://drive.google.com/drive/folders/1tdc14BGBRbiZGz7edkPr2BdnGqpbz6FS?usp=sharing) 
+- Follow-Up Survey:    
+This survey was sent about version 4 of the project to friends and potential users in order to see their thoughts on the working implementation and guide our next steps      
+[MemeMaxxing User Feedback](https://drive.google.com/drive/folders/1tdc14BGBRbiZGz7edkPr2BdnGqpbz6FS?usp=sharing)     
 [Spreadsheet of Responses and data](https://docs.google.com/spreadsheets/d/1vbGSEgctXV9J6HQB8jdHoj-Tpvk_d9SsVOmiOvZMs1c/edit?resourcekey=&gid=1391681914#gid=1391681914) 
 
 ## User Questioner  

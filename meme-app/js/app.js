@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', function () {
   var downloadBtn = document.getElementById('download-btn');
   var shareBtn = document.getElementById('share-btn');
   var copyBtn = document.getElementById('copy-btn');
-  var scanTextBtn = document.getElementById('scan-text-btn');
   var searchIconBtn = document.getElementById('search-icon-btn');
   var memeSearchSection = document.getElementById('meme-search');
   var memeSearchCloseBtn = document.getElementById('meme-search-close');
@@ -331,7 +330,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // so live update and export both stay consistent. If a text box's
   // current font isn't in the cycle list, it starts at the first entry
   // ('Impact'). If there are no text boxes, surface the discovery hint.
-  var MEME_FONTS = ['Impact', 'Arial', "'Comic Sans MS', cursive"];
+  var MEME_FONTS = ['Impact', 'Arial', 'Comic Sans MS'];
 
   function cycleFontForTextBox(tb) {
     if (!tb || !tb.fontSelect) return;

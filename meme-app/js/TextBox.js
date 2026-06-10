@@ -12,7 +12,7 @@ MemeGen.TextBox = (function () {
   var FONTS = [
     { label: 'Impact',     value: 'Impact' },
     { label: 'Arial',      value: 'Arial' },
-    { label: 'Comic Sans', value: "'Comic Sans MS', 'Comic Sans', sans-serif" },
+    { label: 'Comic Sans', value: 'Comic Sans MS'},
   ];
 
   /**
@@ -373,7 +373,7 @@ MemeGen.TextBox = (function () {
     this.el.style.width = newWidth + 'px';
     this.el.style.height = newHeight + 'px';
 
-    if (typeof this.keepInsideContainer === 'function') {
+    if (this.container) {
       this.keepInsideContainer();
     }
   };

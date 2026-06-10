@@ -604,11 +604,6 @@ body.is-moving-text-box .copy-btn {
   opacity: 1;
 }
 
-.text-box textarea.no-border {
-  -webkit-text-stroke: 0;
-  text-shadow: none;
-}
-
 .text-box.selected textarea {
   border-color: var(--forest-green);
   
@@ -1167,7 +1162,7 @@ body.is-moving-text-box .copy-btn {
  * here. The thumb slides via translateX when [data-theme="dark"]. */
 .theme-toggle {
   flex: 0 0 auto;
-  margin-left: -1.5rem;
+  margin-left: auto;
   padding: 0;
   background: transparent;
   border: none;

@@ -1,8 +1,8 @@
 # The Pandalorians (Team 18) - Meme Generator
 
-[Deployed Meme Generator](https://cse110-sp26-group18.github.io/meme-generator/meme-app/)
-[MemeMaxxing Final Project Video (Public Version)](https://youtu.be/yDDCgs8fBrY)
-[MemeMaxxing Final Project Video (Private Version)](https://youtu.be/o32UQGqPoog)
+[Deployed Meme Generator](https://cse110-sp26-group18.github.io/meme-generator/meme-app/)   
+[MemeMaxxing Final Project Video (Public Version)](https://youtu.be/yDDCgs8fBrY)     
+[MemeMaxxing Final Project Video (Private Version)](https://youtu.be/o32UQGqPoog)      
 
 ## Members
 
